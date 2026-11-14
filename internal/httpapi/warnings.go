@@ -81,6 +81,9 @@ type warningsState struct {
 	plan func() (radio.Plan, bool)
 	// the clock of the time-based rules (backup-age, occulited task 140); nil = time.Now
 	now func() time.Time
+	// the parents of the addons' directories the ownership walk refuses now (occulited B-145);
+	// nil = Root.UnsafeAddonParents
+	addonParents func() []system.AddonParent
 }
 
 // forgetFirewall drops the cached reading after the firewall was loaded.
@@ -243,6 +246,7 @@ func (a *SystemAPI) warningSources() []warnings.Source {
 		{IDs: []string{"certificate"}, Eval: a.certificateWarning},
 		{IDs: []string{"storage"}, Eval: a.storageWarning},
 		{IDs: []string{"addon-ownership"}, Lists: true, Eval: a.ownershipWarning},
+		{IDs: []string{"addon-parents"}, Eval: a.addonParentsWarning}, // occulited B-145
 		{IDs: []string{"security-key"}, Eval: a.securityKeyWarning},
 		{IDs: []string{"hmip-adapter"}, Eval: a.hmipAdapterWarning},
 		{IDs: []string{"hmip-local-swap"}, Eval: a.hmipLocalSwapWarning},
@@ -639,6 +643,34 @@ func (a *SystemAPI) ownershipWarning(context.Context) ([]warnings.Warning, bool)
 		return nil, true
 	}
 	return []warnings.Warning{addonListWarning("addon-ownership", warnings.SeverityWarning, "/services", list)}, true
+}
+
+// addon-parents (occulited B-145): a directory above the addons' own - /usr/local, its etc and
+// addons, the config directory, its addons and addons/www - that a user other than root can change.
+// The ownership walk then refuses every addon's directories, so no addon runs as its own user. The
+// start of occulited takes the bits off a root-owned one; what is left is named here, evaluated live
+// (a stat of the six), so the warning clears as soon as the directory is fixed. Systemd only: the
+// busybox products confine no addon. The variant is the paths, so another one is a new warning.
+func (a *SystemAPI) addonParentsWarning(context.Context) ([]warnings.Warning, bool) {
+	if !a.Root.HasSystemd() {
+		return nil, true
+	}
+	check := a.warn.addonParents
+	if check == nil {
+		check = a.Root.UnsafeAddonParents
+	}
+	found := check()
+	if len(found) == 0 {
+		return nil, true
+	}
+	paths := make([]string, len(found))
+	list := make([]map[string]any, len(found))
+	for i, p := range found {
+		paths[i] = p.Path
+		list[i] = map[string]any{"path": p.Path, "uid": p.UID, "gid": p.GID, "mode": p.Mode, "reason": p.Reason}
+	}
+	return []warnings.Warning{{ID: "addon-parents", Variant: strings.Join(paths, ","), Severity: warnings.SeverityWarning, Href: "/services",
+		Params: map[string]any{"parents": list}}}, true
 }
 
 // rfdState is what the radio sampler knows about rfd.

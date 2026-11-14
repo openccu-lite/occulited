@@ -6,6 +6,7 @@ const t = (key: string, params?: Record<string, string | number>) => {
     for (const [k, v] of Object.entries(params ?? {})) s = s.replaceAll(`{${k}}`, String(v));
     return s;
 };
+const I18N = (import.meta.glob('./i18n.svelte.ts', {query: '?raw', import: 'default', eager: true}) as Record<string, string>)['./i18n.svelte.ts'] ?? '';
 const words: Words = {t, addonName: (a) => a.name || a.id, storage: (w) => `storage ${w.variant}`, when: (iso) => `at ${iso}`};
 const w = (id: string, variant: string, params: Warning['params'] = {}, href = ''): Warning => ({id, variant, severity: 'error', params, href});
 
@@ -125,6 +126,31 @@ describe('the Status page warnings (task 81)', () => {
         expect(warningText(w('security-key', 'default'), words)).toMatch(/^BidCos-RF uses the default security key\./);
         // a warning this page does not know yet still says which it is
         expect(warningText(w('future', 'x'), words)).toBe('future: x');
+    });
+
+    it('names a parent of the addons\' directories others can change, why it matters and the fix (occulited B-145)', () => {
+        const one = {...w('addon-parents', '/usr/local', {parents: [{path: '/usr/local', uid: 0, gid: 0, mode: '0777', reason: 'mode'}]}, '/services'), severity: 'warning' as const};
+        expect(warningText(one, words)).toBe('/usr/local can be changed by users other than root (owner 0, group 0, mode 0777). While it is so, addons cannot run as their own user; they run as root instead. To fix it, run as root on the system: chown root:root /usr/local; chmod go-w /usr/local. A restart of occulited or of the system also fixes a directory that belongs to root. Then switch the addons to their own user on the Services page.');
+        expect(warningLink(one, t)).toEqual({href: '/services', label: 'Services'});
+        const two = warningText(w('addon-parents', '/usr/local/addons,/usr/local/etc/config/addons/www', {parents: [
+            {path: '/usr/local/addons', uid: 1000, gid: 1000, mode: '0755', reason: 'owner'},
+            {path: '/usr/local/etc/config/addons/www', uid: 0, gid: 0, mode: '0777', reason: 'link'},
+        ]}), words);
+        expect(two).toContain('/usr/local/addons belongs to user 1000, not to root (group 1000, mode 0755).');
+        expect(two).toContain('/usr/local/etc/config/addons/www is a link to a directory that users other than root can change (owner 0, group 0, mode 0777).');
+        expect(two).toContain('chown root:root /usr/local/addons; chmod go-w /usr/local/addons; chown root:root /usr/local/etc/config/addons/www; chmod go-w /usr/local/etc/config/addons/www.');
+        // German: every sentence is in the catalogue (read as text: the catalogue's module needs Svelte's runes)
+        const de = (key: string, params?: Record<string, string | number>) => {
+            const esc = key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const m = new RegExp(`'${esc}': \\{\\s*de: '((?:[^'\\\\]|\\\\.)*)'`).exec(I18N);
+            expect(m, key).not.toBeNull();
+            return t(m?.[1] ?? key, params);
+        };
+        const text = warningText(one, {...words, t: de});
+        expect(text).toContain('/usr/local kann von anderen Benutzern als root geändert werden (Besitzer 0, Gruppe 0, Modus 0777).');
+        expect(text).toContain('können Addons nicht als eigener Benutzer laufen');
+        expect(text).toContain('führen Sie als root auf dem System aus: chown root:root /usr/local; chmod go-w /usr/local.');
+        expect(warningText(w('addon-parents', 'x', {parents: [{path: '/usr/local', uid: 5, gid: 5, mode: '0755', reason: 'owner'}, {path: '/usr/local/etc', uid: 0, gid: 0, mode: '0777', reason: 'link'}]}), {...words, t: de})).toContain('/usr/local gehört dem Benutzer 5, nicht root');
     });
 
     it('labels the way to where it is handled', () => {

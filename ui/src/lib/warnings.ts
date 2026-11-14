@@ -32,6 +32,17 @@ export interface WarnAddon {
     available?: string;
 }
 
+/** a directory above the addons' own that users other than root can change (addon-parents, occulited B-145) */
+export interface WarnParent {
+    path: string;
+    uid: number;
+    gid: number;
+    /** octal, four digits */
+    mode: string;
+    /** mode: root's, writable by others; owner: another owner; link: a link to such a directory; chmod: the system's fix failed */
+    reason: string;
+}
+
 /** a unit in a crash loop (openccu-lite task 283) */
 export interface WarnLoopUnit {
     unit: string;
@@ -60,7 +71,7 @@ export interface Warning {
     id: string;
     variant: string;
     severity: Severity;
-    params?: {addon?: string; title?: Record<string, string>; text?: Record<string, string>; posted?: string; expires?: string; addons?: WarnAddon[]; updates?: WarnUpdate[]; account?: string; at?: string; path?: string; days?: number; verdict?: string; reasons?: StorageReason[]; devices?: WarnDevice[]; mode?: string; reason?: string; adapter?: string; cause?: string; line?: string; families?: string[]; unreachable?: number; total?: number; port?: number; addresses?: string; sgtin?: string; address?: string; name?: string; detail?: string; label?: string; dir?: string; target?: string; share?: string; reconnecting?: boolean; interface?: string; kind?: string; since?: string; checked?: boolean; listeners?: StallListener[]; folder?: string; device?: string; running?: string; latest?: string; staged?: boolean; newest?: string; node?: string; drops_off?: boolean; hosts?: string[]; issuer?: string; store?: string; candidate?: boolean; from?: string; module?: string; version?: string; channel?: string; url?: string; minimum?: string; count?: number; bytes?: number; units?: WarnLoopUnit[]; fails?: number; failures?: number; restarts?: number; result?: string; first?: string; last?: string; written?: number; calc?: number; current?: number; offset?: number; wraps_at?: string; clock_state?: string; behind?: boolean; source?: string; duty_cycle?: number; carrier_sense?: number; transfer?: boolean; purpose?: string; host?: string; subject?: string; fingerprint?: string; spki?: string; accounts?: {user: string; at: string}[]; way?: string; by?: string; targets?: string; first_boot_journal?: string; first_boot_journal_size?: number};
+    params?: {addon?: string; title?: Record<string, string>; text?: Record<string, string>; posted?: string; expires?: string; addons?: WarnAddon[]; updates?: WarnUpdate[]; account?: string; at?: string; path?: string; days?: number; verdict?: string; reasons?: StorageReason[]; devices?: WarnDevice[]; mode?: string; reason?: string; adapter?: string; cause?: string; line?: string; families?: string[]; unreachable?: number; total?: number; port?: number; addresses?: string; sgtin?: string; address?: string; name?: string; detail?: string; label?: string; dir?: string; target?: string; share?: string; reconnecting?: boolean; interface?: string; kind?: string; since?: string; checked?: boolean; listeners?: StallListener[]; folder?: string; device?: string; running?: string; latest?: string; staged?: boolean; newest?: string; node?: string; drops_off?: boolean; hosts?: string[]; issuer?: string; store?: string; candidate?: boolean; from?: string; module?: string; version?: string; channel?: string; url?: string; minimum?: string; count?: number; bytes?: number; units?: WarnLoopUnit[]; fails?: number; failures?: number; restarts?: number; result?: string; first?: string; last?: string; written?: number; calc?: number; current?: number; offset?: number; wraps_at?: string; clock_state?: string; behind?: boolean; source?: string; duty_cycle?: number; carrier_sense?: number; transfer?: boolean; purpose?: string; host?: string; subject?: string; fingerprint?: string; spki?: string; accounts?: {user: string; at: string}[]; way?: string; by?: string; targets?: string; first_boot_journal?: string; first_boot_journal_size?: number; parents?: WarnParent[]};
     href?: string;
     /** this administrator's own silence (D-64) */
     silenced?: Silence;
@@ -214,6 +225,22 @@ export function warningText(w: Warning, words: Words): string {
                 ...addons.map((a) => t('Files of {name} belong to root, but the addon runs as its own user and may fail to start on them ({path}).', {name: words.addonName(a), path: a.path ?? ''})),
                 t("An update installed past occulited leaves such files: install_addon over SSH, or an addon's own updater."),
             ].join(' ');
+        case 'addon-parents': {
+            // occulited B-145: the ownership walk refuses every addon's directories below such a directory
+            const parents = p.parents ?? [];
+            const one = (d: WarnParent) => {
+                const v = {path: d.path, uid: d.uid, gid: d.gid, mode: d.mode};
+                if (d.reason === 'owner') return t('{path} belongs to user {uid}, not to root (group {gid}, mode {mode}).', v);
+                if (d.reason === 'link') return t('{path} is a link to a directory that users other than root can change (owner {uid}, group {gid}, mode {mode}).', v);
+                return t('{path} can be changed by users other than root (owner {uid}, group {gid}, mode {mode}).', v);
+            };
+            const cmd = parents.map((d) => `chown root:root ${d.path}; chmod go-w ${d.path}`).join('; ');
+            return [
+                ...parents.map(one),
+                t('While it is so, addons cannot run as their own user; they run as root instead.'),
+                t('To fix it, run as root on the system: {cmd}. A restart of occulited or of the system also fixes a directory that belongs to root. Then switch the addons to their own user on the Services page.', {cmd}),
+            ].join(' ');
+        }
         case 'security-key':
             return t('BidCos-RF uses the default security key. It is publicly known, so AES-protected BidCos devices are not protected against someone with a radio nearby. Setting your own key re-keys the AES-capable devices; write it down, a backup restored on another system asks for it.');
         case 'hmip-adapter':
@@ -409,6 +436,7 @@ const LINK_LABELS: Record<string, string> = {
     certificate: 'Certificate',
     storage: 'Storage health',
     'addon-ownership': 'Services',
+    'addon-parents': 'Services',
     'addon-ended': 'Addons',
     'addon-failed': 'Addons',
     'crash-loop': 'Services',

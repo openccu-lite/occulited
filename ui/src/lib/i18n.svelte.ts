@@ -2372,6 +2372,22 @@ const CATALOGUE: Record<string, {de: string; en?: string}> = {
         de: 'Solche Dateien hinterlässt ein Update, das an occulited vorbei installiert wurde: install_addon über SSH oder der eigene Updater eines Addons.',
     },
     'Fix ownership': {de: 'Besitzrechte korrigieren'},
+    // occulited B-145: addon-parents, a directory above the addons' own that others can change
+    '{path} belongs to user {uid}, not to root (group {gid}, mode {mode}).': {
+        de: '{path} gehört dem Benutzer {uid}, nicht root (Gruppe {gid}, Modus {mode}).',
+    },
+    '{path} is a link to a directory that users other than root can change (owner {uid}, group {gid}, mode {mode}).': {
+        de: '{path} ist ein Link auf ein Verzeichnis, das andere Benutzer als root ändern können (Besitzer {uid}, Gruppe {gid}, Modus {mode}).',
+    },
+    '{path} can be changed by users other than root (owner {uid}, group {gid}, mode {mode}).': {
+        de: '{path} kann von anderen Benutzern als root geändert werden (Besitzer {uid}, Gruppe {gid}, Modus {mode}).',
+    },
+    'While it is so, addons cannot run as their own user; they run as root instead.': {
+        de: 'Solange das so ist, können Addons nicht als eigener Benutzer laufen; sie laufen stattdessen als root.',
+    },
+    'To fix it, run as root on the system: {cmd}. A restart of occulited or of the system also fixes a directory that belongs to root. Then switch the addons to their own user on the Services page.': {
+        de: 'Zur Behebung führen Sie als root auf dem System aus: {cmd}. Ein Neustart von occulited oder des Systems behebt es bei einem Verzeichnis, das root gehört, ebenfalls. Stellen Sie danach die Addons auf der Seite Dienste auf ihren eigenen Benutzer um.',
+    },
     // B-98 (D-67): the question after an install that failed or asks for a reboot (lib/install.ts)
     '{name} was running before the update. Start it again?': {de: '{name} lief vor dem Update. Wieder starten?'},
     'It is enabled, so the reboot the installation asks for starts it anyway.': {
