@@ -19,6 +19,8 @@ const CASES: Case[] = [
     {id: 'arch', severity: 'error', href: '/catalog', variant: 'hm2mqtt', params: {addons: [{id: 'hm2mqtt', enabled: false}]}},
     {id: 'legacy-session', severity: 'warning', href: '/addons', variant: 'redmatic', params: {addons: [{id: 'redmatic', enabled: true}]}},
     {id: 'addon-ownership', severity: 'warning', href: '/services', variant: 'mosquitto', params: {addons: [{id: 'mosquitto', path: '/usr/local/addons/mosquitto/x'}]}},
+    // occulited B-145: every addon's row, since none of them can run as its own user
+    {id: 'addon-parents', severity: 'warning', href: '/services', variant: '/usr/local', params: {parents: [{path: '/usr/local', uid: 0, gid: 0, mode: '0777', reason: 'mode'}]}},
     {id: 'crash-loop', severity: 'error', href: '/system/services', variant: 'rfd', params: {units: [{unit: 'rfd', restarts: 4, total: 4, since: new Date().toISOString()}]}},
     {id: 'backup-target', severity: 'error', href: '/backup', variant: '/media/usb1', params: {path: '/media/usb1'}},
     {id: 'backup-userfs', severity: 'error', href: '/backup', variant: '/usr/local/backup', params: {path: '/usr/local/backup'}},
@@ -143,7 +145,7 @@ test.describe('the panel a warning leads to carries its edge', () => {
         const known = [...CASES.map((c) => c.id), ...Object.keys(NO_PANEL)];
         expect(new Set(known).size).toBe(known.length);
         // the ids of internal/httpapi/warnings.go and its siblings, as of task 12
-        for (const id of ['addon-payload', 'addon-ended', 'addon-failed', 'rega', 'arch', 'legacy-session', 'addon-update', 'addon-ownership', 'crash-loop', 'occulited-crash-loop', 'meta', 'unclean', 'backup-target', 'backup-userfs', 'backup-unencrypted', 'backup-delivery', 'backup-age', 'certificate', 'storage', 'security-key', 'hmip-local-key', 'hmip-key-declined', 'hmip-adapter', 'hmip-local-swap', 'hmip-module-missing', 'devices-import', 'hmip-security-counter', 'rpc-stalled', 'radio-load', 'firewall', 'hmip-port-open', 'classic-rpc-open', 'app-public', 'radio-firmware', 'radio-module-unusable', 'hmip-clock-hold', 'hb-rf-eth', 'journal-target', 'journal-sync', 'store-target', 'trust-ca', 'system-update-available', 'device-update-ready']) {
+        for (const id of ['addon-payload', 'addon-ended', 'addon-failed', 'rega', 'arch', 'legacy-session', 'addon-update', 'addon-ownership', 'addon-parents', 'crash-loop', 'occulited-crash-loop', 'meta', 'unclean', 'backup-target', 'backup-userfs', 'backup-unencrypted', 'backup-delivery', 'backup-age', 'certificate', 'storage', 'security-key', 'hmip-local-key', 'hmip-key-declined', 'hmip-adapter', 'hmip-local-swap', 'hmip-module-missing', 'devices-import', 'hmip-security-counter', 'rpc-stalled', 'radio-load', 'firewall', 'hmip-port-open', 'classic-rpc-open', 'app-public', 'radio-firmware', 'radio-module-unusable', 'hmip-clock-hold', 'hb-rf-eth', 'journal-target', 'journal-sync', 'store-target', 'trust-ca', 'system-update-available', 'device-update-ready']) {
             expect(known, id).toContain(id);
         }
     });

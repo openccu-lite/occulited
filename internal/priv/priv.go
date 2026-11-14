@@ -226,6 +226,10 @@ type Ops interface {
 	// RemoveRCTarget removes the regular file a migrated rc.d entry led to (occulited task 28,
 	// rctarget.go): under /usr/local/, outside the addons' tree, the configuration and the state.
 	RemoveRCTarget(path string) error
+	// TightenAddonParent takes the world-writable bit, and the group-writable bit of a group other
+	// than root's, off one of the directories above the addons' own (occulited B-145,
+	// addonparent.go): exactly AddonParentDirs, root's, never through a link, never a bit added.
+	TightenAddonParent(path string, mode uint32) error
 	// RemoveCCURemnant removes one of the known-useless CCU remnants (occulited task 29,
 	// remnants.go): an addon's config directory whose addon is gone, the ReGa's crash dump, the
 	// CCU3's empty eQ-3-Backup folder - the helper checks each condition itself.

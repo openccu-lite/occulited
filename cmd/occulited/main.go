@@ -2126,6 +2126,25 @@ func firstBootNeoServer(root system.Root, services httpapi.ServiceManager, state
 	}
 }
 
+// hardenAddonParents (occulited B-145) takes the group- and world-writable bits off the root-owned
+// directories above the addons' own that the ownership walk refuses, at every start: while it
+// refuses one, no addon can run as its own user. No marker: where the bit came from is not known, so it
+// may come back. What cannot be fixed that way stays for the Status page's addon-parents warning.
+func hardenAddonParents(root system.Root, log *slog.Logger) {
+	fixed, unsafe := root.HardenAddonParents()
+	for _, f := range fixed {
+		log.Warn("addon parents: took the bits off that let users other than root change the directory - addons can run as their own user again",
+			"path", f.Path, "old_mode", fmt.Sprintf("%04o", f.Old), "mode", fmt.Sprintf("%04o", f.New))
+	}
+	for _, u := range unsafe {
+		args := []any{"path", u.Path, "uid", u.UID, "gid", u.GID, "mode", u.Mode, "reason", u.Reason}
+		if u.Err != nil {
+			args = append(args, "err", u.Err)
+		}
+		log.Warn("addon parents: a user other than root can change this directory, so addons cannot run as their own user", args...)
+	}
+}
+
 // firstBootLeftovers removes what the CCU left on the userfs that openccu-lite never reads - the
 // ReGa database, the WebUI's data, the NEO Server (system.RemoveLeftoversOnce's list) - once, after
 // the first-boot name import settled (task 250: the maintainer, "kill these files after first boot
@@ -2161,6 +2180,7 @@ func firstBootLeftovers(root system.Root, services httpapi.ServiceManager, manag
 			log.Info("config directories: world-writable leftovers hardened", "dir", line.Dir, "entries", line.Entries)
 		}
 	}
+	hardenAddonParents(root, log)
 	run, ran, err := root.RemoveLeftoversOnce(stateDir, settled, time.Now(), stop, reload)
 	switch {
 	case !ran && err == nil:

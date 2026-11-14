@@ -27,7 +27,8 @@
     import {worse, type Edge} from '../lib/warnedge';
     // occulited task 12: a unit the Status page's crash-loop warning names, and an addon its
     // ownership warning names, carry the warning's edge on their row
-    const rowEdge = (id: string): Edge => worse(warnEdge(['crash-loop'], id), id.startsWith('addon-') ? warnEdge(['addon-ownership'], id.slice('addon-'.length)) : '');
+    // occulited B-145: addon-parents keeps every addon from its own user, so every addon's row carries it
+    const rowEdge = (id: string): Edge => worse(warnEdge(['crash-loop'], id), id.startsWith('addon-') ? worse(warnEdge(['addon-ownership'], id.slice('addon-'.length)), warnEdge(['addon-parents'])) : '');
 
     type Action = 'start' | 'stop' | 'restart' | 'enable' | 'disable';
     let services = $state<Service[] | null>(null);
@@ -603,7 +604,7 @@
             {#each list as s (s.id)}
                 <!-- task 139: the Addons page's Service link lands on the unit's row (#service-<id>) -->
                 {@const edge = rowEdge(s.id)}
-                <tr data-service={s.id} id={`service-${s.id}`} class="ol-warn-edge {edge}" class:sv-anchored={anchored === `service-${s.id}`} data-warn-for="crash-loop addon-ownership" data-warn-edge={edge || undefined}>
+                <tr data-service={s.id} id={`service-${s.id}`} class="ol-warn-edge {edge}" class:sv-anchored={anchored === `service-${s.id}`} data-warn-for="crash-loop addon-ownership addon-parents" data-warn-edge={edge || undefined}>
                     <!-- B-65: the dot is red for a failure only (lib/units.ts). B-75: kind and description
                          stand in a line under the id where their columns are hidden -->
                     <!-- openccu-lite task 100: an addon unit's row carries the addon's icon, where its manifest declares one -->

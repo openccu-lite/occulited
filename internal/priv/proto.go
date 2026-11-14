@@ -1791,6 +1791,8 @@ func (s *Server) do(ctx context.Context, req request) response {
 		return s.procExe(req)
 	case opRCTargetRemove:
 		return s.rcTarget(req)
+	case opAddonParentTighten:
+		return s.addonParent(req)
 	case opRemnantRemove:
 		return s.remnant(req)
 	case opAddonFragment:
