@@ -9,7 +9,7 @@ on:
   schedule:
     - cron: '17 4 * * *'
   push:
-    branches: [master]
+    branches: [master, 'hotfix-*']
   workflow_dispatch:
 
 permissions:
