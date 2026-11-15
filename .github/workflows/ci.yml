@@ -18,7 +18,8 @@ permissions:
 jobs:
   test:
     if: github.event_name != 'schedule' && github.server_url != 'https://github.com'
-    runs-on: buildroot
+    # the CI runner (label ci), not the build host: a test run no longer waits behind an image build
+    runs-on: ci
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v5
