@@ -29,6 +29,9 @@ const CASES: Case[] = [
     {id: 'backup-age', severity: 'error', href: '/backup', variant: 'error', params: {days: 8, since: '2026-11-02T10:00:00Z', way: 'download', by: 'admin'}},
     {id: 'certificate', severity: 'error', href: '/certificate', variant: 'expiring', params: {days: 5}},
     {id: 'storage', severity: 'warning', href: '#storage', variant: 'watch', params: {verdict: 'watch', reasons: []}},
+    // occulited task 148: the temperature panel (the stub shows one under stub-thermal, set below)
+    {id: 'soc-hot', severity: 'error', href: '#temperature', variant: 'error', params: {name: 'cpu-thermal', celsius: 85.3, warn_c: 80, max_c: 85}},
+    {id: 'disk-hot', severity: 'warning', href: '#temperature', variant: 'warning', params: {disks: [{device: 'sda', kind: 'usb', model: 'T7', celsius: 71, warn_c: 70, max_c: 80}]}},
     {id: 'security-key', severity: 'warning', href: '/system/keys#security-key', variant: 'default'},
     {id: 'hmip-local-key', severity: 'error', href: '/system/keys#local-key', variant: '2026-10-03T00:00:00Z'},
     {id: 'hmip-key-declined', severity: 'warning', href: '/system/keys#device-keys', variant: '3014F5AC9400040000000A09@x', params: {sgtin: '3014F5AC9400040000000A09'}},
@@ -98,6 +101,7 @@ test.describe('the panel a warning leads to carries its edge', () => {
         test(`${c.id} → ${c.href}`, async ({page, baseURL}) => {
             await only(page, [{id: c.id, variant: c.variant ?? 'x', severity: c.severity, href: c.href, since: new Date().toISOString(), params: c.params ?? {}}]);
             if (c.id === 'addon-payload') await payloadMissing(page, 'mosquitto');
+            if (c.href === '#temperature') await page.context().addCookies([{name: 'stub-thermal', value: 'pi', url: baseURL!}]);
             // the stub plants a server its store could not verify on this cookie (openccu-lite task 231)
             if (c.id === 'trust-ca') await page.context().addCookies([{name: 'stub-trust', value: `wp-${Math.random().toString(36).slice(2)}`, url: baseURL!}, {name: 'stub-trust-pending', value: '1', url: baseURL!}]);
             await page.goto(c.href.startsWith('#') ? '/' + c.href : c.href);
@@ -145,7 +149,7 @@ test.describe('the panel a warning leads to carries its edge', () => {
         const known = [...CASES.map((c) => c.id), ...Object.keys(NO_PANEL)];
         expect(new Set(known).size).toBe(known.length);
         // the ids of internal/httpapi/warnings.go and its siblings, as of task 12
-        for (const id of ['addon-payload', 'addon-ended', 'addon-failed', 'rega', 'arch', 'legacy-session', 'addon-update', 'addon-ownership', 'addon-parents', 'crash-loop', 'occulited-crash-loop', 'meta', 'unclean', 'backup-target', 'backup-userfs', 'backup-unencrypted', 'backup-delivery', 'backup-age', 'certificate', 'storage', 'security-key', 'hmip-local-key', 'hmip-key-declined', 'hmip-adapter', 'hmip-local-swap', 'hmip-module-missing', 'devices-import', 'hmip-security-counter', 'rpc-stalled', 'radio-load', 'firewall', 'hmip-port-open', 'classic-rpc-open', 'app-public', 'radio-firmware', 'radio-module-unusable', 'hmip-clock-hold', 'hb-rf-eth', 'journal-target', 'journal-sync', 'store-target', 'trust-ca', 'system-update-available', 'device-update-ready']) {
+        for (const id of ['addon-payload', 'addon-ended', 'addon-failed', 'rega', 'arch', 'legacy-session', 'addon-update', 'addon-ownership', 'addon-parents', 'crash-loop', 'occulited-crash-loop', 'meta', 'unclean', 'backup-target', 'backup-userfs', 'backup-unencrypted', 'backup-delivery', 'backup-age', 'certificate', 'storage', 'security-key', 'hmip-local-key', 'hmip-key-declined', 'hmip-adapter', 'hmip-local-swap', 'hmip-module-missing', 'devices-import', 'hmip-security-counter', 'rpc-stalled', 'radio-load', 'firewall', 'hmip-port-open', 'classic-rpc-open', 'app-public', 'radio-firmware', 'radio-module-unusable', 'hmip-clock-hold', 'hb-rf-eth', 'journal-target', 'journal-sync', 'store-target', 'trust-ca', 'system-update-available', 'device-update-ready', 'soc-hot', 'disk-hot']) {
             expect(known, id).toContain(id);
         }
     });

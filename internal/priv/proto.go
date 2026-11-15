@@ -1727,6 +1727,20 @@ func (s *Server) do(ctx context.Context, req request) response {
 			return refuse(req.Op + " takes a sequence number and nothing else")
 		}
 		return s.buttonOp(ctx, req)
+	case opThrottled:
+		// occulited task 148: the operation and nothing else - the helper builds the command line
+		if !reflect.DeepEqual(req, request{Op: req.Op}) {
+			s.log("helper: refused a throttling read with more than the operation")
+			return refuse("throttled takes nothing")
+		}
+		r, err := ops.Throttled(ctx)
+		if errors.Is(err, ErrNotAvailable) {
+			return response{Error: "not-available: " + strings.TrimPrefix(err.Error(), ErrNotAvailable.Error()+": ")}
+		}
+		if err != nil {
+			return response{Error: err.Error(), Stdout: r.Stdout, Stderr: r.Stderr, Exit: r.Exit}
+		}
+		return response{OK: true, Stdout: r.Stdout, Stderr: r.Stderr, Exit: r.Exit}
 	case opHDMI:
 		// openccu-lite task 340: the switch and nothing else - the helper finds the connectors
 		if !reflect.DeepEqual(req, request{Op: req.Op, Enabled: req.Enabled}) {

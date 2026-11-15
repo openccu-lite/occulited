@@ -634,9 +634,12 @@ func run(opts daemonOptions) error {
 	dataStoreMgr := &datastore.Manager{Path: datastore.FilePath(storeLoc, cfg.StateDir), Platform: root.ReadVersion().Platform, Log: log}
 	dataStoreMgr.Register(sampler)
 	// occulited task 37: the system's load and memory, once a minute, the same ring and file
+	// task 148: and the processor's temperature where there is a sensor
+	thermal := &system.ThermalReader{Root: root, Platform: dataStoreMgr.Platform, Log: log}
 	sysHist := &syshist.Sampler{Read: func() (syshist.Reading, bool) {
 		load, mem, ok := root.ReadUsage()
-		return syshist.Reading{Load: load, Mem: mem}, ok
+		soc, hasSoC := system.SoCTemperature(root.ReadTemperatures(thermal.Platform))
+		return syshist.Reading{Load: load, Mem: mem, SoC: soc, HasSoC: hasSoC}, ok
 	}, Polled: dataStoreMgr.Kick, Trusted: clockTrusted}
 	dataStoreMgr.Register(sysHist)
 	// task 194: the state store - the last value, ts, lc and confirmed of every datapoint of the
@@ -984,6 +987,7 @@ func run(opts daemonOptions) error {
 	// task 69: the storage health panel - SMART through the helper's one read, the kernel log from
 	// the journal, the daily write sample under <state>
 	storage := &system.Storage{Root: root, StateFile: filepath.Join(cfg.StateDir, "storage-writes.json"), Systemd: root.HasSystemd(), Log: log}
+	thermal.Disks = storage.DiskTemperatures // task 148: the disks' SMART temperatures
 	netTx := &system.NetTx{Root: root, Applier: system.NetApplier{Root: root, Iface: "eth0", Run: run, Systemd: root.HasSystemd()}, Override: system.DNSOverride{Path: filepath.Join(cfg.StateDir, "dns-override")}}
 	// task 227: IPv6 per interface; a change still pending at the last stop is rolled back, then
 	// the confirmed configuration applied (in the background: a DHCPv6 client may take seconds)
@@ -1048,7 +1052,7 @@ func run(opts daemonOptions) error {
 	}, HmIPServerDiagrams: func() bool { return cfg.HmIPServer.Diagrams }, OnHmIPServerDiagrams: func(on bool) error {
 		cfg.HmIPServer.Diagrams = on // task 33: read by the radio steps at hmipserver's next start
 		return config.Save(*cfgPath, cfg)
-	}, WebBase: "http://" + cfg.Listen, MetaRecovered: loaded.RecoveredFromBackup, NetTx: netTx, IPv6: ipv6Tx, Run: run, RunStdin: runStdin, Firewall: fwm, Health: sampler, SysHist: sysHist, Updates: updates, FirstBoot: firstBoot, ChangeKey: changeKey, SetLogLevel: setLogLevel, InitInterface: initInterface, AddonCtl: addonCtl, InstallToken: installToken, Feed: feed, Cert: certSvc, RadioFirmware: radioFW, RadioConnections: radioConn, RadioBusy: radioBusy, HmIPLocalKey: localKey, HmIPDeviceKeys: deviceKeys, ImportRecord: importRecord, NamesImport: metaAPI.ImportNamesFromSBK, ConfirmTicket: users.RedeemConfirmed, FirewallRules: fwRules, HTTPS: httpsCfg, ClassicRPC: &system.ClassicRPCConfig{Root: root, Run: run, Systemd: root.HasSystemd()}, WiFi: wifiService(root, root.HasSystemd()), Power: &system.Power{Root: root, Systemd: root.HasSystemd(), Run: run}, RadioInterfaces: radioIfs, Storage: storage, Clock: clock, BootTiming: bootTiming, Version: version, Commit: commit, BackupHooks: backupHooks}
+	}, WebBase: "http://" + cfg.Listen, MetaRecovered: loaded.RecoveredFromBackup, NetTx: netTx, IPv6: ipv6Tx, Run: run, RunStdin: runStdin, Firewall: fwm, Health: sampler, SysHist: sysHist, Updates: updates, FirstBoot: firstBoot, ChangeKey: changeKey, SetLogLevel: setLogLevel, InitInterface: initInterface, AddonCtl: addonCtl, InstallToken: installToken, Feed: feed, Cert: certSvc, RadioFirmware: radioFW, RadioConnections: radioConn, RadioBusy: radioBusy, HmIPLocalKey: localKey, HmIPDeviceKeys: deviceKeys, ImportRecord: importRecord, NamesImport: metaAPI.ImportNamesFromSBK, ConfirmTicket: users.RedeemConfirmed, FirewallRules: fwRules, HTTPS: httpsCfg, ClassicRPC: &system.ClassicRPCConfig{Root: root, Run: run, Systemd: root.HasSystemd()}, WiFi: wifiService(root, root.HasSystemd()), Power: &system.Power{Root: root, Systemd: root.HasSystemd(), Run: run}, RadioInterfaces: radioIfs, Storage: storage, Thermal: thermal, Clock: clock, BootTiming: bootTiming, Version: version, Commit: commit, BackupHooks: backupHooks}
 	// openccu-lite task 232: the server a purpose's pins are taken from - the OIDC issuer as the
 	// configuration file has it now, the ACME directory the settings point at
 	sysAPI.PinTarget = func(purpose string) string {

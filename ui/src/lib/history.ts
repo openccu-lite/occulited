@@ -248,6 +248,8 @@ export interface SystemSample {
     load: number;
     /** the memory in use in per cent, -1 unknown */
     mem: number;
+    /** the processor's temperature in °C (occulited task 148); absent without a sensor */
+    soc_c?: number;
 }
 
 /** the load series as the chart draws it */

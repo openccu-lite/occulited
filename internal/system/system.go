@@ -113,6 +113,9 @@ type Status struct {
 	// Clock (task 94): the boot's clock gate, /run/occulite/clock-state, and after a timeout
 	// whether chrony has synchronised since; set by the API (ClockCheck), absent without the file.
 	Clock *ClockStatus `json:"clock,omitempty"`
+	// Thermal (occulited task 148): the temperatures and, on a Raspberry Pi, the firmware's
+	// throttling state; set by the API (ThermalReader), absent on a system without any sensor.
+	Thermal *Thermal `json:"thermal,omitempty"`
 }
 
 // UncleanShutdown is /var/status/uncleanShutdown as the Status page reports it.

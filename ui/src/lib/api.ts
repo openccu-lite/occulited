@@ -1,4 +1,5 @@
 // The API client: JSON in, JSON out, errors as {error, message}. Nothing clever.
+import type {Thermal} from './thermal';
 import type {StatusDevice} from './storagepanels';
 import type {AddonImages} from './addonimages';
 
@@ -193,6 +194,8 @@ export interface Status {
      * timeout `synchronised` says whether chrony has synchronised since. Absent without the gate.
      */
     clock?: {state: string; synchronised: boolean; rtc_implausible?: string};
+    /** occulited task 148: the temperatures and a Pi's throttling state; absent without a sensor (the VM) */
+    thermal?: Thermal;
 }
 /** task 69: GET /api/system/v1/storage - the storage health panel */
 export type StorageVerdict = 'good' | 'watch' | 'replace';

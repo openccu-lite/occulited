@@ -15,6 +15,8 @@
     import {view, setChartSpan, setSubsOpen} from '../lib/viewstate.svelte';
     import SubscriberLabel from '../lib/SubscriberLabel.svelte';
     import StoragePanel from '../lib/StoragePanel.svelte';
+    import TemperaturePanel from '../lib/TemperaturePanel.svelte';
+    import {socSeries} from '../lib/thermal';
     import {clientLabel, streamDetail, streamName as streamLabel, streamPillTitle, type SubClient, type SubSummary} from '../lib/subscribers';
     import Icon from '../lib/Icon.svelte';
     import ServiceMessages from '../lib/ServiceMessages.svelte';
@@ -406,6 +408,8 @@
     const loadHist = $derived(loadSeries(sysHist ?? undefined));
     const memHist = $derived(memSeries(sysHist ?? undefined));
     const memPeak = $derived(spanMax(memHist, view.span));
+    // occulited task 148: the processor's temperature over time, in the temperature panel's foot
+    const socHist = $derived(socSeries(sysHist ?? undefined));
     const fmtLoad = (v: number) => formatLoad(v, i18n.language);
     // the graph's ticks: a whole number as it is (the CPU count, a top of 8), anything else as the figure
     const fmtLoadTick = (v: number) => (Number.isInteger(v) ? String(v) : fmtLoad(v));
@@ -695,6 +699,10 @@
                 reasonText={(r) => reasonText(r)}
                 deviceName={deviceName(d.name, storage?.devices ?? [])} />
         {/each}
+        <!-- occulited task 148: the temperatures beside the disks - none on a system without a sensor (the VM) -->
+        {#if status.thermal?.readings?.length}
+            <TemperaturePanel thermal={status.thermal} history={socHist} span={view.span} setSpan={setChartSpan} warnAttrs={warnFor(['soc-hot', 'disk-hot'])} />
+        {/if}
         {#each status.storage?.length ? [] : status.disks as d (d.mount)}
             <Gauge
                 label={t('Disk')}

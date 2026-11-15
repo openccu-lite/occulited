@@ -2289,6 +2289,18 @@ function activeWarnings(jar, warn, st) {
     for (const f of trustStateOf(jar).pinFailures) {
         list.push({id: 'trust-pin', variant: `${f.purpose}:${f.host}`, severity: 'error', href: `/system/trust#${f.purpose}`, params: {purpose: f.purpose, host: f.host, subject: f.chain[0].subject, fingerprint: f.chain[0].fingerprint, spki: f.chain[0].spki}});
     }
+    // occulited task 148: soc-hot and disk-hot as occulited raises them for the stub-thermal readings
+    const therm = THERMAL[jar['stub-thermal']];
+    if (therm) {
+        const lv = (r) => (r.celsius >= r.max_c ? 'error' : r.celsius >= r.warn_c ? 'warning' : '');
+        const soc = therm.readings.find((r) => r.kind === 'soc' && lv(r));
+        if (soc) list.push({id: 'soc-hot', variant: lv(soc), severity: lv(soc), href: '#temperature', params: {name: soc.name, celsius: soc.celsius, warn_c: soc.warn_c, max_c: soc.max_c}});
+        const disks = therm.readings.filter((r) => r.kind === 'disk' && lv(r));
+        if (disks.length) {
+            const sev = disks.some((r) => lv(r) === 'error') ? 'error' : 'warning';
+            list.push({id: 'disk-hot', variant: sev, severity: sev, href: '#temperature', params: {disks: disks.map((r) => ({device: r.device, kind: r.disk_kind, model: r.name, celsius: r.celsius, warn_c: r.warn_c, max_c: r.max_c}))}});
+        }
+    }
     const rep = STORAGE[jar['stub-storage'] || (warn ? 'watch' : 'good')] ?? STORAGE.good;
     if (rep.verdict !== 'good') {
         list.push({id: 'storage', variant: rep.verdict, severity: rep.verdict === 'replace' ? 'error' : 'warning', href: '#storage', params: {verdict: rep.verdict, reasons: rep.reasons, devices: rep.devices.map((d) => ({name: d.name, kind: d.kind, model: d.model}))}});
@@ -3355,6 +3367,22 @@ function variant(req, u, res) {
         sendJSON(res, {...structuredClone(routes[key]), security_key_set: false});
         return true;
     }
+    // occulited task 148: the temperature panel (stub-thermal=pi|ssd|hot|crit) - a Pi 4's SoC, with a
+    // USB SSD's SMART temperature, hot (throttled), at the limit with a hot disk and undervoltage now;
+    // and the processor's temperature in the history. Without the cookie the OVA has no sensor.
+    if (jar['stub-thermal'] && THERMAL[jar['stub-thermal']] && (key === 'GET /api/system/v1/status' || key === 'GET /api/system/v1/status/history')) {
+        const h = structuredClone(routes[key]);
+        const th = THERMAL[jar['stub-thermal']];
+        if (key === 'GET /api/system/v1/status') {
+            h.version = {...h.version, product: 'rpi4', platform: 'rpi4'};
+            h.thermal = th;
+        } else {
+            const top = th.readings[0].celsius;
+            h.samples = h.samples.map((x, i) => (i < 20 ? x : {...x, soc_c: Math.round((top - 8 + 6 * Math.sin(i / 9) + (i > h.samples.length - 10 ? 8 : 0)) * 10) / 10}));
+        }
+        sendJSON(res, h);
+        return true;
+    }
     // occulited task 78: the storage panels of a Pi's card, of a daemon without them, of a full userfs
     // task 111: a health variant (stub-storage=good|watch|replace|old-sd|container|virtual, and
     // stub-warn's watch) brings the usage panels of its own disks, so the two join by name
@@ -3534,6 +3562,17 @@ function statusOfHealth(rep) {
         }).sort((a, b) => order[a.role] - order[b.role]),
     }));
 }
+// occulited task 148: GET /status's `thermal` for the stub-thermal variants
+const flags = (o = {}) => ({under_voltage: false, freq_capped: false, throttled: false, soft_temp_limit: false, ...o});
+const piSoC = (celsius) => ({id: 'thermal_zone0', kind: 'soc', name: 'cpu-thermal', celsius, warn_c: 80, max_c: 85});
+const t7 = (celsius) => ({id: 'disk:sda', kind: 'disk', name: 'Samsung PSSD T7', device: 'sda', disk_kind: 'usb', celsius, warn_c: 70, max_c: 80, read_at: new Date(Date.now() - 20 * 60000).toISOString()});
+const THERMAL = {
+    pi: {readings: [piSoC(54.8)], throttle: {source: 'firmware', raw: 0, now: flags(), since_boot: flags()}},
+    ssd: {readings: [piSoC(61.2), t7(38)], throttle: {source: 'firmware', raw: 0x50000, now: flags(), since_boot: flags({under_voltage: true, throttled: true})}},
+    hot: {readings: [piSoC(81.4)], throttle: {source: 'firmware', raw: 0xc000c, now: flags({throttled: true, soft_temp_limit: true}), since_boot: flags({throttled: true, soft_temp_limit: true})}},
+    crit: {readings: [piSoC(85.3), t7(72)], throttle: {source: 'firmware', raw: 0x50005, now: flags({under_voltage: true, throttled: true}), since_boot: flags({under_voltage: true, throttled: true})}},
+};
+
 const STORAGE = {
     good: {verdict: 'good', reasons: [], kernel_log: true, health_source: 'device', devices: [PI4_CARD]},
     // task 111: the OVA's disk (its health is the host's) and the stick beside it - the status' own two

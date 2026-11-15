@@ -5,9 +5,10 @@
 // mode is ram, in occulited's database file (bucket "system"), so a restart or a deploy keeps the
 // curve. A reboot is a hole in time, and the graph breaks the line there.
 //
-// The SoC temperature and the undervoltage flag were left out on purpose: where they come from
-// differs per board (a thermal zone that may be missing, the Pi firmware's flag behind vcgencmd
-// or a hwmon file), so they are not the cheap, clean addition the load and the memory are.
+// The SoC temperature joined them with the temperature panel (occulited task 148): the processor's
+// thermal zone or hwmon sensor (system.ReadTemperatures), absent on a system without one (the VM)
+// and in the samples taken before - the graph then has nothing to draw for those minutes. The
+// undervoltage flag stays out: it is a state, shown in the panel, not a curve.
 package syshist
 
 import (
@@ -29,13 +30,18 @@ type Sample struct {
 	Load float64 `json:"load"`
 	// Mem is the memory in use (MemTotal - MemAvailable), in per cent of MemTotal; -1 unknown
 	Mem int `json:"mem"`
+	// SoC is the processor's temperature in °C, one decimal; absent without a sensor (task 148)
+	SoC *float64 `json:"soc_c,omitempty"`
 }
 
-// Reading is what Read returns: the 1-minute load average and the memory in use in per cent
-// (-1 unknown); ok is false when nothing could be read.
+// Reading is what Read returns: the 1-minute load average, the memory in use in per cent
+// (-1 unknown) and the processor's temperature (HasSoC false without a sensor); ok is false when
+// nothing could be read.
 type Reading struct {
-	Load float64
-	Mem  int
+	Load   float64
+	Mem    int
+	SoC    float64
+	HasSoC bool
 }
 
 // Sampler reads every Interval and keeps Rows samples.
@@ -113,7 +119,12 @@ func (s *Sampler) Poll() {
 	if trusted {
 		s.pruneFutureLocked(s.now())
 	}
-	s.history = append(s.history, Sample{Time: s.now(), Load: math.Round(r.Load*100) / 100, Mem: r.Mem})
+	sm := Sample{Time: s.now(), Load: math.Round(r.Load*100) / 100, Mem: r.Mem}
+	if r.HasSoC {
+		c := math.Round(r.SoC*10) / 10
+		sm.SoC = &c
+	}
+	s.history = append(s.history, sm)
 	if n := s.rows(); len(s.history) > n {
 		s.history = append([]Sample(nil), s.history[len(s.history)-n:]...)
 	}
@@ -217,12 +228,18 @@ func (s *Sampler) Pending(all bool) ([]store.Series, func()) {
 }
 
 // A sample in the database: the time is the key; the value is a version byte, the load in
-// hundredths as a big-endian uint32 and the memory in per cent as an int8 (-1 unknown).
-const sampleV1 = 1
+// hundredths as a big-endian uint32 and the memory in per cent as an int8 (-1 unknown). Version 2
+// (task 148) adds the processor's temperature in tenths of a degree as a big-endian int16,
+// noSoC without a sensor; version 1's rows are still read.
+const (
+	sampleV1 = 1
+	sampleV2 = 2
+	noSoC    = math.MinInt16
+)
 
 func encode(sm Sample) store.Row {
-	v := make([]byte, 6)
-	v[0] = sampleV1
+	v := make([]byte, 8)
+	v[0] = sampleV2
 	load := math.Round(sm.Load * 100)
 	switch {
 	case load < 0:
@@ -233,13 +250,28 @@ func encode(sm Sample) store.Row {
 	binary.BigEndian.PutUint32(v[1:], uint32(load))
 	mem := max(min(sm.Mem, 100), -1)
 	v[5] = byte(int8(mem))
+	soc := int16(noSoC)
+	if sm.SoC != nil {
+		soc = int16(max(min(math.Round(*sm.SoC*10), math.MaxInt16), math.MinInt16+1))
+	}
+	binary.BigEndian.PutUint16(v[6:], uint16(soc))
 	return store.Row{At: sm.Time, Value: v}
 }
 
 func decode(r store.Row) (Sample, bool) {
 	v := r.Value
-	if len(v) < 6 || v[0] != sampleV1 {
+	if len(v) < 6 || (v[0] != sampleV1 && v[0] != sampleV2) {
 		return Sample{}, false
 	}
-	return Sample{Time: r.At, Load: float64(binary.BigEndian.Uint32(v[1:])) / 100, Mem: int(int8(v[5]))}, true
+	sm := Sample{Time: r.At, Load: float64(binary.BigEndian.Uint32(v[1:])) / 100, Mem: int(int8(v[5]))}
+	if v[0] == sampleV2 {
+		if len(v) < 8 {
+			return Sample{}, false
+		}
+		if soc := int16(binary.BigEndian.Uint16(v[6:])); soc != noSoC {
+			c := float64(soc) / 10
+			sm.SoC = &c
+		}
+	}
+	return sm, true
 }

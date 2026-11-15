@@ -170,3 +170,39 @@ func TestPollDropsFutureSamples(t *testing.T) {
 		}
 	}
 }
+
+// occulited task 148: the processor's temperature rides along - to one place, absent without a
+// sensor - and survives the database; version 1's rows are still read, without it
+func TestSoCTemperature(t *testing.T) {
+	c := &clock{t: time.Date(2026, 11, 15, 12, 0, 0, 0, time.UTC)}
+	r := Reading{Load: 0.5, Mem: 30, SoC: 54.76, HasSoC: true}
+	s := &Sampler{Now: c.now, Read: func() (Reading, bool) { return r, true }}
+	s.Poll()
+	r.HasSoC = false
+	c.add(time.Minute)
+	s.Poll()
+	h := s.History().Samples
+	if h[0].SoC == nil || *h[0].SoC != 54.8 || h[1].SoC != nil {
+		t.Fatalf("%+v", h)
+	}
+	for _, sm := range h {
+		got, ok := decode(encode(sm))
+		if !ok || (sm.SoC == nil) != (got.SoC == nil) || (sm.SoC != nil && *got.SoC != *sm.SoC) || got.Mem != sm.Mem || got.Load != sm.Load {
+			t.Errorf("%+v -> %+v", sm, got)
+		}
+	}
+	for _, v := range []float64{-40.5, 125, 3500} {
+		got, _ := decode(encode(Sample{SoC: &v}))
+		if got.SoC == nil || (v < 1000 && *got.SoC != v) || (v > 1000 && *got.SoC != 3276.7) {
+			t.Errorf("%v -> %+v", v, got.SoC)
+		}
+	}
+	// a version 1 row, as task 37's builds wrote it
+	v1 := store.Row{At: c.now(), Value: []byte{1, 0, 0, 0, 42, 17}}
+	if got, ok := decode(v1); !ok || got.Load != 0.42 || got.Mem != 17 || got.SoC != nil {
+		t.Errorf("v1: %+v %v", got, ok)
+	}
+	if _, ok := decode(store.Row{Value: []byte{2, 0, 0, 0, 42, 17}}); ok {
+		t.Error("a short version 2 row was read")
+	}
+}

@@ -1,0 +1,123 @@
+import type {Page} from '@playwright/test';
+import {expect, test} from './fixtures';
+import {pageWidth} from './scroll';
+
+// occulited task 148 (the maintainer, 2026-11-15): the temperature panel beside the disks - a ring
+// per reading like the storage panel, the legend in words and figures, a Pi's throttling state as a
+// pill that keeps its box, the processor's temperature over time; a Status warning when hot (from
+// 80 °C on a Pi) whose button leads to the panel; and no panel where there is no sensor (the VM).
+
+async function thermal(page: Page, baseURL: string, v: string) {
+    await page.context().addCookies([{name: 'stub-thermal', value: v, url: baseURL}]);
+}
+const panel = (page: Page) => page.locator('[data-temp-panel]');
+
+test('the VM has no sensor and no panel', async ({page}) => {
+    await page.goto('/');
+    await expect(page.locator('[data-storage-device="sda"]')).toBeVisible();
+    await expect(panel(page)).toHaveCount(0);
+    await expect(page.locator('[data-notice="soc-hot"]')).toHaveCount(0);
+});
+
+test('a Pi: one ring, the processor in words and figures, the firmware normal, the history', async ({page, baseURL}) => {
+    await thermal(page, baseURL!, 'pi');
+    await page.goto('/');
+    const p = panel(page);
+    await expect(p).toBeVisible();
+    // among the Utilisation panels, after the disks
+    await expect(page.locator('.ol-gauges [data-temp-panel]')).toHaveCount(1);
+    await expect(p.locator('.ol-card-title')).toHaveText('Temperature');
+    await expect(p.locator('circle.arc')).toHaveCount(1);
+    await expect(p.locator('li[data-reading]')).toHaveCount(1);
+    const soc = p.locator('li[data-reading="thermal_zone0"]');
+    await expect(soc).toContainText('Processor');
+    await expect(soc.locator('[data-celsius]')).toHaveText('54.8 °C');
+    await expect(soc).toHaveAttribute('title', /hot from 80 °C, limit 85 °C/);
+    // 54.8 of 85 °C: the arc's share of its circumference
+    const share = await p.locator('circle.arc').evaluate((c) => {
+        const [a, b] = (c.getAttribute('stroke-dasharray') ?? '').split(' ').map(Number);
+        return a! / b!;
+    });
+    expect(share).toBeCloseTo(54.8 / 85, 2);
+    await expect(p.locator('[data-throttle]').first()).toHaveText('normal');
+    await expect(p.locator('[data-throttle-facts="0"]')).toContainText('No undervoltage, no throttling since the boot');
+    await expect(p).not.toHaveClass(/\b(warn|err)\b/);
+    // the processor's history in the foot, with its peak over the span
+    await expect(p.locator('.ol-card-foot svg').first()).toBeVisible();
+    await expect(p.locator('[data-temp-peak]')).toContainText('Processor: max');
+});
+
+test('a Pi with a USB SSD: two rings, the disk by its model, undervoltage since the boot', async ({page, baseURL}) => {
+    await thermal(page, baseURL!, 'ssd');
+    await page.goto('/');
+    const p = panel(page);
+    await expect(p.locator('circle.arc')).toHaveCount(2);
+    const radii = await p.locator('circle.arc').evaluateAll((cs) => cs.map((c) => Number(c.getAttribute('r'))));
+    expect(radii[0]! > radii[1]!).toBe(true);
+    const strokes = await p.locator('circle.arc').evaluateAll((cs) => cs.map((c) => getComputedStyle(c).stroke));
+    expect(new Set(strokes).size).toBe(2);
+    const disk = p.locator('li[data-reading="disk:sda"]');
+    await expect(disk).toContainText('Samsung PSSD T7');
+    await expect(disk.locator('[data-celsius]')).toHaveText('38.0 °C');
+    await expect(disk).toHaveAttribute('title', /USB drive Samsung PSSD T7 \(sda\).*read at/);
+    await expect(p.locator('.tp-pill')).toHaveText('throttled earlier');
+    await expect(p.locator('[data-fact="under_voltage"]')).toHaveText('Undervoltage since the boot');
+    await expect(p.locator('[data-fact="throttled"]')).toHaveText('Throttled since the boot');
+});
+
+test('hot: the warning above, its button to the panel, the panel amber; the pill and the figures keep their box', async ({page, baseURL}) => {
+    await thermal(page, baseURL!, 'pi');
+    await page.goto('/');
+    const p = panel(page);
+    const pill = p.locator('.tp-pill');
+    const val = p.locator('li[data-reading="thermal_zone0"] [data-celsius]');
+    await expect(pill).toHaveText('normal');
+    const before = {pill: (await pill.boundingBox())!, val: (await val.boundingBox())!, panel: (await p.boundingBox())!};
+    for (const [v, word, sev] of [['hot', 'throttled', 'warning'], ['crit', 'undervoltage', 'error']] as const) {
+        await thermal(page, baseURL!, v);
+        await page.goto('/');
+        await expect(pill).toHaveText(word);
+        const notice = page.locator('[data-warnings] [data-notice="soc-hot"]');
+        await expect(notice).toBeVisible();
+        await expect(notice).toHaveAttribute('data-severity', sev);
+        await expect(p).toHaveClass(sev === 'error' ? /\berr\b/ : /\bwarn\b/);
+        const after = {pill: (await pill.boundingBox())!, val: (await val.boundingBox())!, panel: (await p.boundingBox())!};
+        expect(after.pill.width).toBeCloseTo(before.pill.width, 0);
+        expect(after.pill.height).toBeCloseTo(before.pill.height, 0);
+        expect(after.val.width).toBeCloseTo(before.val.width, 0);
+        expect(after.panel.height).toBeCloseTo(before.panel.height, 0);
+    }
+    // crit: the processor at its limit, a hot disk, undervoltage now
+    const soc = page.locator('[data-warnings] [data-notice="soc-hot"]');
+    await expect(soc).toContainText('The processor is at 85.3 °C, at its limit of 85 °C');
+    const disk = page.locator('[data-warnings] [data-notice="disk-hot"]');
+    await expect(disk).toHaveAttribute('data-severity', 'warning');
+    await expect(disk).toContainText('Samsung PSSD T7 (sda) at 72.0 °C (rated up to 70 °C)');
+    await expect(p.locator('[data-fact="under_voltage"]')).toHaveText('Undervoltage now');
+    await expect(p.locator('li[data-reading="disk:sda"] [data-celsius]')).toHaveClass(/\bwarn\b/);
+    await soc.getByRole('link', {name: 'Temperature', exact: true}).click();
+    await expect(page).toHaveURL(/\/#temperature$/);
+    await expect(p).toBeInViewport();
+});
+
+test('in German, on a phone, in both themes', async ({page, baseURL}) => {
+    await page.addInitScript(() => localStorage.setItem('ol.language', 'de'));
+    await thermal(page, baseURL!, 'crit');
+    for (const scheme of ['light', 'dark'] as const) {
+        await page.emulateMedia({colorScheme: scheme});
+        await page.setViewportSize({width: 360, height: 780});
+        await page.goto('/');
+        const p = panel(page);
+        await expect(p.locator('.ol-card-title')).toHaveText('Temperatur');
+        await expect(p.locator('li[data-reading="thermal_zone0"]')).toContainText('Prozessor');
+        await expect(p.locator('li[data-reading="thermal_zone0"] [data-celsius]')).toHaveText('85,3 °C');
+        await expect(p.locator('.tp-pill')).toHaveText('Unterspannung');
+        await expect(p.locator('[data-fact="under_voltage"]')).toHaveText('Unterspannung jetzt');
+        await expect(page.locator('[data-notice="soc-hot"]')).toContainText('Der Prozessor hat 85,3 °C');
+        await expect(page.locator('[data-notice="disk-hot"]')).toContainText('mit 72,0 °C (ausgelegt bis 70 °C)');
+        expect(await pageWidth(page)).toBeLessThanOrEqual(360);
+        // the line of conditions stays one line high on a phone
+        const line = (await p.locator('[data-throttle-facts]').boundingBox())!;
+        expect(line.height).toBeLessThan(30);
+    }
+});

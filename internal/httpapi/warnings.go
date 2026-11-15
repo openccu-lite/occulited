@@ -68,6 +68,9 @@ type warningsState struct {
 	loadMu sync.Mutex
 	loadOn map[string]bool
 
+	// the temperatures' levels, kept for the hysteresis (occulited task 148)
+	thermal thermalLevels
+
 	// test seams: crypttool's answer, the radio sampler's last poll and the INPUT policies; nil =
 	// the real ones
 	keyState func(ctx context.Context) (set, known bool, err error)
@@ -245,6 +248,7 @@ func (a *SystemAPI) warningSources() []warnings.Source {
 		{IDs: []string{"store-target"}, Eval: a.storeWarnings},
 		{IDs: []string{"certificate"}, Eval: a.certificateWarning},
 		{IDs: []string{"storage"}, Eval: a.storageWarning},
+		{IDs: []string{"soc-hot", "disk-hot"}, Eval: a.thermalWarnings}, // occulited task 148, after storage: its report has the disks' temperatures
 		{IDs: []string{"addon-ownership"}, Lists: true, Eval: a.ownershipWarning},
 		{IDs: []string{"addon-parents"}, Eval: a.addonParentsWarning}, // occulited B-145
 		{IDs: []string{"security-key"}, Eval: a.securityKeyWarning},

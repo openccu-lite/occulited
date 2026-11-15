@@ -72,7 +72,9 @@
         // disturbed), a clock turned back (it was disturbed), an arrow up (an update pending)
         | 'unlink'
         | 'history'
-        | 'arrow-up';
+        | 'arrow-up'
+        // occulited task 148: the Status page's temperature panel
+        | 'thermometer';
 
     const PATHS: Record<IconName, string> = {
         // the head is one closed shape so `fill: currentColor` on the svg fills it; the needle is a line
@@ -110,6 +112,7 @@
         alert: '<path d="M12 4l9 16H3l9-16z"/><path d="M12 10v4M12 17.2h.01"/>',
         // a dial with its needle
         gauge: '<path d="M4 18a9 9 0 1 1 16 0"/><path d="M12 18l4.5-5.5"/>',
+        thermometer: '<path d="M14 14.76V4.5a2 2 0 0 0-4 0v10.26a4 4 0 1 0 4 0z"/><path d="M12 9v7"/>',
         tag: '<path d="M11 3H4a1 1 0 0 0-1 1v7l9.5 9.5a1.5 1.5 0 0 0 2.1 0l6.9-6.9a1.5 1.5 0 0 0 0-2.1L11 3z"/><path d="M7.5 7.5h.01"/>',
         // task 29: the account, the settings, the source
         user: '<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',

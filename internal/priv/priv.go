@@ -204,6 +204,9 @@ type Ops interface {
 	// 340, hdmi.go): every DRM HDMI connector's sysfs status to off, or to on/detect as the kernel
 	// command line forced it. The helper finds the connectors itself; the request is the switch.
 	SetHDMI(ctx context.Context, on bool) error
+	// Throttled reads the Raspberry Pi firmware's throttling word (occulited task 148,
+	// throttled.go): exactly `vcgencmd get_throttled`. A non-zero exit is Result.Exit.
+	Throttled(ctx context.Context) (Result, error)
 	// SetIPv6Conf writes one of an interface's IPv6 sysctls (occulited B-139, ipv6conf.go): a
 	// named interface - never all, default or lo -, one of IPv6ConfKeys, the value 0 to 2.
 	SetIPv6Conf(ctx context.Context, iface, key string, v int) error

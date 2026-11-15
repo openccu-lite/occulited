@@ -364,6 +364,8 @@ type SystemAPI struct {
 
 	// Storage is the storage health panel (task 69); nil = GET /storage answers 501.
 	Storage *system.Storage
+	// Thermal is the temperature panel (occulited task 148), GET /status's `thermal`; nil = none.
+	Thermal *system.ThermalReader
 
 	// BootTiming records how long user-initiated reboots take (task 94): the power routes, the
 	// system update's install and the restore mark the reboot before they start it. nil = no
@@ -664,6 +666,10 @@ func (a *SystemAPI) status(w http.ResponseWriter, r *http.Request) {
 	// task 94: the boot's clock gate - and after its timeout, whether chrony has synchronised since
 	if a.Clock != nil {
 		s.Clock = a.Clock.Status(r.Context())
+	}
+	// task 148: the temperatures and the Pi firmware's throttling state; absent without a sensor
+	if a.Thermal != nil {
+		s.Thermal = a.Thermal.Read(r.Context())
 	}
 	if a.FirstBoot == nil {
 		writeJSON(w, 200, s)

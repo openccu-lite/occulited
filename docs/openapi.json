@@ -8911,6 +8911,12 @@
           "mem": {
             "type": "integer"
           },
+          "soc_c": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
           "t": {
             "format": "date-time",
             "type": "string"
@@ -13130,6 +13136,12 @@
           "temperature_c": {
             "type": "integer"
           },
+          "temperature_critical_c": {
+            "type": "integer"
+          },
+          "temperature_limit_c": {
+            "type": "integer"
+          },
           "wear_percent": {
             "type": [
               "integer",
@@ -13254,6 +13266,16 @@
             "type": [
               "array",
               "null"
+            ]
+          },
+          "thermal": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SystemThermal"
+              },
+              {
+                "type": "null"
+              }
             ]
           },
           "time": {
@@ -13637,6 +13659,126 @@
           "id",
           "interface",
           "url"
+        ],
+        "type": "object"
+      },
+      "SystemTemperature": {
+        "properties": {
+          "celsius": {
+            "type": "number"
+          },
+          "device": {
+            "type": "string"
+          },
+          "disk_kind": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "max_c": {
+            "type": "number"
+          },
+          "name": {
+            "type": "string"
+          },
+          "read_at": {
+            "format": "date-time",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "warn_c": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "celsius",
+          "id",
+          "kind",
+          "max_c",
+          "name",
+          "warn_c"
+        ],
+        "type": "object"
+      },
+      "SystemThermal": {
+        "properties": {
+          "readings": {
+            "items": {
+              "$ref": "#/components/schemas/SystemTemperature"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "throttle": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SystemThrottle"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "readings"
+        ],
+        "type": "object"
+      },
+      "SystemThrottle": {
+        "properties": {
+          "now": {
+            "$ref": "#/components/schemas/SystemThrottleFlags"
+          },
+          "raw": {
+            "minimum": 0,
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "since_boot": {
+            "$ref": "#/components/schemas/SystemThrottleFlags"
+          },
+          "source": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "now",
+          "since_boot",
+          "source"
+        ],
+        "type": "object"
+      },
+      "SystemThrottleFlags": {
+        "properties": {
+          "freq_capped": {
+            "type": "boolean"
+          },
+          "soft_temp_limit": {
+            "type": "boolean"
+          },
+          "throttled": {
+            "type": "boolean"
+          },
+          "under_voltage": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "freq_capped",
+          "soft_temp_limit",
+          "throttled",
+          "under_voltage"
         ],
         "type": "object"
       },

@@ -8,6 +8,7 @@ import {stallSentence, type StallListener} from './rpcstalls';
 import {formatDecimal} from './storagepanels';
 import {dateLocale} from './datelocale';
 import {formatBytes} from './netpanels';
+import {formatCelsius, formatLimit} from './thermal';
 
 /** task 366: info is a quiet notice - after the warnings, plain, never on the LED, no dot */
 export type Severity = 'error' | 'warning' | 'info';
@@ -61,6 +62,16 @@ export interface WarnUpdate {
     version?: string;
 }
 
+/** a disk at or above its temperature limit (disk-hot, occulited task 148) */
+export interface WarnHotDisk {
+    device: string;
+    kind?: string;
+    model?: string;
+    celsius: number;
+    warn_c: number;
+    max_c: number;
+}
+
 export interface WarnDevice {
     name: string;
     kind: string;
@@ -71,7 +82,7 @@ export interface Warning {
     id: string;
     variant: string;
     severity: Severity;
-    params?: {addon?: string; title?: Record<string, string>; text?: Record<string, string>; posted?: string; expires?: string; addons?: WarnAddon[]; updates?: WarnUpdate[]; account?: string; at?: string; path?: string; days?: number; verdict?: string; reasons?: StorageReason[]; devices?: WarnDevice[]; mode?: string; reason?: string; adapter?: string; cause?: string; line?: string; families?: string[]; unreachable?: number; total?: number; port?: number; addresses?: string; sgtin?: string; address?: string; name?: string; detail?: string; label?: string; dir?: string; target?: string; share?: string; reconnecting?: boolean; interface?: string; kind?: string; since?: string; checked?: boolean; listeners?: StallListener[]; folder?: string; device?: string; running?: string; latest?: string; staged?: boolean; newest?: string; node?: string; drops_off?: boolean; hosts?: string[]; issuer?: string; store?: string; candidate?: boolean; from?: string; module?: string; version?: string; channel?: string; url?: string; minimum?: string; count?: number; bytes?: number; units?: WarnLoopUnit[]; fails?: number; failures?: number; restarts?: number; result?: string; first?: string; last?: string; written?: number; calc?: number; current?: number; offset?: number; wraps_at?: string; clock_state?: string; behind?: boolean; source?: string; duty_cycle?: number; carrier_sense?: number; transfer?: boolean; purpose?: string; host?: string; subject?: string; fingerprint?: string; spki?: string; accounts?: {user: string; at: string}[]; way?: string; by?: string; targets?: string; first_boot_journal?: string; first_boot_journal_size?: number; parents?: WarnParent[]};
+    params?: {addon?: string; title?: Record<string, string>; text?: Record<string, string>; posted?: string; expires?: string; addons?: WarnAddon[]; updates?: WarnUpdate[]; account?: string; at?: string; path?: string; days?: number; verdict?: string; reasons?: StorageReason[]; devices?: WarnDevice[]; mode?: string; reason?: string; adapter?: string; cause?: string; line?: string; families?: string[]; unreachable?: number; total?: number; port?: number; addresses?: string; sgtin?: string; address?: string; name?: string; detail?: string; label?: string; dir?: string; target?: string; share?: string; reconnecting?: boolean; interface?: string; kind?: string; since?: string; checked?: boolean; listeners?: StallListener[]; folder?: string; device?: string; running?: string; latest?: string; staged?: boolean; newest?: string; node?: string; drops_off?: boolean; hosts?: string[]; issuer?: string; store?: string; candidate?: boolean; from?: string; module?: string; version?: string; channel?: string; url?: string; minimum?: string; count?: number; bytes?: number; units?: WarnLoopUnit[]; fails?: number; failures?: number; restarts?: number; result?: string; first?: string; last?: string; written?: number; calc?: number; current?: number; offset?: number; wraps_at?: string; clock_state?: string; behind?: boolean; source?: string; duty_cycle?: number; carrier_sense?: number; transfer?: boolean; purpose?: string; host?: string; subject?: string; fingerprint?: string; spki?: string; accounts?: {user: string; at: string}[]; way?: string; by?: string; targets?: string; first_boot_journal?: string; first_boot_journal_size?: number; parents?: WarnParent[]; celsius?: number; warn_c?: number; max_c?: number; disks?: WarnHotDisk[]};
     href?: string;
     /** this administrator's own silence (D-64) */
     silenced?: Silence;
@@ -219,6 +230,20 @@ export function warningText(w: Warning, words: Words): string {
             return t('The certificate expires in {n} days.', {n: p.days ?? 0});
         case 'storage':
             return words.storage(w);
+        case 'soc-hot': {
+            // occulited task 148: the processor at its warning level (a Pi's firmware throttles from 80 °C), red from its maximum
+            const lang = words.lang ?? 'en';
+            const temp = formatCelsius(Number(p.celsius ?? 0), lang);
+            return w.variant === 'error'
+                ? t('The processor is at {temp}, at its limit of {max}: it is slowed down hard to cool off. Give the system more air, a heat sink or a fan.', {temp, max: formatLimit(Number(p.max_c ?? 0), lang)})
+                : t('The processor is hot at {temp}: from {warn} it is slowed down to cool off. Give the system more air, a heat sink or a fan.', {temp, warn: formatLimit(Number(p.warn_c ?? 0), lang)});
+        }
+        case 'disk-hot': {
+            // occulited task 148: a disk at or above its rated temperature (SMART's limit, else 70 °C)
+            const lang = words.lang ?? 'en';
+            const list = (p.disks ?? []).map((d) => t('{disk} at {temp} (rated up to {warn})', {disk: [d.model, d.device ? `(${d.device})` : ''].filter(Boolean).join(' ') || d.device, temp: formatCelsius(d.celsius, lang), warn: formatLimit(d.warn_c, lang)})).join(', ');
+            return t('A disk runs hot: {list}. Above its rated temperature it wears faster; give it more air.', {list});
+        }
         case 'addon-ownership':
             // B-92: the files an update wrote as root, in an addon that starts as its own user
             return [
@@ -435,6 +460,8 @@ const LINK_LABELS: Record<string, string> = {
     'backup-addon': 'Backup',
     certificate: 'Certificate',
     storage: 'Storage health',
+    'soc-hot': 'Temperature',
+    'disk-hot': 'Temperature',
     'addon-ownership': 'Services',
     'addon-parents': 'Services',
     'addon-ended': 'Addons',

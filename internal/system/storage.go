@@ -189,15 +189,20 @@ type SmartHealth struct {
 	Passed    *bool `json:"passed,omitempty"`
 	// Message is smartctl's own complaint when it could not read the device ("Unable to detect
 	// device type", a USB bridge without passthrough).
-	Message      string    `json:"message,omitempty"`
-	Model        string    `json:"model,omitempty"`
-	PowerOnHours int64     `json:"power_on_hours,omitempty"`
-	WearPercent  *int      `json:"wear_percent,omitempty"`
-	Reallocated  *int64    `json:"reallocated_sectors,omitempty"`
-	Pending      *int64    `json:"pending_sectors,omitempty"`
-	MediaErrors  *int64    `json:"media_errors,omitempty"`
-	TemperatureC int       `json:"temperature_c,omitempty"`
-	Read         time.Time `json:"read"`
+	Message      string `json:"message,omitempty"`
+	Model        string `json:"model,omitempty"`
+	PowerOnHours int64  `json:"power_on_hours,omitempty"`
+	WearPercent  *int   `json:"wear_percent,omitempty"`
+	Reallocated  *int64 `json:"reallocated_sectors,omitempty"`
+	Pending      *int64 `json:"pending_sectors,omitempty"`
+	MediaErrors  *int64 `json:"media_errors,omitempty"`
+	TemperatureC int    `json:"temperature_c,omitempty"`
+	// TempLimitC and TempCriticalC are the drive's own temperature limits where it names them
+	// (smartctl's op_limit_max - an NVMe's warning temperature - and critical_limit_max), for the
+	// temperature panel (occulited task 148)
+	TempLimitC    int       `json:"temperature_limit_c,omitempty"`
+	TempCriticalC int       `json:"temperature_critical_c,omitempty"`
+	Read          time.Time `json:"read"`
 }
 
 // FilesystemHealth is one mounted ext4 filesystem of the disk.
@@ -243,6 +248,9 @@ type Storage struct {
 
 	mu    sync.Mutex
 	smart map[string]*SmartHealth
+	// temps are the disks' SMART temperatures of the last report (task 148), read by the status
+	// without a SMART read of its own
+	temps []Temperature
 	// noSmartctl: a SMART read answered that smartctl is not installed (priv.ErrNotAvailable); an
 	// image does not grow one while the daemon runs, so it is not asked again
 	noSmartctl bool
@@ -291,6 +299,7 @@ func (s *Storage) Report(ctx context.Context) StorageReport {
 			}
 		}
 	}
+	s.keepTemperatures(devs)
 	s.applyWrites(devs, now)
 	// a read of this very report may have been the one that found no smartctl
 	source := HealthDevice
@@ -729,7 +738,9 @@ type smartctlJSON struct {
 		Hours int64 `json:"hours"`
 	} `json:"power_on_time"`
 	Temperature struct {
-		Current int `json:"current"`
+		Current          int `json:"current"`
+		OpLimitMax       int `json:"op_limit_max"`
+		CriticalLimitMax int `json:"critical_limit_max"`
 	} `json:"temperature"`
 	ATA struct {
 		Table []struct {
@@ -782,6 +793,12 @@ func ParseSmartctl(b []byte) SmartHealth {
 	}
 	if j.Temperature.Current > 0 {
 		h.TemperatureC = j.Temperature.Current
+	}
+	if j.Temperature.OpLimitMax > 0 && j.Temperature.OpLimitMax < 150 {
+		h.TempLimitC = j.Temperature.OpLimitMax
+	}
+	if j.Temperature.CriticalLimitMax > 0 && j.Temperature.CriticalLimitMax < 150 {
+		h.TempCriticalC = j.Temperature.CriticalLimitMax
 	}
 	if n := j.NVMe; n != nil {
 		h.WearPercent = n.PercentageUsed
@@ -1124,4 +1141,34 @@ func judgeDevice(d *StorageDevice) {
 			d.Reasons = append(d.Reasons, r)
 		}
 	}
+}
+
+// keepTemperatures keeps the disks' SMART temperatures of this report for the temperature panel
+// (occulited task 148).
+func (s *Storage) keepTemperatures(devs []StorageDevice) {
+	var out []Temperature
+	for _, d := range devs {
+		h := d.Smart
+		if h == nil || h.TemperatureC <= 0 {
+			continue
+		}
+		warn, hi := DiskTemperatureLevels(h.TempLimitC, h.TempCriticalC)
+		read := h.Read
+		name := d.Model
+		if name == "" {
+			name = h.Model
+		}
+		out = append(out, Temperature{ID: "disk:" + d.Name, Kind: TempDisk, Name: name, Device: d.Name, DiskKind: d.Kind,
+			Celsius: float64(h.TemperatureC), WarnC: warn, MaxC: hi, ReadAt: &read})
+	}
+	s.mu.Lock()
+	s.temps = out
+	s.mu.Unlock()
+}
+
+// DiskTemperatures are the disks' SMART temperatures of the last report; none before the first.
+func (s *Storage) DiskTemperatures() []Temperature {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return append([]Temperature(nil), s.temps...)
 }
