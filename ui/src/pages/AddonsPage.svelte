@@ -771,7 +771,10 @@
                         {#if a.lighttpd_rejected}
                             {@render badge('ol-badge bad ad-lighttpd-rejected', t('web configuration refused'), rejectedWhy(a.lighttpd_rejected))}
                         {/if}
-                        {#if a.policy_mode === 'root'}
+                        {#if a.policy_mode === 'root' && a.adopted_confinable}
+                            <!-- openccu-lite #23: the same badge, its reason the way out the Status page names -->
+                            {@render badge('ol-badge warn ad-adopted', t('root (unsafe)'), t('This addon runs as root: it can change anything on the system. It came along from before openccu-lite, and its manifest says it can run as its own user: installing it again from its package gives it one.'))}
+                        {:else if a.policy_mode === 'root'}
                             {@render badge('ol-badge warn', t('root (unsafe)'), t('This addon runs as root: it can change anything on the system. The Services page switches it to its own user.'))}
                         {:else if a.policy_mode === 'confined'}
                             {@render badge('ol-badge ok ad-confined', t('confined'), t('This addon runs as its own user and cannot write outside its own directories.'))}

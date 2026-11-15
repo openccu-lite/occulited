@@ -8966,6 +8966,12 @@
       },
       "SystemAddon": {
         "properties": {
+          "adopted_confinable": {
+            "type": "boolean"
+          },
+          "adopted_token": {
+            "type": "boolean"
+          },
           "api_scopes": {
             "items": {
               "type": "string"

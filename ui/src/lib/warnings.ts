@@ -31,6 +31,8 @@ export interface WarnAddon {
     /** addon-update: the installed and the available version */
     installed?: string;
     available?: string;
+    /** addon-adopted-root (openccu-lite #23): an install of the package would issue its API token */
+    token?: boolean;
 }
 
 /** a directory above the addons' own that users other than root can change (addon-parents, occulited B-145) */
@@ -250,6 +252,15 @@ export function warningText(w: Warning, words: Words): string {
                 ...addons.map((a) => t('Files of {name} belong to root, but the addon runs as its own user and may fail to start on them ({path}).', {name: words.addonName(a), path: a.path ?? ''})),
                 t("An update installed past occulited leaves such files: install_addon over SSH, or an addon's own updater."),
             ].join(' ');
+        case 'addon-adopted-root':
+            // openccu-lite #23: a notice - the addon came along from OpenCCU and runs as root; the
+            // manifest in its directory says an install of its package would give it its own user
+            return [
+                ...addons.map((a) => t('{name} runs as root, although its manifest says it can run as its own user: it came along from before openccu-lite, so the system has not stored its manifest.', {name: words.addonName(a)})),
+                addons.every((a) => a.token)
+                    ? t('Installing the addon again from its package (a file on the Addons page, or the catalogue) stores its manifest, issues the API token it declares and gives it its own user.')
+                    : t('Installing the addon again from its package (a file on the Addons page, or the catalogue) stores its manifest and gives it its own user.'),
+            ].join(' ');
         case 'addon-parents': {
             // occulited B-145: the ownership walk refuses every addon's directories below such a directory
             const parents = p.parents ?? [];
@@ -464,6 +475,7 @@ const LINK_LABELS: Record<string, string> = {
     'disk-hot': 'Temperature',
     'addon-ownership': 'Services',
     'addon-parents': 'Services',
+    'addon-adopted-root': 'Addons',
     'addon-ended': 'Addons',
     'addon-failed': 'Addons',
     'crash-loop': 'Services',

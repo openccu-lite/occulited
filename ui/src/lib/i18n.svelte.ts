@@ -2372,6 +2372,19 @@ const CATALOGUE: Record<string, {de: string; en?: string}> = {
         de: 'Solche Dateien hinterlässt ein Update, das an occulited vorbei installiert wurde: install_addon über SSH oder der eigene Updater eines Addons.',
     },
     'Fix ownership': {de: 'Besitzrechte korrigieren'},
+    // openccu-lite #23: addon-adopted-root, an addon from before openccu-lite that could run as its own user
+    '{name} runs as root, although its manifest says it can run as its own user: it came along from before openccu-lite, so the system has not stored its manifest.': {
+        de: '{name} läuft als root, obwohl das Manifest des Addons sagt, dass es unter eigenem Benutzer laufen kann: Es wurde schon vor openccu-lite installiert, deshalb hat das System sein Manifest nicht gespeichert.',
+    },
+    'Installing the addon again from its package (a file on the Addons page, or the catalogue) stores its manifest, issues the API token it declares and gives it its own user.': {
+        de: 'Wird das Addon aus seinem Paket neu installiert (als Datei auf der Seite Zusatzsoftware oder aus dem Katalog), speichert das System sein Manifest, stellt das API-Token aus, das es deklariert, und gibt ihm einen eigenen Benutzer.',
+    },
+    'Installing the addon again from its package (a file on the Addons page, or the catalogue) stores its manifest and gives it its own user.': {
+        de: 'Wird das Addon aus seinem Paket neu installiert (als Datei auf der Seite Zusatzsoftware oder aus dem Katalog), speichert das System sein Manifest und gibt ihm einen eigenen Benutzer.',
+    },
+    "This addon runs as root: it can change anything on the system. It came along from before openccu-lite, and its manifest says it can run as its own user: installing it again from its package gives it one.": {
+        de: 'Diese Zusatzsoftware läuft als root: sie kann alles auf dem System ändern. Sie wurde schon vor openccu-lite installiert, und ihr Manifest sagt, dass sie unter eigenem Benutzer laufen kann: Wird sie aus ihrem Paket neu installiert, bekommt sie einen.',
+    },
     // occulited B-145: addon-parents, a directory above the addons' own that others can change
     '{path} belongs to user {uid}, not to root (group {gid}, mode {mode}).': {
         de: '{path} gehört dem Benutzer {uid}, nicht root (Gruppe {gid}, Modus {mode}).',

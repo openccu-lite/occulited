@@ -233,7 +233,7 @@ func (a *SystemAPI) bootSettled() bool {
 // warningSources are the warnings in the order the page lists them within a severity.
 func (a *SystemAPI) warningSources() []warnings.Source {
 	return []warnings.Source{
-		{IDs: []string{"addon-payload", "addon-ended", "addon-failed", "rega", "arch"}, Lists: true, Eval: a.addonWarnings},
+		{IDs: []string{"addon-payload", "addon-ended", "addon-failed", "rega", "arch", "addon-adopted-root"}, Lists: true, Eval: a.addonWarnings},
 		{IDs: []string{"crash-loop"}, Lists: true, Eval: a.crashLoopWarning},
 		{IDs: []string{"occulited-crash-loop"}, Eval: a.occulitedCrashLoopWarning},
 		{IDs: []string{"meta"}, Eval: a.metaWarning},
@@ -407,6 +407,8 @@ type warnAddon struct {
 	// Path is the first root-owned entry (addon-ownership), Count how many there are (task 110)
 	Path  string `json:"path,omitempty"`
 	Count int    `json:"count,omitempty"`
+	// Token: addon-adopted-root, an install of the package would issue the addon its API token
+	Token bool `json:"token,omitempty"`
 }
 
 // addonListWarning: the variant is the sorted ids, so one more addon is a new warning.
@@ -432,9 +434,14 @@ func (a *SystemAPI) addonWarnings(ctx context.Context) ([]warnings.Warning, bool
 	// openccu-lite task 146: an addon a restore brought back without its program files is
 	// "reinstall it", not "wrong architecture" (its binaries are simply gone) - checked first
 	a.MarkPayloadMissing(list)
-	var rega, arch, payload, ended, failed []warnAddon
+	var rega, arch, payload, ended, failed, adopted []warnAddon
 	for _, ad := range list {
 		ref := warnAddon{ID: ad.ID, Name: ad.Name, Enabled: ad.Enabled}
+		// openccu-lite #23: runs as root only because it came along from before openccu-lite; an
+		// addon that does not run (switched off, without its program) is the other warnings' or none
+		if ad.AdoptedConfinable && ad.Enabled && !ad.PayloadMissing {
+			adopted = append(adopted, warnAddon{ID: ad.ID, Name: ad.Name, Enabled: true, Token: ad.AdoptedToken})
+		}
 		switch {
 		case ad.PayloadMissing:
 			if !ad.ReinstallDismissed {
@@ -467,6 +474,11 @@ func (a *SystemAPI) addonWarnings(ctx context.Context) ([]warnings.Warning, bool
 	}
 	if len(arch) > 0 {
 		out = append(out, addonListWarning("arch", warnings.SeverityError, "/catalog", arch))
+	}
+	// openccu-lite #23: a notice, not a warning - nothing is broken, the addon runs as it did on
+	// OpenCCU; the system only knows a better way for it (an install of its package)
+	if len(adopted) > 0 {
+		out = append(out, addonListWarning("addon-adopted-root", warnings.SeverityInfo, "/addons", adopted))
 	}
 	return out, true
 }

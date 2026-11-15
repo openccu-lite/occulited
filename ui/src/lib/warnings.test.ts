@@ -153,6 +153,28 @@ describe('the Status page warnings (task 81)', () => {
         expect(warningText(w('addon-parents', 'x', {parents: [{path: '/usr/local', uid: 5, gid: 5, mode: '0755', reason: 'owner'}, {path: '/usr/local/etc', uid: 0, gid: 0, mode: '0777', reason: 'link'}]}), {...words, t: de})).toContain('/usr/local gehört dem Benutzer 5, nicht root');
     });
 
+    it('names an adopted root addon that could run as its own user, and the install that gives it one (openccu-lite #23)', () => {
+        const one = {...w('addon-adopted-root', 'loom', {addons: [{id: 'loom', name: 'OpenCCU-Loom', enabled: true, token: true}]}, '/addons'), severity: 'info' as const};
+        expect(warningText(one, {...words, addonName: (a) => a.name ?? a.id})).toBe('OpenCCU-Loom runs as root, although its manifest says it can run as its own user: it came along from before openccu-lite, so the system has not stored its manifest. Installing the addon again from its package (a file on the Addons page, or the catalogue) stores its manifest, issues the API token it declares and gives it its own user.');
+        expect(warningLink(one, t)).toEqual({href: '/addons', label: 'Addons'});
+        // without declared scopes there is no token to promise; one sentence per addon
+        const two = warningText(w('addon-adopted-root', 'a,b', {addons: [{id: 'a', token: true}, {id: 'b'}]}), words);
+        expect(two).toContain('a runs as root');
+        expect(two).toContain('b runs as root');
+        expect(two).toContain('stores its manifest and gives it its own user.');
+        expect(two).not.toContain('API token');
+        const de = (key: string, params?: Record<string, string | number>) => {
+            const esc = key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const m = new RegExp(`'${esc}': \\{\\s*de: '((?:[^'\\\\]|\\\\.)*)'`).exec(I18N);
+            expect(m, key).not.toBeNull();
+            return t(m?.[1] ?? key, params);
+        };
+        const text = warningText(one, {...words, t: de, addonName: (a) => a.name ?? a.id});
+        expect(text).toContain('OpenCCU-Loom läuft als root');
+        expect(text).toContain('stellt das API-Token aus');
+        expect(warningText(w('addon-adopted-root', 'b', {addons: [{id: 'b'}]}), {...words, t: de})).toContain('speichert das System sein Manifest und gibt ihm einen eigenen Benutzer.');
+    });
+
     it('labels the way to where it is handled', () => {
         expect(warningLink(w('security-key', 'default', {}, '/radio#security-key'), t)).toEqual({href: '/radio#security-key', label: 'Set security key'});
         expect(warningLink(w('storage', 'watch', {}, '#storage'), t)).toEqual({href: '#storage', label: 'Storage health'});

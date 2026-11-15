@@ -319,6 +319,12 @@ type Addon struct {
 	FromCCU   bool   `json:"from_ccu,omitempty"`
 	FailedLog string `json:"failed_log,omitempty"`
 	RCTarget  string `json:"rc_target,omitempty"`
+	// AdoptedConfinable (openccu-lite #23): the addon runs as root only because it came along from
+	// before openccu-lite, and the manifest in its own directory says an install of its package
+	// would give it its own user (SystemdAddons.AdoptedConfinable). AdoptedToken: that manifest
+	// declares API scopes, so the install would also issue its token. A hint; nothing is granted.
+	AdoptedConfinable bool `json:"adopted_confinable,omitempty"`
+	AdoptedToken      bool `json:"adopted_token,omitempty"`
 	// MayMount and RemountRefused as on Service (D-66).
 	MayMount       bool `json:"may_mount,omitempty"`
 	RemountRefused bool `json:"remount_refused,omitempty"`

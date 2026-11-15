@@ -10,7 +10,9 @@ and a pull-request check. The catalogue ([catalog-format.md](catalog-format.md))
 1. **The package's manifest is authoritative.** At install and update the system reads `openccu-lite.json` out of
    the archive in Go, before the addon's `update_script` runs, and applies it as declared — the runtime block becomes
    the addon's policy, the UI facts drive the shell. The accepted copy is kept beside the policy, root-owned; the
-   copy in the addon's directory is never read again (a confined addon owns that directory). The repository's copy
+   copy in the addon's directory is never read again (a confined addon owns that directory) - except, for an addon
+   that has no stored copy because it came along from before openccu-lite, for `requires.rega` and for the hint that
+   an install of its package would give it its own user (openccu-lite #23); neither grants anything. The repository's copy
    at the latest release tag is only what the Addons page shows before an install (from the default branch while
    the latest release does not carry the file yet, and for a repository without releases).
 2. **The addon declares, the system trusts.** There is no grant, no request/grant split and no consent dialog:

@@ -711,6 +711,9 @@ func (a *SystemdAddons) overlayAddonPolicy(list []Addon) []Addon {
 		v := a.PolicyView(list[i].ID)
 		list[i].PolicyMode, list[i].PolicySource, list[i].Undeclared = v.Mode, v.Source, v.Undeclared
 		list[i].MayMount, list[i].RemountRefused = v.MayMount, refused[list[i].ID]
+		if am := a.AdoptedConfinable(list[i].ID, v); am != nil { // openccu-lite #23
+			list[i].AdoptedConfinable, list[i].AdoptedToken = true, am.Token
+		}
 		list[i].APIScopes = a.Tokens.APIScopes(list[i].ID)                        // task 66: what its own API token holds
 		list[i].StartEarlyDeclared, list[i].StartEarly = a.StartEarly(list[i].ID) // task 119
 		list[i].StartDelay = a.startDelay(list[i].ID)                             // task 369

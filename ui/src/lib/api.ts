@@ -467,6 +467,11 @@ export interface Addon {
     /** occulited task 28: came along from the CCU (policy source "migrated"); the failed unit's last
      *  journal line; the file its rc.d entry leads to outside /usr/local/addons/ */
     from_ccu?: boolean;
+    /** openccu-lite #23: runs as root only because it came along from before openccu-lite, while the
+     *  manifest in its own directory says an install of its package would give it its own user;
+     *  adopted_token: that manifest declares API scopes, so the install would issue its token too */
+    adopted_confinable?: boolean;
+    adopted_token?: boolean;
     /** the addon's unit is in systemd's failed state (task 248) */
     failed?: boolean;
     failed_log?: string;
