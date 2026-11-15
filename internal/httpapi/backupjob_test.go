@@ -2,12 +2,14 @@ package httpapi
 
 import (
 	"context"
+	"errors"
 	"io"
 	"os"
 	"strings"
 	"testing"
 	"time"
 
+	"github.com/hobbyquaker/occulited/internal/priv"
 	"github.com/hobbyquaker/occulited/internal/system"
 )
 
@@ -166,5 +168,59 @@ func TestBackupPreparedCancelAndExpiry(t *testing.T) {
 	}
 	if e := backupDirEntries(g); len(e) != 0 {
 		t.Errorf("left behind after expiry: %v", e)
+	}
+}
+
+// occulited B-146: a backup the userfs cannot hold is refused before the script runs - the job
+// fails with code no-space and the sizes and the largest directories, GET /backup answers 507.
+func TestBackupRefusedWithoutRoom(t *testing.T) {
+	g := newCryptRig(t)
+	old := system.EstimateBackup
+	t.Cleanup(func() { system.EstimateBackup = old })
+	system.EstimateBackup = func(context.Context) (priv.BackupEstimate, error) {
+		return priv.BackupEstimate{Bytes: 9e9, Files: 12, Free: 13e9, Largest: []priv.BackupDirSize{{Path: "/usr/local/sdcard/backup", Bytes: 6e9}, {Path: "/usr/local/v204-backup", Bytes: 9e8}}}, nil
+	}
+	ran := false
+	g.api.Run = func(_ context.Context, name string, args ...string) ([]byte, error) {
+		ran = true
+		return nil, nil
+	}
+	g.api.Root = system.Root("/") // the check runs on the real system only
+	_, out := g.do(t, "POST", "/backup/prepare", "")
+	job := waitJob(t, g, out["id"].(string), "failed")
+	detail, _ := job["detail"].(map[string]any)
+	if job["code"] != "no-space" || detail == nil || detail["need_bytes"] != float64(18e9+float64(system.BackupReserve)) || detail["free_bytes"] != 13e9 || detail["backup_bytes"] != 9e9 {
+		t.Fatalf("job: %v", job)
+	}
+	if l, _ := detail["largest"].([]any); len(l) != 2 || l[0].(map[string]any)["path"] != "/usr/local/sdcard/backup" {
+		t.Errorf("largest: %v", detail["largest"])
+	}
+	if msg, _ := job["error"].(string); !strings.Contains(msg, "/usr/local/sdcard/backup (6.0 GB)") || !strings.Contains(msg, ".nobackup") {
+		t.Errorf("message: %q", msg)
+	}
+	res := g.get(t, "/backup")
+	body, _ := io.ReadAll(res.Body)
+	if res.StatusCode != 507 || !strings.Contains(string(body), `"no-space"`) {
+		t.Errorf("GET /backup: %d %s", res.StatusCode, body)
+	}
+	if ran {
+		t.Error("the script ran")
+	}
+	// with room the script runs (the stub writes no file on "/", so the job fails, without a code);
+	// an estimate that fails does not stop it either
+	for _, est := range []func(context.Context) (priv.BackupEstimate, error){
+		func(context.Context) (priv.BackupEstimate, error) {
+			return priv.BackupEstimate{Bytes: 1e9, Free: 13e9}, nil
+		},
+		func(context.Context) (priv.BackupEstimate, error) {
+			return priv.BackupEstimate{}, errors.New("no helper")
+		},
+	} {
+		system.EstimateBackup, ran = est, false
+		_, out = g.do(t, "POST", "/backup/prepare", "")
+		job = waitJob(t, g, out["id"].(string), "failed")
+		if !ran || job["code"] != nil {
+			t.Errorf("ran %v, job %v", ran, job)
+		}
 	}
 }

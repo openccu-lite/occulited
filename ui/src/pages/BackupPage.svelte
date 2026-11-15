@@ -7,7 +7,7 @@
     import SystemTitle from '../lib/SystemTitle.svelte';
     import {auth} from '../lib/auth.svelte';
     import {download, ticketFor, withTicket} from '../lib/download';
-    import {awaitBackup, prepareBackup, preparedUrl} from '../lib/backupjob';
+    import {awaitBackup, backupFailure, prepareBackup, preparedUrl} from '../lib/backupjob';
     import BackupWait from '../lib/BackupWait.svelte';
     import {confirmTicket, returned} from '../lib/confirm';
     import {recoveryKeyError} from '../lib/keyerror';
@@ -114,7 +114,7 @@
             await followPlain(job.id, back.ticket);
         } catch (e) {
             // a 404 (it waits 30 minutes), or downloaded, or failed: nothing to resume
-            error = e instanceof ApiError && e.status === 404 ? t('The prepared backup is no longer there. Start the download again.') : (e as Error).message;
+            error = e instanceof ApiError && e.status === 404 ? t('The prepared backup is no longer there. Start the download again.') : backupFailure(e, i18n.language, t);
         } finally {
             downloading = false;
             preparingSince = null;
@@ -416,7 +416,7 @@
             const job = await prepare();
             await download(preparedUrl(job.id));
         } catch (err) {
-            error = (err as Error).message;
+            error = backupFailure(err, i18n.language, t);
         } finally {
             downloading = false;
         }

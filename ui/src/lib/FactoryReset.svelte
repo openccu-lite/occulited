@@ -11,7 +11,7 @@
     import {onMount, tick} from 'svelte';
     import {api, ApiError} from './api';
     import {askText} from './dialog.svelte';
-    import {t} from './i18n.svelte';
+    import {i18n, t} from './i18n.svelte';
     import Help from './Help.svelte';
     import Notice from './Notice.svelte';
     import BootBar from './BootBar.svelte';
@@ -19,7 +19,7 @@
     import {beginBoot, removeEntry, watchBoot} from './bootwatch';
     import {boxUptime} from './power';
     import {download} from './download';
-    import {prepareBackup, preparedUrl} from './backupjob';
+    import {backupFailure, prepareBackup, preparedUrl} from './backupjob';
     import BackupWait from './BackupWait.svelte';
     import {sameHostname} from './factoryreset';
 
@@ -82,7 +82,7 @@
             preparingSince = null;
             await download(preparedUrl(job.id));
         } catch (e) {
-            error = (e as Error).message;
+            error = backupFailure(e, i18n.language, t);
         } finally {
             busy = '';
             preparingSince = null;

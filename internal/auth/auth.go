@@ -608,7 +608,15 @@ func (s *Store) synced(st os.FileInfo) {
 // with it - a console command within a mutation, or while the file could not be read - what it
 // wrote is merged in first: save never drops an account or a token this store did not remove
 // itself, and it does not overwrite a file it cannot read.
-func (s *Store) save() error {
+func (s *Store) save() error { return s.saveDurable(true) }
+
+// saveDurable is save; durable false leaves out the fsync (occulited B-146). The store's lock is
+// held while users.json is written, and an fsync waits for the file system's journal commit: while a
+// full backup streams gigabytes onto the same disk that took minutes on a lab VM, and every
+// authenticated request waited on the lock that long. A token's last-use time is the one save on
+// the request path and needs no durability - a crash loses at most that time, and the rename of
+// the written file still replaces users.json whole.
+func (s *Store) saveDurable(durable bool) error {
 	if st, err := os.Stat(s.path); err == nil && s.changed(st) {
 		doc, _, err := s.read()
 		if err != nil {
@@ -627,7 +635,7 @@ func (s *Store) save() error {
 	sort.Slice(users, func(i, j int) bool { return users[i].Name < users[j].Name })
 	sort.SliceStable(s.tokens, func(i, j int) bool { return s.tokens[i].Name < s.tokens[j].Name })
 	b, _ := json.MarshalIndent(usersDoc{Users: users, Tokens: s.tokens}, "", "  ")
-	st, err := writeAtomic(s.path, append(b, '\n'), 0o600)
+	st, err := writeAtomicSync(s.path, append(b, '\n'), 0o600, durable)
 	if err != nil {
 		return err
 	}
@@ -690,6 +698,14 @@ func (s *Store) merge(doc usersDoc) {
 
 // writeAtomic replaces path with b and returns the identity of the new file.
 func writeAtomic(path string, b []byte, mode os.FileMode) (os.FileInfo, error) {
+	return writeAtomicSync(path, b, mode, true)
+}
+
+// syncFile is the fsync of writeAtomicSync, a var so a test sees which writes sync.
+var syncFile = func(f *os.File) error { return f.Sync() }
+
+// writeAtomicSync is writeAtomic; durable false writes and renames without the fsync.
+func writeAtomicSync(path string, b []byte, mode os.FileMode, durable bool) (os.FileInfo, error) {
 	tmp, err := os.CreateTemp(filepath.Dir(path), "."+filepath.Base(path)+"-*.tmp")
 	if err != nil {
 		return nil, err
@@ -699,9 +715,11 @@ func writeAtomic(path string, b []byte, mode os.FileMode) (os.FileInfo, error) {
 		tmp.Close()
 		return nil, err
 	}
-	if err := tmp.Sync(); err != nil {
-		tmp.Close()
-		return nil, err
+	if durable {
+		if err := syncFile(tmp); err != nil {
+			tmp.Close()
+			return nil, err
+		}
 	}
 	if err := tmp.Close(); err != nil {
 		return nil, err
@@ -2593,7 +2611,8 @@ func (s *Store) validateTokenLocked(secret, remote string) *Session {
 			}
 			if moved || t.LastUsed == nil || now.Sub(*t.LastUsed) > time.Minute {
 				t.LastUsed = &now
-				_ = s.save()
+				// occulited B-146: on the request path, under the lock - no fsync (saveDurable)
+				_ = s.saveDurable(false)
 			}
 			return sess
 		}

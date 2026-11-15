@@ -2489,6 +2489,11 @@ func (a *SystemAPI) backup(w http.ResponseWriter, r *http.Request) {
 	} else {
 		a.Root.SweepBackupTemp(time.Now(), system.BackupTempMaxAge)                  // B-91: a killed backup's leftovers first
 		p, _, err := a.Root.CreateBackupWithHooks(r.Context(), a.Run, a.BackupHooks) // openccu-lite task 399: the addons' snapshots first
+		var room *system.BackupNoSpaceError
+		if errors.As(err, &room) { // occulited B-146
+			writeJSON(w, http.StatusInsufficientStorage, apiError{Error: "no-space", Message: room.Error(), Detail: room.Detail()})
+			return
+		}
 		if err != nil {
 			writeErr(w, err)
 			return

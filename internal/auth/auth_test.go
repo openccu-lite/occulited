@@ -641,3 +641,36 @@ func TestLoginUnknownAccountCostsAHash(t *testing.T) {
 		t.Errorf("dummy hash parameters: %s", dummyHash)
 	}
 }
+
+// occulited B-146: a token's last-use time is written without an fsync - the save runs under the
+// store's lock on the request path, and an fsync behind a backup's gigabytes held every request for
+// minutes; the file still carries the time, and a token's creation is synced as before.
+func TestTokenLastUsedSavedWithoutSync(t *testing.T) {
+	dir := t.TempDir()
+	s, err := Open(dir, Options{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	syncs := 0
+	old := syncFile
+	syncFile = func(f *os.File) error { syncs++; return f.Sync() }
+	t.Cleanup(func() { syncFile = old })
+	secret, err := s.CreateToken("prog", asRole(RoleUser))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if syncs == 0 {
+		t.Fatal("the token's creation was not synced")
+	}
+	syncs = 0
+	if s.Validate(secret) == nil {
+		t.Fatal("not valid")
+	}
+	if syncs != 0 {
+		t.Errorf("the last-use save synced %d times", syncs)
+	}
+	b, _ := os.ReadFile(filepath.Join(dir, "users.json"))
+	if !strings.Contains(string(b), `"last_used"`) {
+		t.Errorf("last_used not written: %s", b)
+	}
+}

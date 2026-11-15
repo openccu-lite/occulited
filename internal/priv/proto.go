@@ -1438,7 +1438,9 @@ func (s *Server) do(ctx context.Context, req request) response {
 				return refuse("argument")
 			}
 		}
-		r, err := ops.Run(ctx, req.Name, req.Args, req.Stdin)
+		// occulited B-146: the backup script runs at the lowest priority (backuprun.go)
+		name, args := backupScriptCommand(req.Name, req.Args)
+		r, err := ops.Run(ctx, name, args, req.Stdin)
 		if err != nil {
 			return response{Error: err.Error(), Stdout: r.Stdout, Stderr: r.Stderr, Exit: r.Exit}
 		}
@@ -1805,6 +1807,8 @@ func (s *Server) do(ctx context.Context, req request) response {
 		return s.listLogs(req)
 	case opListDir:
 		return s.listDir(req)
+	case opBackupEstimate: // occulited B-146, backupestimate.go
+		return s.backupEstimate(req)
 	case opProcExe:
 		return s.procExe(req)
 	case opRCTargetRemove:

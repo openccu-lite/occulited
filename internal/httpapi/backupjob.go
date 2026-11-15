@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/hex"
+	"errors"
 	"log/slog"
 	"net/http"
 	"os"
@@ -32,6 +33,10 @@ type BackupJob struct {
 	Finished *time.Time `json:"finished,omitempty"`
 	Size     int64      `json:"size,omitempty"`
 	Error    string     `json:"error,omitempty"`
+	// Code and Detail say why a failed job failed where the page words it itself: "no-space"
+	// with the sizes and the largest directories (occulited B-146, system.BackupNoSpaceError).
+	Code   string         `json:"code,omitempty"`
+	Detail map[string]any `json:"detail,omitempty"`
 	// Hooks are the addons' snapshot hooks this backup ran (openccu-lite task 399), each with
 	// its result; absent when none is declared and switched on.
 	Hooks  []system.BackupHookResult `json:"hooks,omitempty"`
@@ -109,6 +114,10 @@ func (a *SystemAPI) runBackupJob(ctx context.Context, job *BackupJob) {
 		// cancelled by DELETE meanwhile: already failed, its file gone with CreateBackup
 	case err != nil:
 		job.State, job.Error = "failed", err.Error()
+		var room *system.BackupNoSpaceError
+		if errors.As(err, &room) {
+			job.Code, job.Detail = "no-space", room.Detail()
+		}
 	default:
 		job.State, job.path = "ready", path
 		if st, serr := os.Stat(path); serr == nil {

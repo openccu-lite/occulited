@@ -1382,6 +1382,16 @@
       },
       "BackupJob": {
         "properties": {
+          "code": {
+            "type": "string"
+          },
+          "detail": {
+            "additionalProperties": {},
+            "type": [
+              "object",
+              "null"
+            ]
+          },
           "error": {
             "type": "string"
           },

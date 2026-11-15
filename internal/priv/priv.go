@@ -174,6 +174,10 @@ type Ops interface {
 	// SmartDeviceRe names, which must be a block device. A non-zero exit is Result.Exit, not an
 	// error - smartctl's exit status is a bit mask and its JSON is on stdout either way.
 	Smartctl(ctx context.Context, device string) (Result, error)
+	// BackupEstimate walks /usr/local as createBackup.sh's tar does and answers the size the
+	// archive will hold, the free space and the largest directories (occulited B-146,
+	// backupestimate.go): sizes and directory names, never content.
+	BackupEstimate(ctx context.Context) (BackupEstimate, error)
 	// FirewallInput reads one address family's INPUT chain for the Status page's firewall check
 	// (B-152): exactly `iptables -w 5 -S INPUT` or `ip6tables -w 5 -S INPUT`, and nothing else.
 	// Listing the rules needs CAP_NET_ADMIN, and iptables on the Programs list would take -F and

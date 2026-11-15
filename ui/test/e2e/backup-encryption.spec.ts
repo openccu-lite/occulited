@@ -482,3 +482,30 @@ test('the preparing line while the backup is made, and a failed one says why', a
     await expect(page.locator('.ol-notice.err')).toContainText('createBackup.sh: exit status 1', {timeout: 10_000});
     await expect(panel.locator('[data-backup-wait="running"]')).toHaveCount(0);
 });
+
+// occulited B-146: a backup the system has no room for is refused before it is written; the page
+// says so in its own words, with the sizes and the largest directories (German too)
+test('a backup without room: the sizes and the largest directories, nothing downloaded', async ({page}) => {
+    const failed = {
+        id: 'stub-full',
+        state: 'failed',
+        started: new Date().toISOString(),
+        error: 'not enough free space for the backup',
+        code: 'no-space',
+        detail: {backup_bytes: 9e9, need_bytes: 18.13e9, free_bytes: 13e9, reserve_bytes: 134217728, largest: [{path: '/usr/local/sdcard/backup', bytes: 6.1e9}, {path: '/usr/local/v204-backup', bytes: 9.5e8}]},
+    };
+    let downloads = 0;
+    await page.route('**/api/system/v1/backup/prepare', (r) => (r.request().method() === 'POST' ? r.fulfill({status: 202, json: failed}) : r.fallback()));
+    await page.route('**/api/system/v1/backup?**', (r) => {
+        downloads++;
+        return r.fulfill({status: 200, body: 'sbk'});
+    });
+    await page.goto('/system/backup');
+    await page.locator('[data-action="download-backup"]').click();
+    await expect(page.getByText('Not enough free space on the system for this backup: it holds 9.0 GB, and making it needs 18 GB (the archive twice while it is built, and 134 MB that stay free); 13 GB are free. Nothing was written. The largest directories and files: /usr/local/sdcard/backup (6.1 GB), /usr/local/v204-backup (950 MB). A directory that holds a file named .nobackup is left out of the backup.')).toBeVisible();
+    await page.evaluate(() => localStorage.setItem('ol.language', 'de'));
+    await page.reload();
+    await page.locator('[data-action="download-backup"]').click();
+    await expect(page.getByText(/Nicht genug freier Platz auf dem System für diese Sicherung: Sie umfasst 9,0 GB.*Die größten Verzeichnisse und Dateien: \/usr\/local\/sdcard\/backup \(6,1 GB\)/)).toBeVisible();
+    expect(downloads).toBe(0);
+});

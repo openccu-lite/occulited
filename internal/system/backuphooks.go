@@ -302,10 +302,15 @@ func (h *BackupHooks) Failed() []BackupHookAddon {
 	return out
 }
 
-// CreateBackupWithHooks is CreateBackup with the addons' hooks around it: the snapshots first, the
-// script, then the stagings emptied. The hooks' results come back beside the file; hooks is nil
+// CreateBackupWithHooks is CreateBackup with the addons' hooks around it: the space check
+// (CheckBackupRoom) first, the snapshots, the script, then the stagings emptied. The hooks' results come back beside the file; hooks is nil
 // where there are none.
 func (r Root) CreateBackupWithHooks(ctx context.Context, run Runner, hooks *BackupHooks) (string, []BackupHookResult, error) {
+	// occulited B-146: a backup the userfs cannot hold is refused before a hook or the script
+	// writes a byte
+	if err := r.CheckBackupRoom(ctx); err != nil {
+		return "", nil, err
+	}
 	var ran []BackupHookResult
 	if hooks != nil {
 		ran = hooks.Run(ctx)
