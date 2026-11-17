@@ -271,6 +271,8 @@ func (a *SystemAPI) warningSources() []warnings.Source {
 		{IDs: []string{"firewall"}, Eval: a.firewallWarning},
 		{IDs: []string{"classic-rpc-open"}, Eval: a.classicRPCWarning},
 		{IDs: []string{"app-public"}, Eval: a.appPublicWarning},
+		// occulited task 152: an addon holds a key for root
+		{IDs: []string{"ssh-addon-key"}, Eval: a.sshAddonKeyWarnings},
 		// openccu-lite task 231: a server presents a CA occulited's store lacks (strict)
 		{IDs: []string{"trust-ca"}, Lists: true, Eval: a.trustWarnings},
 		{IDs: []string{"trust-pin"}, Eval: a.pinWarnings}, // openccu-lite task 232
@@ -1179,6 +1181,42 @@ func (a *SystemAPI) appPublicWarning(context.Context) ([]warnings.Warning, bool)
 		return nil, true
 	}
 	return []warnings.Warning{{ID: "app-public", Variant: account, Severity: warnings.SeverityWarning, Href: "/settings#public", Params: map[string]any{"account": account}}}, true
+}
+
+// ssh-addon-key (occulited task 152): root's authorized_keys holds a key marked for an addon. The
+// system raises it from the line itself, not the addon, so a compromised addon cannot hide it; one
+// warning per addon (the variant), listed while the line exists - armed or not - and gone with it.
+func (a *SystemAPI) sshAddonKeyWarnings(ctx context.Context) ([]warnings.Warning, bool) {
+	keys, err := system.AddonSSHKeys()
+	if err != nil {
+		return nil, false
+	}
+	if len(keys) == 0 {
+		return nil, true
+	}
+	names := map[string]string{}
+	if a.Addons != nil {
+		if list, err := a.Addons.ListAddons(ctx); err == nil {
+			for _, ad := range list {
+				names[ad.ID] = ad.Name
+			}
+		}
+	}
+	seen := map[string]bool{}
+	var out []warnings.Warning
+	for _, k := range keys {
+		if seen[k.Addon] {
+			continue
+		}
+		seen[k.Addon] = true
+		params := map[string]any{"addon": k.Addon, "fingerprint": k.Fingerprint, "armed_until": k.ArmedUntil}
+		if n := names[k.Addon]; n != "" {
+			params["name"] = n
+		}
+		out = append(out, warnings.Warning{ID: "ssh-addon-key", Variant: k.Addon, Severity: warnings.SeverityWarning, Href: "/system/remote-access#ssh", Params: params})
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i].Variant < out[j].Variant })
+	return out, true
 }
 
 // hmip-port-open (B-89): hmipserver's HTTP port (39292) listens on an address other than the

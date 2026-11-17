@@ -22,7 +22,10 @@ const (
 	// opAuthKeysRead answers root's authorized_keys (Policy.AuthorizedKeys); public keys only.
 	opAuthKeysRead = "authkeys-read"
 	// opAuthKeysWrite replaces occulited's section of it with the keys in Args, each checked as the
-	// page checks a pasted key; every line outside the section stays as it is.
+	// page checks a pasted key; every line outside the section stays as it is. The one line with
+	// options it takes is an addon's (occulited task 152, sshkeys.ForAddon): exactly
+	// restrict,pty,from="127.0.0.1,::1",expiry-time="<14 digits>Z", an Ed25519 key and the comment
+	// openccu-lite-addon:<id> - and it is written from what was read, not copied.
 	opAuthKeysWrite = "authkeys-write"
 	// opSSHEnd ends the SSH session whose sshd-session process has the pid in Args - that process
 	// and no other kind.
@@ -228,7 +231,8 @@ func readAuthorizedKeys(path string) ([]byte, error) {
 func parseKeyLines(lines []string) ([]sshkeys.Key, error) {
 	keys := make([]sshkeys.Key, 0, len(lines))
 	for _, l := range lines {
-		k, err := sshkeys.Parse(l)
+		// a key without options, or an addon's line in exactly the system's shape (task 152)
+		k, err := sshkeys.ParseSection(l)
 		if err != nil {
 			return nil, err
 		}

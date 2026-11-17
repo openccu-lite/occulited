@@ -55,7 +55,7 @@ func (h *sshHelper) ReadAuthorizedKeys() ([]byte, error) { return h.file, nil }
 func (h *sshHelper) WriteAuthorizedKeys(lines []string) error {
 	var keys []sshkeys.Key
 	for _, l := range lines {
-		k, err := sshkeys.Parse(l)
+		k, err := sshkeys.ParseSection(l)
 		if err != nil {
 			return err
 		}
@@ -69,6 +69,13 @@ func (h *sshHelper) SSHKeyOnly() (bool, error)   { return h.keyOnly, nil }
 func (h *sshHelper) SetSSHKeyOnly(on bool) error { h.keyOnly = on; h.keyOnlySets++; return nil }
 
 func sshAPIServer(t *testing.T) (*httptest.Server, *sshHelper, map[string]string, map[string]string) {
+	t.Helper()
+	srv, h, admin, bob, _, _ := sshAPIServerWith(t)
+	return srv, h, admin, bob
+}
+
+// sshAPIServerWith is sshAPIServer with the account store and the API behind it.
+func sshAPIServerWith(t *testing.T) (*httptest.Server, *sshHelper, map[string]string, map[string]string, *auth.Store, *SystemAPI) {
 	t.Helper()
 	dir := t.TempDir()
 	store, err := auth.Open(dir, auth.Options{SessionDir: filepath.Join(dir, "run", "sessions")})
@@ -112,12 +119,13 @@ func sshAPIServer(t *testing.T) (*httptest.Server, *sshHelper, map[string]string
 	mux := http.NewServeMux()
 	a := &AuthAPI{Store: store}
 	a.Register(mux)
-	(&SystemAPI{Root: system.Root(root), Journal: &system.JournalLog{Run: run}, ConfirmTicket: store.RedeemConfirmed}).Register(mux)
+	sys := &SystemAPI{Root: system.Root(root), Journal: &system.JournalLog{Run: run}, ConfirmTicket: store.RedeemConfirmed}
+	sys.Register(mux)
 	srv := httptest.NewServer(a.Middleware(mux))
 	t.Cleanup(srv.Close)
 	admin := map[string]string{"Cookie": CookieName + "=" + cookieOf(t, srv, `{"username":"admin","password":"secret123"}`)}
 	bob := map[string]string{"Cookie": CookieName + "=" + cookieOf(t, srv, `{"username":"bob","password":"bobsecret1"}`)}
-	return srv, h, admin, bob
+	return srv, h, admin, bob, store, sys
 }
 
 func sshConfirm(t *testing.T, srv *httptest.Server, hdr map[string]string, path string) map[string]string {

@@ -77,6 +77,140 @@ func AddSSHKey(line string) (sshkeys.Key, error) {
 	return k, p.WriteAuthorizedKeys(append(lines, k.Line()))
 }
 
+// Occulited task 152: an addon's key. The addon (lite-addon-shell) keeps a private key for root
+// and can do nothing with it: its line carries an expiry-time, and the system writes that ahead
+// only when an administrator confirms with his own password (the route's confirmed ticket). The
+// options are sshkeys.ForAddon's; nothing of the request but the key itself reaches the file.
+
+// The window an arming opens, in seconds.
+const (
+	AddonKeyArmMin     = 30
+	AddonKeyArmMax     = 120
+	AddonKeyArmDefault = 60
+)
+
+// ErrAddonKeyType is a key for an addon that is not an Ed25519 key.
+var ErrAddonKeyType = errors.New("an addon's key is an ssh-ed25519 key")
+
+// AddonInstalled: the addon's rc.d entry exists.
+func (r Root) AddonInstalled(id string) bool {
+	if !addonIDRe.MatchString(id) {
+		return false
+	}
+	_, err := os.Lstat(r.join("/usr/local/etc/config/rc.d/" + id))
+	return err == nil
+}
+
+// AddonSSHKeyTaken says whether line's key stands in the file as anything but addon's own marked
+// line: a key of the page, a line outside the section or another addon's.
+func AddonSSHKeyTaken(addon, line string) (bool, error) {
+	k, err := sshkeys.Parse(line)
+	if err != nil {
+		return false, err
+	}
+	f, err := SSHKeys()
+	if err != nil {
+		return false, err
+	}
+	return addonKeyTaken(f, addon, k.Fingerprint), nil
+}
+
+func addonKeyTaken(f sshkeys.File, addon, fingerprint string) bool {
+	for _, m := range f.Other {
+		if m.Fingerprint == fingerprint {
+			return true
+		}
+	}
+	for _, m := range f.Managed {
+		if m.Fingerprint == fingerprint && m.Addon != addon {
+			return true
+		}
+	}
+	return false
+}
+
+// ArmAddonSSHKey writes addon's marked line with line's key, taken by sshd until now+d: the one
+// line the section holds for that addon, so a line marked for it already - the same key (a re-arm)
+// or another - is replaced. replaced says there was one.
+func ArmAddonSSHKey(addon, line string, d time.Duration, now time.Time) (key sshkeys.Key, replaced bool, err error) {
+	k, err := sshkeys.Parse(line)
+	if err != nil {
+		return sshkeys.Key{}, false, err
+	}
+	if k.Type != "ssh-ed25519" {
+		return sshkeys.Key{}, false, ErrAddonKeyType
+	}
+	k, err = sshkeys.ForAddon(k, addon, now.Add(d))
+	if err != nil {
+		return sshkeys.Key{}, false, err
+	}
+	keysMu.Lock()
+	defer keysMu.Unlock()
+	f, err := SSHKeys()
+	if err != nil {
+		return sshkeys.Key{}, false, err
+	}
+	if addonKeyTaken(f, addon, k.Fingerprint) {
+		return sshkeys.Key{}, false, ErrKeyPresent
+	}
+	lines := []string{}
+	for _, m := range f.Managed {
+		if m.Addon == addon {
+			replaced = true
+			continue
+		}
+		lines = append(lines, m.Line())
+	}
+	p, _ := sshPriv()
+	return k, replaced, p.WriteAuthorizedKeys(append(lines, k.Line()))
+}
+
+// RemoveAddonSSHKey takes addon's marked line out, at its uninstall: the private key went with the
+// addon, so the line is dead and goes whatever "only key login" says (RemoveSSHKey's last-key rule
+// is for a key somebody can still log in with). removed says there was one.
+func RemoveAddonSSHKey(addon string) (removed bool, err error) {
+	p, err := sshPriv()
+	if err != nil {
+		return false, nil // no helper with SSH operations: no key was ever written
+	}
+	keysMu.Lock()
+	defer keysMu.Unlock()
+	f, err := SSHKeys()
+	if err != nil {
+		return false, err
+	}
+	lines := []string{}
+	for _, m := range f.Managed {
+		if m.Addon == addon {
+			removed = true
+			continue
+		}
+		lines = append(lines, m.Line())
+	}
+	if !removed {
+		return false, nil
+	}
+	return true, p.WriteAuthorizedKeys(lines)
+}
+
+// AddonSSHKeys are the marked lines of the section, for the Status page's warning.
+func AddonSSHKeys() ([]sshkeys.Key, error) {
+	if _, err := sshPriv(); err != nil {
+		return nil, nil // no helper with SSH operations: no keys to warn about
+	}
+	f, err := SSHKeys()
+	if err != nil {
+		return nil, err
+	}
+	var out []sshkeys.Key
+	for _, m := range f.Managed {
+		if m.Addon != "" {
+			out = append(out, m)
+		}
+	}
+	return out, nil
+}
+
 // Task 245: root's password login can be refused, so SSH takes a key only. The guard against a
 // lock-out: it is switched on only while root has a key, and the last key is not removed while
 // it is on (the web interface and the console stay a way back in either way).

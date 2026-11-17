@@ -1,10 +1,12 @@
 package httpapi
 
 import (
+	"context"
 	"errors"
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/hobbyquaker/occulited/internal/sshkeys"
 	"github.com/hobbyquaker/occulited/internal/system"
@@ -64,9 +66,20 @@ func (a *SystemAPI) sshKeys(w http.ResponseWriter, _ *http.Request) {
 func (a *SystemAPI) sshKeyAdd(w http.ResponseWriter, r *http.Request) {
 	var body struct {
 		Key string `json:"key"`
+		// occulited task 152: the key is an addon's - the system writes its options and its window
+		ForAddon   *string `json:"for_addon"`
+		ArmSeconds *int    `json:"arm_seconds"`
 	}
 	if err := readJSON(r, &body); err != nil {
 		badBody(w, err)
+		return
+	}
+	if body.ForAddon != nil {
+		a.sshAddonKeyArm(w, r, body.Key, *body.ForAddon, body.ArmSeconds)
+		return
+	}
+	if body.ArmSeconds != nil {
+		writeJSON(w, http.StatusUnprocessableEntity, apiError{Error: "invalid", Message: "arm_seconds goes with for_addon"})
 		return
 	}
 	// the key is checked before the password is spent on it: what it is, and whether the file holds
@@ -100,6 +113,80 @@ func (a *SystemAPI) sshKeyAdd(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusCreated, k)
 }
 
+// sshAddonKeyArm (occulited task 152) writes an addon's key for root, armed for a moment: the
+// line sshd takes until its expiry-time, written anew each time an administrator confirms with his
+// own password. Only an account's session does this, never a token - a token is not asked for the
+// confirmation, and an addon holding one must not arm its own key. Nothing of the request reaches
+// the line but the key itself and the addon's id; the options are the system's.
+func (a *SystemAPI) sshAddonKeyArm(w http.ResponseWriter, r *http.Request, key, addon string, armSeconds *int) {
+	sess := SessionFrom(r)
+	if sess == nil {
+		writeJSON(w, http.StatusUnauthorized, apiError{Error: "unauthenticated", Message: "login required"})
+		return
+	}
+	if sess.IsToken() {
+		writeJSON(w, http.StatusForbidden, apiError{Error: "session-required", Message: "an addon's key is armed by an administrator's own session, with his password: a token is not taken"})
+		return
+	}
+	invalid := func(msg string) {
+		writeJSON(w, http.StatusUnprocessableEntity, apiError{Error: "invalid", Message: msg})
+	}
+	seconds := system.AddonKeyArmDefault
+	if armSeconds != nil {
+		seconds = *armSeconds
+	}
+	if seconds < system.AddonKeyArmMin || seconds > system.AddonKeyArmMax {
+		invalid("arm_seconds is " + strconv.Itoa(system.AddonKeyArmMin) + " to " + strconv.Itoa(system.AddonKeyArmMax))
+		return
+	}
+	pasted, err := sshkeys.Parse(key)
+	if err != nil {
+		invalid(err.Error())
+		return
+	}
+	if pasted.Type != "ssh-ed25519" {
+		invalid(system.ErrAddonKeyType.Error())
+		return
+	}
+	if !validAddonID(addon) {
+		invalid("for_addon is not an addon id")
+		return
+	}
+	if !a.Root.AddonInstalled(addon) {
+		writeJSON(w, http.StatusUnprocessableEntity, apiError{Error: "unknown-addon", Message: "no addon " + addon + " is installed"})
+		return
+	}
+	if taken, err := system.AddonSSHKeyTaken(addon, key); err == nil && taken {
+		writeJSON(w, http.StatusConflict, apiError{Error: "exists", Message: system.ErrKeyPresent.Error()})
+		return
+	}
+	if !a.confirmed(w, r, SSHKeysPath) {
+		return
+	}
+	now := time.Now()
+	if a.warn.now != nil {
+		now = a.warn.now()
+	}
+	k, replaced, err := system.ArmAddonSSHKey(addon, key, time.Duration(seconds)*time.Second, now)
+	switch {
+	case errors.Is(err, system.ErrKeyPresent):
+		writeJSON(w, http.StatusConflict, apiError{Error: "exists", Message: err.Error()})
+		return
+	case err != nil:
+		writeJSON(w, http.StatusInternalServerError, apiError{Error: "internal", Message: err.Error()})
+		return
+	}
+	reqLog(r).Info("ssh: addon key armed", "addon", addon, "fingerprint", k.Fingerprint, "until", k.ArmedUntil, "replaced", replaced)
+	if a.Warnings != nil && !replaced {
+		go a.Warnings.Evaluate(context.Background())
+	}
+	status := http.StatusCreated
+	if replaced {
+		status = http.StatusOK
+	}
+	writeJSON(w, status, k)
+}
+
 func (a *SystemAPI) sshKeyRemove(w http.ResponseWriter, r *http.Request) {
 	fp := r.URL.Query().Get("fingerprint")
 	if fp == "" {
@@ -119,6 +206,9 @@ func (a *SystemAPI) sshKeyRemove(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	reqLog(r).Info("ssh: key removed", "type", k.Type, "fingerprint", k.Fingerprint, "comment", k.Comment)
+	if a.Warnings != nil && k.Addon != "" {
+		go a.Warnings.Evaluate(context.Background()) // ssh-addon-key goes with the line
+	}
 	writeJSON(w, 200, map[string]any{"ok": true})
 }
 

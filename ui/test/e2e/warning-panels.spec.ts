@@ -46,6 +46,7 @@ const CASES: Case[] = [
     {id: 'hmip-port-open', severity: 'warning', href: '/system/firewall', variant: '2010', params: {port: 2010, addresses: '0.0.0.0'}},
     {id: 'classic-rpc-open', severity: 'warning', href: '/system/remote-access', variant: 'plain'},
     {id: 'app-public', severity: 'warning', href: '/settings#public', variant: 'guest', params: {account: 'guest'}},
+    {id: 'ssh-addon-key', severity: 'warning', href: '/system/remote-access#ssh', variant: 'mosquitto', params: {addon: 'mosquitto', name: 'Mosquitto'}},
     {id: 'radio-firmware', severity: 'warning', href: '/system/updates#radio-firmware', variant: 'x@1', params: {device: 'HmIP-RFUSB', running: '1', newest: '2'}},
     {id: 'addon-update', severity: 'warning', href: '/addons', variant: 'redmatic@9.4.1', params: {count: 1, addons: [{id: 'redmatic', name: 'RedMatic', installed: '9.4.0', available: '9.4.1'}]}},
     {id: 'device-update-ready', severity: 'warning', href: '/system/updates?device=0001D0000000B1#device-firmware', variant: '0001D0000000B1@2.2.6', params: {count: 1, updates: [{address: '0001D0000000B1', name: 'Plug kitchen', type: 'HmIP-PDT', version: '2.2.6'}]}},

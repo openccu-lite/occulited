@@ -1755,10 +1755,22 @@ function sshBase() {
         ],
     };
 }
+// occulited task 152: an addon's key in the section (stub-ssh-addon=armed|idle), its options the
+// system's, armed for another minute or not armed any more
+function sshAddonKey(armed) {
+    const until = new Date(armed ? Date.now() + 60e3 : Date.now() - 3600e3);
+    const stamp = until.toISOString().replace(/[-:T]/g, '').slice(0, 14);
+    return {type: 'ssh-ed25519', bits: 256, comment: 'openccu-lite-addon:mosquitto', fingerprint: 'SHA256:addonADDONaddonADDONaddonADDONaddonADDON000', options: `restrict,pty,from="127.0.0.1,::1",expiry-time="${stamp}Z"`, addon: 'mosquitto', armed_until: until.toISOString().replace(/\.\d+Z$/, 'Z')};
+}
 function sshStateOf(jar) {
     const id = jar['stub-ssh'] ?? '';
-    if (!id) return sshBase();
-    if (!sshStates.has(id)) sshStates.set(id, sshBase());
+    const fresh = () => {
+        const st = sshBase();
+        if (jar['stub-ssh-addon']) st.managed.push(sshAddonKey(jar['stub-ssh-addon'] === 'armed'));
+        return st;
+    };
+    if (!id) return fresh();
+    if (!sshStates.has(id)) sshStates.set(id, fresh());
     return sshStates.get(id);
 }
 function sshParse(line) {
@@ -2330,6 +2342,8 @@ function activeWarnings(jar, warn, st) {
     if (jar['stub-rpc']) list.push({id: 'classic-rpc-open', variant: jar['stub-rpc'], severity: 'warning', href: '/system/remote-access'});
     // task 193: the Control app public (stub-public-warn=1)
     if (jar['stub-public-warn'] === '1') list.push({id: 'app-public', variant: 'guest', severity: 'warning', href: '/settings#public', params: {account: 'guest'}});
+    // occulited task 152: an addon holds a key for root, while its line is in the stub's section
+    if (jar['stub-ssh-addon'] && sshStateOf(jar).managed.some((k) => k.addon)) list.push({id: 'ssh-addon-key', variant: 'mosquitto', severity: 'warning', href: '/system/remote-access#ssh', params: {addon: 'mosquitto', name: 'Mosquitto', fingerprint: 'SHA256:addonADDONaddonADDONaddonADDONaddonADDON000', armed_until: sshAddonKey(jar['stub-ssh-addon'] === 'armed').armed_until}});
     const legacy = legacyWarning(jar);
     if (legacy) list.push(legacy);
     // task 149: the check after a switch to local key mode found the devices silent (stub-lk-wrong=1)

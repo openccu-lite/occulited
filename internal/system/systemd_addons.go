@@ -652,6 +652,13 @@ func (a *SystemdAddons) Uninstall(ctx context.Context, id string) (UninstallResu
 	// occulited task 154: and its own timers, before the policy that says they are its
 	out.SystemRemoved = append(out.SystemRemoved, a.Systemd.RemoveAddonTimers(ctx, id)...)
 	out.SystemRemoved = append(out.SystemRemoved, a.Scripts.Root.removeAddonPolicyFiles(id)...)
+	// occulited task 152: and its key for root. The private key went with the addon's files; the
+	// line in root's authorized_keys is the system's to remove. A failure is logged, not fatal.
+	if removed, kerr := RemoveAddonSSHKey(id); kerr != nil {
+		slog.Warn("addons: the addon's SSH key for root was not removed at the uninstall", "id", id, "err", kerr)
+	} else if removed {
+		slog.Info("addons: the addon's SSH key for root went with it", "id", id)
+	}
 	// the script's output, then what the system removed after it (B-26: the refused rm lines of a
 	// confined script read as handled), then how it ended
 	a.journalUninstall(id, out, asUser, err)

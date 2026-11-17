@@ -115,3 +115,36 @@ func TestEndSSHSession(t *testing.T) {
 		t.Error("the session's process was not signalled")
 	}
 }
+
+// occulited task 152: the one line with options the helper writes is an addon's, in exactly the
+// system's shape; every other option text is refused at the boundary and leaves the file alone
+func TestAuthorizedKeysAddonLine(t *testing.T) {
+	s, file := sshServer(t)
+	ctx := context.Background()
+	const blob = "AAAAC3NzaC1lZDI1NTE5AAAAIEFSx3g/oLwaC84xZMOZIv9tk8m/eImdz0UxBwEjrnMj"
+	addon := `restrict,pty,from="127.0.0.1,::1",expiry-time="20261117213000Z" ssh-ed25519 ` + blob + ` openccu-lite-addon:shell`
+	if res := s.do(ctx, request{Op: opAuthKeysWrite, Args: []string{addon}}); !res.OK {
+		t.Fatalf("write: %+v", res)
+	}
+	want := sshkeys.Begin + "\n" + addon + "\n" + sshkeys.End + "\n"
+	if b, _ := os.ReadFile(file); string(b) != want {
+		t.Errorf("file:\n%s", b)
+	}
+	for name, line := range map[string]string{
+		"without restrict":     strings.TrimPrefix(addon, "restrict,"),
+		"from anywhere":        strings.Replace(addon, `127.0.0.1,::1`, `*`, 1),
+		"without an expiry":    strings.Replace(addon, `,expiry-time="20261117213000Z"`, "", 1),
+		"a command":            `command="sh",` + addon,
+		"a forwarding back":    strings.Replace(addon, "restrict,pty,", "restrict,pty,port-forwarding,", 1),
+		"no addon's comment":   strings.Replace(addon, "openccu-lite-addon:shell", "laptop", 1),
+		"an id with a path":    strings.Replace(addon, "addon:shell", "addon:../x", 1),
+		"a second line inside": addon + "\n" + edKey,
+	} {
+		if res := s.do(ctx, request{Op: opAuthKeysWrite, Args: []string{line}}); res.OK || !strings.HasPrefix(res.Error, "refused") {
+			t.Errorf("%s: %+v", name, res)
+		}
+	}
+	if b, _ := os.ReadFile(file); string(b) != want {
+		t.Errorf("a refused write changed the file:\n%s", b)
+	}
+}

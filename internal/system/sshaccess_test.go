@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/hobbyquaker/occulited/internal/priv"
 	"github.com/hobbyquaker/occulited/internal/sshkeys"
@@ -32,7 +33,7 @@ func (f *sshFake) ReadAuthorizedKeys() ([]byte, error) { return f.file, nil }
 func (f *sshFake) WriteAuthorizedKeys(lines []string) error {
 	keys := []sshkeys.Key{}
 	for _, l := range lines {
-		k, err := sshkeys.Parse(l)
+		k, err := sshkeys.ParseSection(l)
 		if err != nil {
 			return err
 		}
@@ -148,5 +149,104 @@ func TestSSHSessions(t *testing.T) {
 	}
 	if s, err := Root(root).EndSSHSession(context.Background(), run, 40100); err != nil || s.From != "fe80::1%eth0" || len(f.ended) != 1 || f.ended[0] != 40100 {
 		t.Errorf("%v %+v %v", err, s, f.ended)
+	}
+}
+
+// occulited task 152: an addon's key is written with the system's options and an expiry a moment
+// ahead; a second arming replaces the addon's line (the same key or another), a key that stands
+// elsewhere in the file is refused, and the addon's uninstall takes the line out
+func TestAddonSSHKeyArmReplaceRemove(t *testing.T) {
+	const blob = "AAAAC3NzaC1lZDI1NTE5AAAAIEFSx3g/oLwaC84xZMOZIv9tk8m/eImdz0UxBwEjrnMj"
+	const other = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJ+7yF3h1Cx7HcUGeQ8cH1gI8xYh0wJjWn3sYw0n0b7e second"
+	line := func(stamp, id string) string {
+		return `restrict,pty,from="127.0.0.1,::1",expiry-time="` + stamp + `Z" ssh-ed25519 ` + blob + ` openccu-lite-addon:` + id
+	}
+	f := withSSHFake(t, "")
+	now := time.Date(2026, 11, 17, 21, 29, 0, 0, time.UTC)
+	k, replaced, err := ArmAddonSSHKey("shell", testEdKey+`",command="x`, time.Minute, now)
+	if err != nil || replaced || k.Addon != "shell" || k.ArmedUntil != "2026-11-17T21:30:00Z" || k.Fingerprint != testEdFP {
+		t.Fatalf("%v %v %+v", err, replaced, k)
+	}
+	if want := sshkeys.Begin + "\n" + line("20261117213000", "shell") + "\n" + sshkeys.End + "\n"; string(f.file) != want {
+		t.Fatalf("file:\n%s", f.file)
+	}
+	// a re-arm of the same key: the line replaced, no "exists"
+	k, replaced, err = ArmAddonSSHKey("shell", testEdKey, 90*time.Second, now.Add(time.Hour))
+	if err != nil || !replaced || k.ArmedUntil != "2026-11-17T22:30:30Z" {
+		t.Fatalf("re-arm: %v %v %+v", err, replaced, k)
+	}
+	if want := sshkeys.Begin + "\n" + line("20261117223030", "shell") + "\n" + sshkeys.End + "\n"; string(f.file) != want {
+		t.Fatalf("re-armed:\n%s", f.file)
+	}
+	// the same key for another addon, or as a key of the page: it stands in the file already
+	if _, _, err := ArmAddonSSHKey("other", testEdKey, time.Minute, now); !errors.Is(err, ErrKeyPresent) {
+		t.Errorf("another addon with the same key: %v", err)
+	}
+	if _, err := AddSSHKey(testEdKey); !errors.Is(err, ErrKeyPresent) {
+		t.Errorf("the page added the addon's key: %v", err)
+	}
+	if taken, err := AddonSSHKeyTaken("shell", testEdKey); err != nil || taken {
+		t.Errorf("the addon's own line counts as taken: %v %v", taken, err)
+	}
+	if taken, err := AddonSSHKeyTaken("other", testEdKey); err != nil || !taken {
+		t.Errorf("another addon's line: %v %v", taken, err)
+	}
+	// only Ed25519
+	if _, _, err := ArmAddonSSHKey("shell", testEcKey, time.Minute, now); !errors.Is(err, ErrAddonKeyType) {
+		t.Errorf("an ECDSA key: %v", err)
+	}
+	if _, _, err := ArmAddonSSHKey("sh ell", testEdKey, time.Minute, now); err == nil {
+		t.Error("a bad id")
+	}
+	// another key for the addon replaces its line; a key of the page beside it stays
+	if _, err := AddSSHKey(testEcKey); err != nil {
+		t.Fatal(err)
+	}
+	if _, replaced, err = ArmAddonSSHKey("shell", other, time.Minute, now); err != nil || !replaced {
+		t.Fatalf("another key: %v %v", err, replaced)
+	}
+	keys, _ := AddonSSHKeys()
+	all, _ := SSHKeys()
+	if len(keys) != 1 || keys[0].Fingerprint == testEdFP || len(all.Managed) != 2 || strings.Contains(string(f.file), blob) {
+		t.Fatalf("%+v\n%s", keys, f.file)
+	}
+	// the uninstall: the addon's line goes, the page's key stays; another addon's uninstall is nothing
+	if removed, err := RemoveAddonSSHKey("other"); err != nil || removed {
+		t.Errorf("another addon: %v %v", removed, err)
+	}
+	if removed, err := RemoveAddonSSHKey("shell"); err != nil || !removed {
+		t.Fatalf("remove: %v %v", removed, err)
+	}
+	if want := sshkeys.Begin + "\n" + testEcKey + "\n" + sshkeys.End + "\n"; string(f.file) != want {
+		t.Errorf("after the uninstall:\n%s", f.file)
+	}
+	if keys, _ := AddonSSHKeys(); len(keys) != 0 {
+		t.Errorf("%+v", keys)
+	}
+}
+
+// the uninstall of an addon removes its key for root, and a helper that fails does not fail it
+func TestUninstallRemovesTheAddonsSSHKey(t *testing.T) {
+	r := rootWith(t, map[string]string{"usr/local/etc/config/rc.d/shell": "#!/bin/sh\nexit 0\n"})
+	if err := os.Chmod(r.join("/usr/local/etc/config/rc.d/shell"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if !r.AddonInstalled("shell") || r.AddonInstalled("other") || r.AddonInstalled("../rc.d/shell") {
+		t.Fatal("AddonInstalled")
+	}
+	f := withSSHFake(t, "")
+	if _, _, err := ArmAddonSSHKey("shell", testEdKey, time.Minute, time.Now()); err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := ArmAddonSSHKey("other", "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJ+7yF3h1Cx7HcUGeQ8cH1gI8xYh0wJjWn3sYw0n0b7e", time.Minute, time.Now()); err != nil {
+		t.Fatal(err)
+	}
+	a := NewSystemdAddons(r, SystemdServices{Root: r, Run: quietRun})
+	if _, err := a.Uninstall(context.Background(), "shell"); err != nil {
+		t.Fatal(err)
+	}
+	keys, _ := AddonSSHKeys()
+	if len(keys) != 1 || keys[0].Addon != "other" || strings.Contains(string(f.file), "openccu-lite-addon:shell") {
+		t.Errorf("after the uninstall: %+v\n%s", keys, f.file)
 	}
 }

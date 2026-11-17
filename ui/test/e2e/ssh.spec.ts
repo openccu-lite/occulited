@@ -213,3 +213,40 @@ test('only key login in German', async ({page, baseURL}) => {
     await expect(sw).toContainText('Nur Anmeldung mit Schlüssel (kein Passwort)');
     await expect(sw.locator('input')).toBeChecked();
 });
+
+// occulited task 152: an addon's key is listed as the addon's, in the warning colour, with what it
+// is and whether it is armed in the tooltip; the label keeps its box whether armed or not, the
+// Status page warns while the line exists, and Remove takes it out like any key of the page
+test("an addon's key is labelled with the addon, says whether it is armed, and is removed like any key", async ({page, baseURL}) => {
+    await own(page, baseURL, {'stub-ssh-addon': 'armed'});
+    await page.goto('/system/remote-access');
+    const row = page.locator('[data-ssh="keys"] tr[data-key="addon"]');
+    await expect(row).toHaveCount(1);
+    const label = row.locator('[data-ssh="addon-key"]');
+    await expect(label).toHaveText('addon: Mosquitto');
+    await expect(label).toHaveClass(/ol-badge warn/);
+    await expect(label).toHaveAttribute('title', /^The addon Mosquitto holds this key for root\. It works only on the system itself, and only for a minute after an administrator confirmed with his password\. Armed until \d{2}:\d{2}\.$/);
+    await expect(row).toContainText('ssh-ed25519 · 256');
+    await expect(row).not.toContainText('restrict');
+    const armedBox = await label.boundingBox();
+    // the panel carries the warning's edge
+    await expect(page.locator('[data-panel="ssh-keys"]')).toHaveAttribute('data-warn-edge', 'warn');
+
+    // the Status page's warning, raised from the line
+    await page.goto('/');
+    const warning = page.locator('[data-warnings] [data-notice="ssh-addon-key"]');
+    await expect(warning).toContainText('The addon Mosquitto holds an SSH key for root. It works only on the system itself, and only for a minute after an administrator confirmed with his password.');
+
+    // not armed: the same label in the same box, the tooltip says so
+    await own(page, baseURL, {'stub-ssh-addon': 'idle'});
+    await page.goto('/system/remote-access');
+    await expect(label).toHaveAttribute('title', /Not armed\.$/);
+    const idleBox = await label.boundingBox();
+    expect(idleBox!.width).toBe(armedBox!.width);
+    expect(idleBox!.height).toBe(armedBox!.height);
+
+    await row.getByRole('button', {name: 'Remove'}).click();
+    const dialog = page.getByRole('dialog');
+    await dialog.getByRole('button', {name: 'Remove'}).click();
+    await expect(row).toHaveCount(0);
+});

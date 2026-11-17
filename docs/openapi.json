@@ -9025,6 +9025,12 @@
       },
       "SshkeysKey": {
         "properties": {
+          "addon": {
+            "type": "string"
+          },
+          "armed_until": {
+            "type": "string"
+          },
           "bits": {
             "type": "integer"
           },
@@ -38340,6 +38346,18 @@
             "application/json": {
               "schema": {
                 "properties": {
+                  "arm_seconds": {
+                    "type": [
+                      "integer",
+                      "null"
+                    ]
+                  },
+                  "for_addon": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
                   "key": {
                     "type": "string"
                   }
@@ -38351,6 +38369,16 @@
           "required": true
         },
         "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SshkeysKey"
+                }
+              }
+            },
+            "description": "OK"
+          },
           "201": {
             "content": {
               "application/json": {

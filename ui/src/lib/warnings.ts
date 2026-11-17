@@ -171,6 +171,9 @@ export function warningText(w: Warning, words: Words): string {
         }
         case 'app-public':
             return t('Control is public: anyone who reaches the web port operates the house, as {account}, without a login.', {account: String(p.account ?? w.variant)});
+        case 'ssh-addon-key':
+            // occulited task 152: raised from the key's line itself, not by the addon
+            return t('The addon {name} holds an SSH key for root. It works only on the system itself, and only for a minute after an administrator confirmed with his password.', {name: String(p.name ?? p.addon ?? w.variant)});
         case 'unclean':
             return t('The system was not shut down cleanly before this boot ({when}). Power loss or a hard reset.', {when: p.at ? words.when(p.at) : ''});
         case 'backup-target':
@@ -463,6 +466,7 @@ const LINK_LABELS: Record<string, string> = {
     arch: 'Addons',
     meta: 'Control',
     'app-public': 'Settings',
+    'ssh-addon-key': 'Remote access',
     'trust-ca': 'Trust stores',
     'trust-pin': 'Trust stores',
     unclean: 'Log',

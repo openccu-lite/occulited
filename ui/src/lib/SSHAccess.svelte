@@ -1,5 +1,5 @@
 <script lang="ts">
-    import {dateTime} from './datefmt';
+    import {dateTime, timeOnly} from './datefmt';
     // Task 185: SSH on the Remote access page (it was on the Network page) - the switch, root's
     // password, root's keys and the sessions open now. A pasted key goes into occulited's section
     // of root's authorized_keys; the keys outside it are listed and left alone. Adding a key and
@@ -11,6 +11,7 @@
     import Help from './Help.svelte';
     import SectionHead from './SectionHead.svelte';
     import {confirmTicket, returned, type ConfirmTexts} from './confirm';
+    import {warnEdge, warnFor} from './systemmenu.svelte';
 
     interface Props {
         admin: boolean;
@@ -18,7 +19,9 @@
     let {admin}: Props = $props();
 
     interface SSH { enabled: boolean; running: boolean; key_only?: boolean }
-    interface Key { type: string; bits?: number; comment?: string; fingerprint: string; options?: string }
+    // addon, armed_until (occulited task 152): an addon's key - the system wrote its options, and
+    // sshd takes it only until armed_until
+    interface Key { type: string; bits?: number; comment?: string; fingerprint: string; options?: string; addon?: string; armed_until?: string }
     interface Session { id: number; user: string; tty?: string; from?: string; port?: number; since?: string; method?: string; key_type?: string; key_fingerprint?: string; own?: boolean }
 
     const KEYS = '/api/system/v1/ssh/keys';
@@ -29,6 +32,15 @@
     let ssh = $state<SSH | null>(null);
     let keys = $state<{managed: Key[]; other: Key[]}>({managed: [], other: []});
     let sessions = $state<Session[]>([]);
+    let addonNames = $state<Record<string, string>>({});
+    const addonName = (k: Key) => addonNames[k.addon ?? ''] ?? k.addon ?? '';
+    // what an addon's key is and whether sshd takes it now
+    function addonKeyTitle(k: Key): string {
+        const what = t('The addon {name} holds this key for root. It works only on the system itself, and only for a minute after an administrator confirmed with his password.', {name: addonName(k)});
+        const until = k.armed_until ? new Date(k.armed_until) : null;
+        const armed = until && until.getTime() > Date.now();
+        return `${what} ${armed ? t('Armed until {time}.', {time: timeOnly(until, {hour: '2-digit', minute: '2-digit'})}) : t('Not armed.')}`;
+    }
     let error = $state('');
     let notice = $state('');
     // task 223: the panel whose action the error or the notice answers
@@ -52,6 +64,15 @@
         } catch (e) {
             at = 'keys';
             error = (e as Error).message;
+        }
+        // an addon's key is named after the addon; without the list, by its id
+        if (keys.managed.some((k) => k.addon)) {
+            try {
+                const list = (await api.get<{addons: {id: string; name?: string}[]}>('/api/system/v1/addons')).addons;
+                addonNames = Object.fromEntries(list.map((a) => [a.id, a.name || a.id]));
+            } catch {
+                addonNames = {};
+            }
         }
         await loadSessions();
     }
@@ -279,7 +300,7 @@
     {/if}
 </section>
 
-<section class="ol-panel" data-panel="ssh-keys">
+<section class="ol-panel {warnEdge(['ssh-addon-key'])}" data-panel="ssh-keys" {...warnFor(['ssh-addon-key'])}>
     <h3 id="ssh-keys">{t('Keys')}<Help>{t("The public keys that log in as root. The ones added here are kept in a section of root's authorized_keys that comment lines mark as this page's; the lines outside it are shown and left as they are.")}</Help></h3>
     {@render said('keys')}
     {#if keys.managed.length === 0 && keys.other.length === 0}
@@ -290,8 +311,8 @@
             <tbody>
                 <!-- by position: a file edited by hand can hold one key on two lines -->
                 {#each keys.managed as k, i (i)}
-                    <tr data-key="managed">
-                        <td data-label={t('Name')}>{k.comment || '–'}</td>
+                    <tr data-key={k.addon ? 'addon' : 'managed'}>
+                        <td data-label={t('Name')}>{#if k.addon}<span class="ol-badge warn ssh-addon" title={addonKeyTitle(k)} data-ssh="addon-key">{t('addon: {name}', {name: addonName(k)})}</span>{:else}{k.comment || '–'}{/if}</td>
                         <td data-label={t('Type')} class="hmm-mono">{keyLabel(k)}</td>
                         <td data-label={t('Fingerprint')} class="hmm-mono ssh-fp">{k.fingerprint}</td>
                         <td class="ssh-end">{#if admin}<button class="hmm-button" onclick={() => removeKey(k)} disabled={busy !== ''} data-ssh="remove">{t('Remove')}</button>{/if}</td>

@@ -11,6 +11,11 @@
 // A key the page adds is a modern one without options (Parse): ssh-ed25519, ecdsa-sha2-nistp256/384/
 // 521, the security-key forms sk-ssh-ed25519@openssh.com and sk-ecdsa-sha2-nistp256@openssh.com,
 // and ssh-rsa of at least 3072 bits. The helper runs the same check before it writes as root.
+//
+// One kind of line in the section carries options: an addon's key (occulited task 152, ForAddon).
+// Its options are the system's alone, written whole each time an administrator arms the key:
+//
+//	restrict,pty,from="127.0.0.1,::1",expiry-time="20261117213000Z" ssh-ed25519 AAAA… openccu-lite-addon:shell
 package sshkeys
 
 import (
@@ -21,7 +26,9 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"regexp"
 	"strings"
+	"time"
 )
 
 // The section's comment lines.
@@ -42,11 +49,88 @@ type Key struct {
 	// Options is the options prefix of a line outside the section (from="…", command="…"); a key
 	// of the section has none.
 	Options string `json:"options,omitempty"`
-	blob    string
+	// Addon is the addon a key of the section is marked for (ForAddon), and ArmedUntil the line's
+	// expiry-time as RFC 3339: sshd takes the key until then, so a past one means "not armed".
+	Addon      string `json:"addon,omitempty"`
+	ArmedUntil string `json:"armed_until,omitempty"`
+	blob       string
+	until      time.Time
 }
 
-// Line is the key as a line of authorized_keys: type, key and comment, without options.
+// An addon's key (occulited task 152). The addon keeps the private key; the line is useless at
+// rest, because sshd refuses it after its expiry-time, and the system writes that a minute ahead
+// each time an administrator confirms with his own password. restrict switches every forwarding and
+// the rc file off, pty gives the terminal back, from= makes a copy of the key worthless anywhere
+// but on the system itself.
+const (
+	addonOptions  = `restrict,pty,from="127.0.0.1,::1"`
+	addonComment  = "openccu-lite-addon:"
+	addonKeyType  = "ssh-ed25519"
+	expiryLayout  = "20060102150405"
+	addonIDShape  = `[A-Za-z0-9_][A-Za-z0-9_.-]{0,31}`
+	addonLineText = `^restrict,pty,from="127\.0\.0\.1,::1",expiry-time="([0-9]{14})Z" ssh-ed25519 ([A-Za-z0-9+/]+={0,2}) openccu-lite-addon:(` + addonIDShape + `)$`
+)
+
+var (
+	addonIDRe   = regexp.MustCompile(`^` + addonIDShape + `$`)
+	addonLineRe = regexp.MustCompile(addonLineText)
+)
+
+// ForAddon is k as the addon's key, taken by sshd until the given time: an Ed25519 key, the
+// system's options, the comment that names the addon. Nothing of k but the key itself is kept.
+func ForAddon(k Key, addon string, until time.Time) (Key, error) {
+	if !addonIDRe.MatchString(addon) {
+		return Key{}, errors.New("not an addon id")
+	}
+	if k.Type != addonKeyType {
+		return Key{}, errors.New("an addon's key is an ssh-ed25519 key")
+	}
+	until = until.UTC().Truncate(time.Second)
+	out := Key{Type: k.Type, Bits: k.Bits, Fingerprint: k.Fingerprint, blob: k.blob, until: until}
+	out.Addon = addon
+	out.Comment = addonComment + addon
+	out.Options = addonOptions + `,expiry-time="` + until.Format(expiryLayout) + `Z"`
+	out.ArmedUntil = until.Format(time.RFC3339)
+	return out, nil
+}
+
+// parseAddon reads an addon's line: exactly what ForAddon's Line writes and nothing else - other
+// options, another order, another key type or a second blank make it no addon's line.
+func parseAddon(line string) (Key, error) {
+	m := addonLineRe.FindStringSubmatch(line)
+	if m == nil {
+		return Key{}, errors.New("not an addon's key line")
+	}
+	until, err := time.ParseInLocation(expiryLayout, m[1], time.UTC)
+	if err != nil {
+		return Key{}, errors.New("the expiry-time is not a time")
+	}
+	k, err := decode(addonKeyType, m[2])
+	if err != nil {
+		return Key{}, err
+	}
+	return ForAddon(k, m[3], until)
+}
+
+// ParseSection reads one line of the section: a key as Parse takes it, or an addon's line. It is
+// what the helper checks each line with before it writes as root.
+func ParseSection(line string) (Key, error) {
+	k, err := Parse(line)
+	if err == nil {
+		return k, nil
+	}
+	if a, aerr := parseAddon(strings.TrimSpace(line)); aerr == nil {
+		return a, nil
+	}
+	return Key{}, err
+}
+
+// Line is the key as a line of authorized_keys: type, key and comment - without options, except
+// an addon's key, whose options are rebuilt here from the addon and the time, never copied.
 func (k Key) Line() string {
+	if k.Addon != "" {
+		return addonOptions + `,expiry-time="` + k.until.UTC().Format(expiryLayout) + `Z" ` + k.Type + " " + k.blob + " " + addonComment + k.Addon
+	}
 	if k.Comment == "" {
 		return k.Type + " " + k.blob
 	}
@@ -215,7 +299,7 @@ type File struct {
 }
 
 // Read splits a file into its section's keys and the others. A line of the section that is not
-// a key Parse takes is left out of Managed (and dropped at the next write of the section).
+// a key ParseSection takes is left out of Managed (and dropped at the next write of the section).
 func Read(b []byte) File {
 	out := File{Managed: []Key{}, Other: []Key{}}
 	in := false
@@ -232,7 +316,7 @@ func Read(b []byte) File {
 			continue
 		}
 		if in {
-			if k, err := Parse(t); err == nil {
+			if k, err := ParseSection(t); err == nil {
 				out.Managed = append(out.Managed, k)
 			}
 		} else if k, ok := parseAny(t); ok {
