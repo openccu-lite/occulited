@@ -421,8 +421,14 @@ func TestPipelineAddonTargetFromTheLocalTarget(t *testing.T) {
 	ctx := context.Background()
 	// the stick holds two older encrypted backups the cloud never got, a plain one and another system's
 	_ = os.MkdirAll(r.usb, 0o755)
-	for _, n := range []string{"lab-box-1.0.0-2026-09-22-0007.sbk.age", "lab-box-1.0.0-2026-09-23-0007.sbk.age", "lab-box-1.0.0-2026-09-21-0007.sbk", "other-1-2026-09-23-0007.sbk.age"} {
+	// each with the age its name says: retention orders by the files' times, and three files written
+	// in the same moment got the same time or not as the clock's tick fell (a red CI run, 2026-11-17)
+	for i, n := range []string{"lab-box-1.0.0-2026-09-23-0007.sbk.age", "lab-box-1.0.0-2026-09-22-0007.sbk.age", "lab-box-1.0.0-2026-09-21-0007.sbk", "other-1-2026-09-23-0007.sbk.age"} {
 		_ = os.WriteFile(filepath.Join(r.usb, n), []byte("old "+n), 0o644)
+		at := time.Now().Add(-time.Duration(i+1) * 24 * time.Hour)
+		if err := os.Chtimes(filepath.Join(r.usb, n), at, at); err != nil {
+			t.Fatal(err)
+		}
 	}
 	// and the cloud an old one of this system, beyond what it keeps
 	f.files["acc1|openccu-lite/lab-box"] = map[string][]byte{"lab-box-1.0.0-2026-09-01-0007.sbk.age": []byte("ancient")}
