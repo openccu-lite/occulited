@@ -1,6 +1,6 @@
 {
   "format": 1,
-  "generated_at": "2026-11-17T20:35:00Z",
+  "generated_at": "2026-11-17T23:24:44Z",
   "catalog": "file:///home/runner/work/occulited/occulited/catalog/catalog.json",
   "repos": {
     "SukramJ/openccu-loom": {
@@ -1174,6 +1174,46 @@
     "hobbyquaker/ccu-addon-battery": {
       "releases": [
         {
+          "tag_name": "v1.2.0",
+          "name": "v1.2.0",
+          "draft": false,
+          "prerelease": false,
+          "html_url": "https://github.com/hobbyquaker/ccu-addon-battery/releases/tag/v1.2.0",
+          "published_at": "2026-11-17T21:13:33Z",
+          "assets": [
+            {
+              "name": "battery-aarch64-1.2.0.tar.gz",
+              "size": 5224254,
+              "browser_download_url": "https://github.com/hobbyquaker/ccu-addon-battery/releases/download/v1.2.0/battery-aarch64-1.2.0.tar.gz"
+            },
+            {
+              "name": "battery-aarch64-1.2.0.tar.gz.sha256",
+              "size": 95,
+              "browser_download_url": "https://github.com/hobbyquaker/ccu-addon-battery/releases/download/v1.2.0/battery-aarch64-1.2.0.tar.gz.sha256"
+            },
+            {
+              "name": "battery-armv7l-1.2.0.tar.gz",
+              "size": 5385798,
+              "browser_download_url": "https://github.com/hobbyquaker/ccu-addon-battery/releases/download/v1.2.0/battery-armv7l-1.2.0.tar.gz"
+            },
+            {
+              "name": "battery-armv7l-1.2.0.tar.gz.sha256",
+              "size": 94,
+              "browser_download_url": "https://github.com/hobbyquaker/ccu-addon-battery/releases/download/v1.2.0/battery-armv7l-1.2.0.tar.gz.sha256"
+            },
+            {
+              "name": "battery-x86_64-1.2.0.tar.gz",
+              "size": 5628782,
+              "browser_download_url": "https://github.com/hobbyquaker/ccu-addon-battery/releases/download/v1.2.0/battery-x86_64-1.2.0.tar.gz"
+            },
+            {
+              "name": "battery-x86_64-1.2.0.tar.gz.sha256",
+              "size": 94,
+              "browser_download_url": "https://github.com/hobbyquaker/ccu-addon-battery/releases/download/v1.2.0/battery-x86_64-1.2.0.tar.gz.sha256"
+            }
+          ]
+        },
+        {
           "tag_name": "v1.1.0",
           "name": "v1.1.0",
           "draft": false,
@@ -1419,6 +1459,46 @@
     },
     "hobbyquaker/ccu-addon-longpressdim": {
       "releases": [
+        {
+          "tag_name": "v0.1.4",
+          "name": "v0.1.4",
+          "draft": false,
+          "prerelease": false,
+          "html_url": "https://github.com/hobbyquaker/ccu-addon-longpressdim/releases/tag/v0.1.4",
+          "published_at": "2026-11-17T21:14:32Z",
+          "assets": [
+            {
+              "name": "longpressdim-aarch64-0.1.4.tar.gz",
+              "size": 3254599,
+              "browser_download_url": "https://github.com/hobbyquaker/ccu-addon-longpressdim/releases/download/v0.1.4/longpressdim-aarch64-0.1.4.tar.gz"
+            },
+            {
+              "name": "longpressdim-aarch64-0.1.4.tar.gz.sha256",
+              "size": 100,
+              "browser_download_url": "https://github.com/hobbyquaker/ccu-addon-longpressdim/releases/download/v0.1.4/longpressdim-aarch64-0.1.4.tar.gz.sha256"
+            },
+            {
+              "name": "longpressdim-armv7l-0.1.4.tar.gz",
+              "size": 3479177,
+              "browser_download_url": "https://github.com/hobbyquaker/ccu-addon-longpressdim/releases/download/v0.1.4/longpressdim-armv7l-0.1.4.tar.gz"
+            },
+            {
+              "name": "longpressdim-armv7l-0.1.4.tar.gz.sha256",
+              "size": 99,
+              "browser_download_url": "https://github.com/hobbyquaker/ccu-addon-longpressdim/releases/download/v0.1.4/longpressdim-armv7l-0.1.4.tar.gz.sha256"
+            },
+            {
+              "name": "longpressdim-x86_64-0.1.4.tar.gz",
+              "size": 3605543,
+              "browser_download_url": "https://github.com/hobbyquaker/ccu-addon-longpressdim/releases/download/v0.1.4/longpressdim-x86_64-0.1.4.tar.gz"
+            },
+            {
+              "name": "longpressdim-x86_64-0.1.4.tar.gz.sha256",
+              "size": 99,
+              "browser_download_url": "https://github.com/hobbyquaker/ccu-addon-longpressdim/releases/download/v0.1.4/longpressdim-x86_64-0.1.4.tar.gz.sha256"
+            }
+          ]
+        },
         {
           "tag_name": "v0.1.3",
           "name": "v0.1.3",
@@ -11409,6 +11489,168 @@
       "per_page": 10,
       "stars": 147
     },
+    "openccu-lite/lite-addon-shell": {
+      "releases": [
+        {
+          "tag_name": "v0.1.0",
+          "name": "v0.1.0",
+          "draft": false,
+          "prerelease": false,
+          "html_url": "https://github.com/openccu-lite/lite-addon-shell/releases/tag/v0.1.0",
+          "published_at": "2026-11-17T20:13:13Z",
+          "assets": [
+            {
+              "name": "shell-aarch64-0.1.0.tar.gz",
+              "size": 3090083,
+              "browser_download_url": "https://github.com/openccu-lite/lite-addon-shell/releases/download/v0.1.0/shell-aarch64-0.1.0.tar.gz"
+            },
+            {
+              "name": "shell-aarch64-0.1.0.tar.gz.sha256",
+              "size": 93,
+              "browser_download_url": "https://github.com/openccu-lite/lite-addon-shell/releases/download/v0.1.0/shell-aarch64-0.1.0.tar.gz.sha256"
+            },
+            {
+              "name": "shell-x86_64-0.1.0.tar.gz",
+              "size": 3414277,
+              "browser_download_url": "https://github.com/openccu-lite/lite-addon-shell/releases/download/v0.1.0/shell-x86_64-0.1.0.tar.gz"
+            },
+            {
+              "name": "shell-x86_64-0.1.0.tar.gz.sha256",
+              "size": 92,
+              "browser_download_url": "https://github.com/openccu-lite/lite-addon-shell/releases/download/v0.1.0/shell-x86_64-0.1.0.tar.gz.sha256"
+            }
+          ]
+        }
+      ],
+      "per_page": 10,
+      "stars": 0
+    },
+    "openccu-lite/lite-addon-sync": {
+      "releases": [
+        {
+          "tag_name": "v0.4.0",
+          "name": "v0.4.0",
+          "draft": false,
+          "prerelease": false,
+          "html_url": "https://github.com/openccu-lite/lite-addon-sync/releases/tag/v0.4.0",
+          "published_at": "2026-11-17T21:35:42Z",
+          "assets": [
+            {
+              "name": "sync-aarch64-0.4.0.tar.gz",
+              "size": 29872264,
+              "browser_download_url": "https://github.com/openccu-lite/lite-addon-sync/releases/download/v0.4.0/sync-aarch64-0.4.0.tar.gz"
+            },
+            {
+              "name": "sync-aarch64-0.4.0.tar.gz.sha256",
+              "size": 92,
+              "browser_download_url": "https://github.com/openccu-lite/lite-addon-sync/releases/download/v0.4.0/sync-aarch64-0.4.0.tar.gz.sha256"
+            },
+            {
+              "name": "sync-x86_64-0.4.0.tar.gz",
+              "size": 33263558,
+              "browser_download_url": "https://github.com/openccu-lite/lite-addon-sync/releases/download/v0.4.0/sync-x86_64-0.4.0.tar.gz"
+            },
+            {
+              "name": "sync-x86_64-0.4.0.tar.gz.sha256",
+              "size": 91,
+              "browser_download_url": "https://github.com/openccu-lite/lite-addon-sync/releases/download/v0.4.0/sync-x86_64-0.4.0.tar.gz.sha256"
+            }
+          ]
+        },
+        {
+          "tag_name": "v0.3.0",
+          "name": "v0.3.0",
+          "draft": false,
+          "prerelease": false,
+          "html_url": "https://github.com/openccu-lite/lite-addon-sync/releases/tag/v0.3.0",
+          "published_at": "2026-11-17T21:07:49Z",
+          "assets": [
+            {
+              "name": "sync-aarch64-0.3.0.tar.gz",
+              "size": 29869382,
+              "browser_download_url": "https://github.com/openccu-lite/lite-addon-sync/releases/download/v0.3.0/sync-aarch64-0.3.0.tar.gz"
+            },
+            {
+              "name": "sync-aarch64-0.3.0.tar.gz.sha256",
+              "size": 92,
+              "browser_download_url": "https://github.com/openccu-lite/lite-addon-sync/releases/download/v0.3.0/sync-aarch64-0.3.0.tar.gz.sha256"
+            },
+            {
+              "name": "sync-x86_64-0.3.0.tar.gz",
+              "size": 33259637,
+              "browser_download_url": "https://github.com/openccu-lite/lite-addon-sync/releases/download/v0.3.0/sync-x86_64-0.3.0.tar.gz"
+            },
+            {
+              "name": "sync-x86_64-0.3.0.tar.gz.sha256",
+              "size": 91,
+              "browser_download_url": "https://github.com/openccu-lite/lite-addon-sync/releases/download/v0.3.0/sync-x86_64-0.3.0.tar.gz.sha256"
+            }
+          ]
+        },
+        {
+          "tag_name": "v0.2.0",
+          "name": "v0.2.0",
+          "draft": false,
+          "prerelease": false,
+          "html_url": "https://github.com/openccu-lite/lite-addon-sync/releases/tag/v0.2.0",
+          "published_at": "2026-11-17T20:41:10Z",
+          "assets": [
+            {
+              "name": "sync-aarch64-0.2.0.tar.gz",
+              "size": 29856387,
+              "browser_download_url": "https://github.com/openccu-lite/lite-addon-sync/releases/download/v0.2.0/sync-aarch64-0.2.0.tar.gz"
+            },
+            {
+              "name": "sync-aarch64-0.2.0.tar.gz.sha256",
+              "size": 92,
+              "browser_download_url": "https://github.com/openccu-lite/lite-addon-sync/releases/download/v0.2.0/sync-aarch64-0.2.0.tar.gz.sha256"
+            },
+            {
+              "name": "sync-x86_64-0.2.0.tar.gz",
+              "size": 33245105,
+              "browser_download_url": "https://github.com/openccu-lite/lite-addon-sync/releases/download/v0.2.0/sync-x86_64-0.2.0.tar.gz"
+            },
+            {
+              "name": "sync-x86_64-0.2.0.tar.gz.sha256",
+              "size": 91,
+              "browser_download_url": "https://github.com/openccu-lite/lite-addon-sync/releases/download/v0.2.0/sync-x86_64-0.2.0.tar.gz.sha256"
+            }
+          ]
+        },
+        {
+          "tag_name": "v0.1.0",
+          "name": "v0.1.0",
+          "draft": false,
+          "prerelease": false,
+          "html_url": "https://github.com/openccu-lite/lite-addon-sync/releases/tag/v0.1.0",
+          "published_at": "2026-11-17T19:16:38Z",
+          "assets": [
+            {
+              "name": "sync-aarch64-0.1.0.tar.gz",
+              "size": 29682313,
+              "browser_download_url": "https://github.com/openccu-lite/lite-addon-sync/releases/download/v0.1.0/sync-aarch64-0.1.0.tar.gz"
+            },
+            {
+              "name": "sync-aarch64-0.1.0.tar.gz.sha256",
+              "size": 92,
+              "browser_download_url": "https://github.com/openccu-lite/lite-addon-sync/releases/download/v0.1.0/sync-aarch64-0.1.0.tar.gz.sha256"
+            },
+            {
+              "name": "sync-x86_64-0.1.0.tar.gz",
+              "size": 33050766,
+              "browser_download_url": "https://github.com/openccu-lite/lite-addon-sync/releases/download/v0.1.0/sync-x86_64-0.1.0.tar.gz"
+            },
+            {
+              "name": "sync-x86_64-0.1.0.tar.gz.sha256",
+              "size": 91,
+              "browser_download_url": "https://github.com/openccu-lite/lite-addon-sync/releases/download/v0.1.0/sync-x86_64-0.1.0.tar.gz.sha256"
+            }
+          ]
+        }
+      ],
+      "per_page": 10,
+      "stars": 0
+    },
     "openccu-lite/openccu-lite": {
       "releases": [
         {
@@ -17752,7 +17994,7 @@
       "git": "https://github.com/hobbyquaker/ccu-addon-longpressdim",
       "manifest": "addon/openccu-lite.json",
       "id": "longpressdim",
-      "tag": "v0.1.3",
+      "tag": "v0.1.4",
       "release_repo": "hobbyquaker/ccu-addon-longpressdim",
       "images": {
         "icon": "ok",
@@ -17763,7 +18005,7 @@
       "git": "https://github.com/hobbyquaker/ccu-addon-battery",
       "manifest": "addon/openccu-lite.json",
       "id": "battery",
-      "tag": "v1.1.0",
+      "tag": "v1.2.0",
       "release_repo": "hobbyquaker/ccu-addon-battery",
       "images": {
         "icon": "ok",
@@ -17830,6 +18072,28 @@
       "manifest": "addon/openccu-lite.json",
       "id": "tools",
       "tag": "v2026.08.1.1",
+      "images": {
+        "icon": "ok",
+        "icon-dark": "ok"
+      }
+    },
+    {
+      "git": "https://github.com/openccu-lite/lite-addon-sync",
+      "manifest": "addon/openccu-lite.json",
+      "id": "sync",
+      "tag": "v0.4.0",
+      "release_repo": "openccu-lite/lite-addon-sync",
+      "images": {
+        "icon": "ok",
+        "icon-dark": "ok"
+      }
+    },
+    {
+      "git": "https://github.com/openccu-lite/lite-addon-shell",
+      "manifest": "addon/openccu-lite.json",
+      "id": "shell",
+      "tag": "v0.1.0",
+      "release_repo": "openccu-lite/lite-addon-shell",
       "images": {
         "icon": "ok",
         "icon-dark": "ok"
