@@ -45,7 +45,7 @@ const (
 // Failed says whether a state is a failure the Status page warns about.
 func Failed(state string) bool {
 	switch state {
-	case StateReadOnly, StateFull, StateUnreachable, StateAuthFailed, StateHostKeyUnknown, StateHostKeyChanged, StateNoSFTP, StateStale, StateError, StateNoMedium, StateUpdateRoom:
+	case StateReadOnly, StateFull, StateUnreachable, StateAuthFailed, StateHostKeyUnknown, StateHostKeyChanged, StateNoSFTP, StateStale, StateError, StateNoMedium, StateUpdateRoom, StateAddonMissing, StateNotEncrypted:
 		return true
 	}
 	return false
@@ -68,6 +68,15 @@ type Result struct {
 	Removed []string `json:"removed,omitempty"`
 	// LastOK is the last successful delivery's time, carried from run to run.
 	LastOK *time.Time `json:"last_ok,omitempty"`
+	// An addon target's delivery (occulited task 150): From is the local target the upload read
+	// the file from ("" = the working copy), Verified how the provider checked it ("hash", "size"),
+	// CaughtUp the older backups sent after it; Message and Action are the provider's own sentence
+	// and link for a failure.
+	From     string          `json:"from,omitempty"`
+	Verified string          `json:"verified,omitempty"`
+	CaughtUp []string        `json:"caught_up,omitempty"`
+	Message  ProviderText    `json:"message,omitempty"`
+	Action   *ProviderAction `json:"action,omitempty"`
 }
 
 // ReadResult reads a target's last result; ok false when there is none.
@@ -102,6 +111,9 @@ func WriteResult(dir string, r Result) error {
 func Classify(err error) string {
 	if err == nil {
 		return StateWritable
+	}
+	if st, ok := providerState(err); ok {
+		return st
 	}
 	var hk *HostKeyError
 	if errors.As(err, &hk) {

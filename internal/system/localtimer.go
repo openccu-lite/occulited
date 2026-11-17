@@ -50,6 +50,10 @@ type LocalTimer struct {
 	ServiceFile string `json:"service_file"` // the .service text
 	// Enabled: not switched off here (no marker); systemd's own state is on GET /timers.
 	Enabled bool `json:"enabled"`
+	// Addon: the timer is an addon's (occulited task 154, addontimer.go) - made through
+	// /addon-timers with the addon's token, its service rendered by the system. The id; empty for
+	// a timer a person made. Such a timer's service file is not editable.
+	Addon string `json:"addon,omitempty"`
 }
 
 // LocalTimerPrefix is what every own unit's name starts with.
@@ -60,6 +64,8 @@ const LocalTimerPrefix = "local-"
 var (
 	ErrLocalTimerExists   = errors.New("own timer exists")
 	ErrLocalTimerNotFound = errors.New("own timer not found")
+	// ErrAddonTimerService: the service file of an addon's timer was to be changed (task 154).
+	ErrAddonTimerService = errors.New("the service of an addon's timer is the system's")
 )
 
 type localTimerErr struct {
@@ -175,7 +181,11 @@ func (s SystemdServices) ReadLocalTimer(id string) (LocalTimer, error) {
 		return LocalTimer{}, localTimerErr{ErrLocalTimerNotFound, "the own timer " + name + " has no service file"}
 	}
 	_, disabled := os.Stat(s.disabledMarker(name))
-	return LocalTimer{Name: name, Unit: localTimerUnit(name), Service: localTimerService(name), TimerFile: string(tb), ServiceFile: string(sb), Enabled: disabled != nil}, nil
+	lt := LocalTimer{Name: name, Unit: localTimerUnit(name), Service: localTimerService(name), TimerFile: string(tb), ServiceFile: string(sb), Enabled: disabled != nil}
+	if meta, ok := s.addonTimerMeta(name); ok {
+		lt.Addon = meta.Addon
+	}
+	return lt, nil
 }
 
 // ListLocalTimers returns every stored own timer, never nil.
@@ -362,6 +372,12 @@ func (s SystemdServices) loadProblem(ctx context.Context, name string) error {
 // it. Anything that fails on the way takes back what was written: a refused timer leaves nothing
 // behind, neither on the userfs nor in /run.
 func (s SystemdServices) CreateLocalTimer(ctx context.Context, id, timer, service string) (LocalTimer, error) {
+	return s.createLocalTimer(ctx, id, timer, service, true)
+}
+
+// createLocalTimer is CreateLocalTimer with the choice whether the new timer is enabled and
+// started: an addon's timer for a job that only runs by hand is made switched off (addontimer.go).
+func (s SystemdServices) createLocalTimer(ctx context.Context, id, timer, service string, enable bool) (LocalTimer, error) {
 	name := localTimerName(id)
 	if !ValidLocalTimerName(name) {
 		return LocalTimer{}, errLocalTimerName
@@ -401,6 +417,12 @@ func (s SystemdServices) CreateLocalTimer(ctx context.Context, id, timer, servic
 	if err := s.loadProblem(ctx, name); err != nil {
 		return fail(err)
 	}
+	if !enable {
+		if err := os.WriteFile(s.disabledMarker(name), []byte("made switched off\n"), 0o640); err != nil {
+			return fail(err)
+		}
+		return s.ReadLocalTimer(name)
+	}
 	if out, err := s.run(ctx, "enable", "--runtime", "--now", "--no-pager", "--", localTimerUnit(name)); err != nil {
 		_, _ = s.run(ctx, "disable", "--runtime", "--now", "--no-pager", "--", localTimerUnit(name))
 		return fail(fmt.Errorf("systemctl enable %s: %w: %s", localTimerUnit(name), err, strings.TrimSpace(string(out))))
@@ -416,6 +438,17 @@ func (s SystemdServices) UpdateLocalTimer(ctx context.Context, id, timer, servic
 	if err != nil {
 		return LocalTimer{}, err
 	}
+	// occulited task 154: the service of an addon's timer is the system's rendering - whoever
+	// edits such a timer on the Services page changes its schedule, never what it runs
+	if cur.Addon != "" && strings.TrimSpace(service) != strings.TrimSpace(cur.ServiceFile) {
+		return LocalTimer{}, localTimerErr{ErrAddonTimerService, "the service of this timer is rendered by the system for the addon " + cur.Addon + " and cannot be changed; the timer file can"}
+	}
+	return s.updateLocalTimer(ctx, cur, timer, service)
+}
+
+// updateLocalTimer replaces the files of the stored timer cur (UpdateLocalTimer's work, after its
+// checks of who may change what).
+func (s SystemdServices) updateLocalTimer(ctx context.Context, cur LocalTimer, timer, service string) (LocalTimer, error) {
 	name := cur.Name
 	if err := checkLocalTimerFiles(timer, service); err != nil {
 		return LocalTimer{}, err
@@ -471,6 +504,11 @@ func (s SystemdServices) DeleteLocalTimer(ctx context.Context, id string) error 
 	if out, err := s.run(ctx, "daemon-reload"); err != nil {
 		return fmt.Errorf("daemon-reload: %w: %s", err, strings.TrimSpace(string(out)))
 	}
+	// a service whose last run failed stays listed after its file is gone - "not-found", "failed"
+	// on the Services page and in systemctl --failed - until systemd is told to forget the failure
+	// (as for an uninstalled addon's unit, B-236; seen on the lab with a deleted copy job).
+	// Harmless when the units did not fail or are gone already.
+	_, _ = s.run(ctx, "reset-failed", "--no-pager", "--", t.Service, t.Unit)
 	return nil
 }
 
@@ -530,7 +568,7 @@ func (s SystemdServices) storeLocalTimer(name, timer, service string) error {
 // unstoreLocalTimer removes the two texts and the marker from the userfs.
 func (s SystemdServices) unstoreLocalTimer(name string) error {
 	dir := s.unitsDir()
-	for _, f := range []string{filepath.Join(dir, localTimerUnit(name)), filepath.Join(dir, localTimerService(name)), s.disabledMarker(name)} {
+	for _, f := range []string{filepath.Join(dir, localTimerUnit(name)), filepath.Join(dir, localTimerService(name)), s.disabledMarker(name), s.addonTimerMetaPath(name)} {
 		if err := os.Remove(f); err != nil && !os.IsNotExist(err) {
 			return err
 		}

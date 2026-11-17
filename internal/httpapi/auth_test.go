@@ -1022,3 +1022,40 @@ func TestRequestHeader(t *testing.T) {
 		}
 	}
 }
+
+// occulited task 151: GET /state?peek=1 says what the plain route says about a session or a
+// token, marks the answer, and sets no cookie; without a credential it is unauthenticated.
+func TestStatePeek(t *testing.T) {
+	srv := authServer(t)
+	if st, _, _ := do(t, srv, "POST", "/api/auth/v1/setup", `{"username":"admin","password":"secret123"}`, nil); st != 200 {
+		t.Fatalf("setup: %d", st)
+	}
+	sid := cookieOf(t, srv, `{"username":"admin","password":"secret123"}`)
+	st, out, _ := do(t, srv, "GET", "/api/auth/v1/state?peek=1", "", map[string]string{"Authorization": "Bearer " + sid})
+	if st != 200 || out["peek"] != true || out["authenticated"] != true || out["user"] != "admin" || out["level"] != "administer" || out["sid"] != sid || out["method"] != "password" {
+		t.Fatalf("peek on a session: %d %v", st, out)
+	}
+	// on the cookie: answered, and no cookie set again (the plain route sets three)
+	st, cookies := cookieExchange(t, srv, "GET", "/api/auth/v1/state?peek=1", "", map[string]string{"Cookie": CookieName + "=" + sid})
+	if st != 200 || len(cookies) != 0 {
+		t.Errorf("peek on the cookie: %d %v", st, cookies)
+	}
+	// the plain route does not carry the mark
+	if _, out, _ := do(t, srv, "GET", "/api/auth/v1/state", "", map[string]string{"Authorization": "Bearer " + sid}); out["peek"] != nil {
+		t.Errorf("the plain route says peek: %v", out)
+	}
+	// no credential, and one that names no session
+	for _, hdr := range []map[string]string{nil, {"Authorization": "Bearer " + strings.Repeat("0", len(sid))}} {
+		st, out, _ := do(t, srv, "GET", "/api/auth/v1/state?peek=1", "", hdr)
+		if st != 200 || out["peek"] != true || out["authenticated"] != false || out["sid"] != nil {
+			t.Errorf("peek with %v: %d %v", hdr, st, out)
+		}
+	}
+	// after the logout the peek says so
+	if st, _, _ := do(t, srv, "POST", "/api/auth/v1/logout", "", map[string]string{"Authorization": "Bearer " + sid}); st != 200 {
+		t.Fatalf("logout: %d", st)
+	}
+	if _, out, _ := do(t, srv, "GET", "/api/auth/v1/state?peek=1", "", map[string]string{"Authorization": "Bearer " + sid}); out["authenticated"] != false {
+		t.Errorf("peek after the logout: %v", out)
+	}
+}

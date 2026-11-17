@@ -121,6 +121,12 @@ func TestRouteTable(t *testing.T) {
 		}
 		tokens[s] = secret
 	}
+	// timers:addon (occulited task 154) is no token's a person makes: an addon's own token carries it
+	addonSecret, _, _, err := store.MintAddonToken("sync", []string{"timers:addon"})
+	if err != nil || addonSecret == "" {
+		t.Fatal("no addon token with timers:addon", err)
+	}
+	tokens[auth.ScopeTimersAddon] = addonSecret
 	var patterns []string
 	for p := range table {
 		patterns = append(patterns, p)

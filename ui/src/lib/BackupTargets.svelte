@@ -3,18 +3,26 @@
     // (mounted on demand by the system) and SSH servers (an SFTP upload). One card per target
     // with its state, the last backup, the test, Back up now, the mount, the backups there and
     // Restore this; the SSH key and the server's key; the nightly switch on top.
-    export interface TargetState { state: string; detail?: string; checked_at?: string; failures: number; next_retry_at?: string; mounted: boolean; source?: string; options?: string; free_bytes?: number; total_bytes?: number; unsupported?: string }
-    export interface LastBackup { at: string; ok: boolean; state: string; step?: string; error?: string; name?: string; size?: number; duration_ms?: number; encrypted: boolean; last_ok?: string; removed?: string[] }
+    // occulited task 150: targets an addon provides - its provider, the destinations it offers, and
+    // the provider's own sentence and link for a state
+    export type ProviderText = Partial<Record<'de' | 'en', string>>;
+    export interface ProviderAction { label: ProviderText; href: string }
+    export interface Destination { id: string; name: string; detail?: string; state: string; message?: ProviderText; action?: ProviderAction }
+    export interface Provider { addon: string; name: string; label: ProviderText; setup: string; available: boolean; destinations: Destination[] }
+    export interface TargetState { state: string; detail?: string; checked_at?: string; failures: number; next_retry_at?: string; mounted: boolean; source?: string; options?: string; free_bytes?: number; total_bytes?: number; unsupported?: string; message?: ProviderText; action?: ProviderAction; progress?: {name: string; size: number; sent: number}; gone?: boolean }
+    export interface LastBackup { at: string; ok: boolean; state: string; step?: string; error?: string; name?: string; size?: number; duration_ms?: number; encrypted: boolean; last_ok?: string; removed?: string[]; from?: string; caught_up?: string[]; message?: ProviderText; action?: ProviderAction }
     export interface Target {
-        id: string; name: string; kind: 'directory' | 'share' | 'nfs' | 'cifs' | 'sftp'; enabled: boolean; max_backups: number; subdir: string; encrypt: boolean; append_only: boolean; created?: string;
+        id: string; name: string; kind: 'directory' | 'share' | 'nfs' | 'cifs' | 'sftp' | 'addon'; enabled: boolean; max_backups: number; subdir: string; encrypt: boolean; append_only: boolean; created?: string;
         directory?: {path: string; location?: string};
         share?: {id: string; folder: string};
         nfs?: {server: string; export: string; version: string};
         cifs?: {server: string; share: string; version: string; seal: boolean; user: string; domain?: string; has_password: boolean};
         sftp?: {host: string; port: number; user: string; path: string; public_key?: string; host_key?: {type: string; fingerprint: string}};
+        addon?: {id: string; destination: string; folder: string; source?: string};
+        provider?: {addon: string; name?: string; label?: ProviderText; installed: boolean; destination?: Destination; upload_from?: string};
         state: TargetState; last_backup?: LastBackup;
     }
-    export interface TargetsView { nightly: {enabled: boolean; time: string}; container: string; kinds: Record<string, string>; encryption: boolean; hostname: string; needed_bytes: number; targets: Target[] }
+    export interface TargetsView { nightly: {enabled: boolean; time: string}; container: string; kinds: Record<string, string>; encryption: boolean; hostname: string; needed_bytes: number; targets: Target[]; providers?: Provider[] }
     export interface TargetBackup { name: string; size: number; time: string; encrypted: boolean; recovery_fingerprint?: string; known?: string }
 </script>
 
@@ -24,7 +32,7 @@
     import {onMount} from 'svelte';
     import {api, ApiError} from './api';
     import {ask} from './dialog.svelte';
-    import {t} from './i18n.svelte';
+    import {i18n, t} from './i18n.svelte';
     import Help from './Help.svelte';
     import CopyButton from './CopyButton.svelte';
     import {warnEdge, warnFor} from './systemmenu.svelte';
@@ -45,15 +53,18 @@
     // while its form is open (the panel's Close / the form's Cancel bring them back)
     let backupsButtons = $state<Record<string, HTMLButtonElement>>({});
     let hostkeys = $state<Record<string, {type: string; fingerprint: string; trusted: boolean; changed: boolean; trusted_fingerprint?: string}>>({});
-    let tests = $state<Record<string, {ok: boolean; state: string; step: string; error?: string; free_bytes: number; needed_bytes: number; write_mbps?: number}>>({});
+    let tests = $state<Record<string, {ok: boolean; state: string; step: string; error?: string; free_bytes: number; needed_bytes: number; write_mbps?: number; message?: ProviderText; action?: ProviderAction}>>({});
 
     // the directory target's own checks (upstream's markers): a path that is not there, or one on
     // the system itself
     interface Schedule { path: string; path_exists: boolean; on_userfs?: boolean; real_path?: string; max_backups: number }
     let sched = $state<Schedule | null>(null);
+    // occulited task 150: an account an addon's page hands over (Use for backups), until the form is open
+    let handover = $state<{addon: string; destination: string} | null>(null);
     async function load() {
         try {
-            view = await api.get<TargetsView>('/api/system/v1/backup/targets');
+            // a hand-over from an addon's page names an account made a moment ago: ask its provider now
+            view = await api.get<TargetsView>('/api/system/v1/backup/targets' + (handover ? '?providers=fresh' : ''));
             err = '';
         } catch (e) {
             err = (e as Error).message;
@@ -73,11 +84,39 @@
         if (running) timer = setTimeout(() => void load(), 3000);
         return () => clearTimeout(timer);
     });
+    // occulited task 150: the addon's page hands an account over (Use for backups): the form
+    // opens with it once the providers are known, and the parameters leave the address
+    $effect(() => {
+        if (!handover || !view) return;
+        const h = handover;
+        handover = null;
+        if (providerOf(h.addon)) addAddon(h.addon, h.destination);
+    });
     onMount(() => {
+        const q = new URLSearchParams(location.search);
+        const addon = q.get('add-target');
+        if (addon) {
+            handover = {addon, destination: q.get('destination') ?? ''};
+            q.delete('add-target');
+            q.delete('destination');
+            const rest = q.toString();
+            history.replaceState(history.state, '', location.pathname + (rest ? '?' + rest : '') + location.hash);
+        }
         void load();
     });
 
-    const KIND: Record<Target['kind'], () => string> = {directory: () => t('USB / directory'), share: () => t('Network share'), nfs: () => t('NFS share'), cifs: () => t('SMB share'), sftp: () => t('SSH server (SFTP)')};
+    const KIND: Record<Target['kind'], () => string> = {directory: () => t('USB / directory'), share: () => t('Network share'), nfs: () => t('NFS share'), cifs: () => t('SMB share'), sftp: () => t('SSH server (SFTP)'), addon: () => t('Addon')};
+    // occulited task 150: a provider's texts come in its own languages; the kind's word is its label
+    const text = (x?: ProviderText) => x?.[i18n.language as 'de' | 'en'] ?? x?.en ?? x?.de ?? '';
+    const providers = $derived(view?.providers ?? []);
+    const providerOf = (addon?: string) => providers.find((p) => p.addon === addon);
+    const kindText = (x: {kind: Target['kind']; provider?: Target['provider']; addon?: {id: string}}) =>
+        x.kind === 'addon' ? text(x.provider?.label) || text(providerOf(x.addon?.id)?.label) || KIND.addon() : KIND[x.kind]();
+    // the states an addon's target can show: its badge reserves the widest of them, so the card
+    // keeps its shape from state to state
+    const ADDON_STATES = ['idle', 'writable', 'read-only', 'full', 'unreachable', 'auth-failed', 'addon-missing', 'not-encrypted', 'error'];
+    const percent = (x: Target) => (x.state.state === 'running' && x.state.progress && x.state.progress.size > 0 ? Math.min(100, Math.floor((100 * x.state.progress.sent) / x.state.progress.size)) : -1);
+    const badgeText = (x: Target) => (percent(x) >= 0 ? `${stateText('running')} ${percent(x)} %` : stateText(x.state.state));
     const STATE: Record<string, () => string> = {
         'not-configured': () => t('not set up'),
         unsupported: () => t('not available here'),
@@ -94,6 +133,8 @@
         stale: () => t('not answering'),
         'no-medium': () => t('no USB stick'),
         'update-room': () => t('skipped: room for an update'),
+        'addon-missing': () => t('addon missing'),
+        'not-encrypted': () => t('encryption off'),
         running: () => t('backing up…'),
         error: () => t('error'),
     };
@@ -107,6 +148,7 @@
         x.kind === 'share' ? `${t('share {name}', {name: x.share?.id ?? ''})}${x.share?.folder ? ' · ' + x.share.folder : ''}` :
         x.kind === 'nfs' ? `${x.nfs?.server}:${x.nfs?.export}${x.subdir ? ' · ' + x.subdir : ''}` :
         x.kind === 'cifs' ? `//${x.cifs?.server}/${x.cifs?.share}${x.subdir ? ' · ' + x.subdir : ''}` :
+        x.kind === 'addon' ? `${x.provider?.destination?.detail || x.provider?.destination?.name || t('account {id}', {id: x.addon?.destination ?? ''})} · ${x.addon?.folder ?? ''}` :
         `${x.sftp?.user}@${x.sftp?.host}${x.sftp?.port && x.sftp.port !== 22 ? ':' + x.sftp.port : ''}:${x.sftp?.path || '~'}${x.subdir ? '/' + x.subdir : ''}`;
     const unsupportedText = (why?: string) => (why === 'container' ? t('This system is a container. Mount the share on the host and pass it into the container (Docker: a volume; Proxmox: a mount point), then choose it here as a directory target.') : t('The program for this kind of share is not part of this system image yet.'));
 
@@ -249,20 +291,37 @@
     }
 
     // the form: adding and editing
-    interface Draft { id: string; kind: Target['kind']; name: string; enabled: boolean; max_backups: number; subdir: string; encrypt: boolean; append_only: boolean; path: string; server: string; exportPath: string; share: string; version: string; seal: boolean; user: string; domain: string; password: string; host: string; port: number; sshpath: string; has_password: boolean; loc: string; folder: string }
+    interface Draft { id: string; kind: Target['kind']; name: string; enabled: boolean; max_backups: number; subdir: string; encrypt: boolean; append_only: boolean; path: string; server: string; exportPath: string; share: string; version: string; seal: boolean; user: string; domain: string; password: string; host: string; port: number; sshpath: string; has_password: boolean; loc: string; folder: string; addon: string; destination: string; source: string }
     let draft = $state<Draft | null>(null);
     let formErr = $state('');
     function blank(kind: Target['kind']): Draft {
-        const name = {directory: 'USB', share: 'NAS', nfs: 'NAS', cifs: 'NAS', sftp: 'SSH'}[kind];
+        const name = {directory: 'USB', share: 'NAS', nfs: 'NAS', cifs: 'NAS', sftp: 'SSH', addon: 'Cloud'}[kind];
         return {id: '', kind, name, enabled: true, max_backups: 30, subdir: kind === 'directory' || kind === 'share' ? '' : view?.hostname ?? '', encrypt: true, append_only: false, path: '', server: '', exportPath: '', share: '', version: '', seal: false, user: '', domain: '', password: '', host: '', port: 22, sshpath: '', has_password: false,
-            loc: '', folder: kind === 'share' ? view?.hostname ?? '' : 'backup'};
+            loc: '', folder: kind === 'share' ? view?.hostname ?? '' : kind === 'addon' ? `openccu-lite/${view?.hostname ?? 'system'}` : 'backup', addon: '', destination: '', source: ''};
     }
+    // a target on an addon's destination: the provider's first account preselected, or the one the
+    // addon's page handed over (Use for backups)
+    function addAddon(addon: string, destination = '') {
+        formErr = '';
+        const p = providerOf(addon);
+        const d = blank('addon');
+        d.addon = addon;
+        d.destination = destination || p?.destinations[0]?.id || '';
+        d.name = p?.destinations.find((x) => x.id === d.destination)?.name || text(p?.label) || d.name;
+        draft = d;
+    }
+    // the addon's page, and the way back to this section
+    const setupHref = (p?: Provider) => (p ? `${p.setup.replace(/#.*$/, '')}${p.setup.includes('?') ? '&' : '?'}return=${encodeURIComponent('/backup#targets')}${/#/.test(p.setup) ? p.setup.replace(/^[^#]*/, '') : ''}` : '');
+    const localTargets = $derived((view?.targets ?? []).filter((x) => (x.kind === 'directory' || x.kind === 'share' || x.kind === 'nfs' || x.kind === 'cifs') && x.encrypt));
+    // what "automatic" means now: the first enabled local target that keeps encrypted backups
+    const autoSource = $derived(localTargets.find((x) => x.enabled));
     function edit(x: Target) {
         formErr = '';
         const d: Draft = {...blank(x.kind), id: x.id, name: x.name, enabled: x.enabled, max_backups: x.max_backups, subdir: x.subdir, encrypt: x.encrypt, append_only: x.append_only,
             path: x.directory?.path ?? '', server: x.nfs?.server ?? x.cifs?.server ?? '', exportPath: x.nfs?.export ?? '', share: x.cifs?.share ?? '', version: x.nfs?.version ?? x.cifs?.version ?? '',
             seal: x.cifs?.seal ?? false, user: x.cifs?.user ?? x.sftp?.user ?? '', domain: x.cifs?.domain ?? '', host: x.sftp?.host ?? '', port: x.sftp?.port ?? 22, sshpath: x.sftp?.path ?? '', has_password: x.cifs?.has_password ?? false,
-            loc: '', folder: 'backup'};
+            loc: '', folder: 'backup', addon: x.addon?.id ?? '', destination: x.addon?.destination ?? '', source: x.addon?.source ?? ''};
+        if (x.kind === 'addon') d.folder = x.addon?.folder ?? '';
         const p = x.directory?.location ? parseLocation(x.directory.location) : null;
         if (p) {
             d.loc = p.id;
@@ -283,6 +342,7 @@
         !draft ? false :
         draft.kind === 'share' ? !!draft.loc && !folderError(draft.folder, true) :
         draft.kind === 'directory' ? (draft.loc ? !folderError(draft.folder, false, draft.loc === 'userfs' ? 'backup' : undefined) : !!draft.path) :
+        draft.kind === 'addon' ? !!view?.encryption && !!draft.destination && /^[A-Za-z0-9_][A-Za-z0-9._ -]*(\/[A-Za-z0-9_][A-Za-z0-9._ -]*){0,5}$/.test(draft.folder.trim()) :
         true,
     );
     const hasDirectory = $derived(!!view?.targets.some((x) => x.kind === 'directory'));
@@ -305,6 +365,11 @@
         if (d.kind === 'share') b.share = {id: d.loc.replace(/^share:/, ''), folder: d.folder.replace(/^\/+|\/+$/g, '')};
         if (d.kind === 'nfs') b.nfs = {server: d.server.trim(), export: d.exportPath.trim(), version: d.version};
         if (d.kind === 'cifs') b.cifs = {server: d.server.trim(), share: d.share.trim().replace(/^\/+|\/+$/g, ''), version: d.version, seal: d.seal, user: d.user.trim(), domain: d.domain.trim(), ...(d.password ? {password: d.password} : {})};
+        if (d.kind === 'addon') {
+            b.addon = {id: d.addon, destination: d.destination, folder: d.folder.trim().replace(/^\/+|\/+$/g, ''), source: d.source};
+            b.encrypt = true;
+            b.subdir = '';
+        }
         if (d.kind === 'sftp') b.sftp = {host: d.host.trim(), port: Number(d.port) || 22, user: d.user.trim(), path: d.sshpath.trim()};
         return b;
     }
@@ -344,10 +409,15 @@
             <div class="ol-card" class:err={x.enabled && failed(x.state.state)} data-target={x.id} data-kind={x.kind}>
                 <div class="ol-card-head">
                     <div class="ol-card-titles">
-                        <div class="ol-card-title">{x.name} <span class="ol-muted">· {KIND[x.kind]()}</span>{#if !x.enabled}{' '}<span class="ol-badge">{t('off')}</span>{/if}</div>
+                        <div class="ol-card-title">{x.name} <span class="ol-muted">· {kindText(x)}</span>{#if !x.enabled}{' '}<span class="ol-badge">{t('off')}</span>{/if}</div>
                         <div class="ol-card-sub">{where(x)}</div>
                     </div>
-                    <span class="ol-badge {stateClass(x.state.state)}" data-state={x.state.state}>{stateText(x.state.state)}</span>
+                    {#if x.kind === 'addon'}
+                        <!-- the badge keeps its box: every state's label lies under the shown one, unseen -->
+                        <span class="ol-badge ol-badge-sized {stateClass(x.state.state)}" data-state={x.state.state} data-progress={percent(x) >= 0 ? percent(x) : undefined}><span class="ol-badge-now">{badgeText(x)}</span>{#each ADDON_STATES as st (st)}<span class="ol-badge-size" aria-hidden="true">{stateText(st)}</span>{/each}<span class="ol-badge-size" aria-hidden="true">{stateText('running')} 100 %</span></span>
+                    {:else}
+                        <span class="ol-badge {stateClass(x.state.state)}" data-state={x.state.state}>{stateText(x.state.state)}</span>
+                    {/if}
                 </div>
                 <div class="ol-card-detail">
                     {#if x.kind === 'directory' && sched && !sched.path_exists}
@@ -358,7 +428,15 @@
                     {#if x.state.state === 'unsupported'}
                         <div data-notice="unsupported">{unsupportedText(x.state.unsupported)}</div>
                     {:else}
-                        {#if x.state.detail && failed(x.state.state)}<div class="ol-warn" data-detail>{x.state.detail}</div>{/if}
+                        {#if x.kind === 'addon' && x.state.state === 'addon-missing'}
+                            <div class="ol-warn" data-detail>{t('Needs the addon {addon}, which is not installed or not running.', {addon: x.provider?.name || x.addon?.id || ''})}</div>
+                        {:else if x.kind === 'addon' && x.state.state === 'not-encrypted'}
+                            <div class="ol-warn" data-detail>{t('Encryption is switched off: nothing is sent to this target.')} <a href="#encryption">{t('Set up encryption')}</a></div>
+                        {:else if x.kind === 'addon' && x.state.gone}
+                            <div class="ol-warn" data-detail>{t('The account no longer exists. Edit the target and choose another one.')}</div>
+                        {:else if x.kind === 'addon' && failed(x.state.state) && text(x.state.message)}
+                            <div class="ol-warn" data-detail>{text(x.state.message)}</div>
+                        {:else if x.state.detail && failed(x.state.state)}<div class="ol-warn" data-detail>{x.state.detail}</div>{/if}
                         {#if x.last_backup}
                             <div data-last>
                                 {#if x.last_backup.ok}
@@ -371,6 +449,10 @@
                             <div>{t('No backup here yet.')}</div>
                         {/if}
                         {#if x.state.free_bytes}<div>{t('{free} free of {total}', {free: size(x.state.free_bytes), total: size(x.state.total_bytes)})}</div>{/if}
+                        {#if x.kind === 'addon'}
+                            <div data-upload-from>{#if x.last_backup?.ok && x.last_backup.from}{t('Uploaded from "{name}".', {name: x.last_backup.from})}{:else if x.provider?.upload_from}{t('Uploads from "{name}", which already holds each backup.', {name: x.provider.upload_from})}{:else}{t("Uploads from the system's working copy (kept only during the backup).")}{/if}{#if x.last_backup?.ok && x.last_backup.caught_up?.length}{' '}{t('{n} older backups caught up.', {n: x.last_backup.caught_up.length})}{/if}</div>
+                            {#if x.enabled && view.targets.filter((y) => y.enabled).length === 1}<div class="ol-muted" data-notice="only-target">{t('This is the only target: without an internet connection no backup is made. A USB stick or a share as a second target covers that.')}</div>{/if}
+                        {/if}
                         {#if x.state.mounted}<div data-mounted>{t('Mounted: {source}', {source: x.state.source ?? ''})}</div>{/if}
                         {#if x.state.next_retry_at && failed(x.state.state)}<div>{t('Next check {when}', {when: when(x.state.next_retry_at)})}</div>{/if}
                         {#if x.append_only}<div>{t('Append-only: this system never deletes here; prune old backups on the server.')}</div>{/if}
@@ -381,11 +463,11 @@
                     {@const r = tests[x.id]!}
                     <div class="ol-notice" class:err={!r.ok || r.state === 'full'} data-test-result={r.state}>
                         {#if r.ok && r.state !== 'full'}
-                            {t('Writable: 1 MB written, read back and deleted.')}{#if r.write_mbps}{' ' + t('About {mbps} MB/s.', {mbps: r.write_mbps.toFixed(1)})}{/if}
+                            {x.kind === 'addon' ? t('Writable: a test file written, read back and deleted.') : t('Writable: 1 MB written, read back and deleted.')}{#if r.write_mbps}{' ' + t('About {mbps} MB/s.', {mbps: r.write_mbps.toFixed(1)})}{/if}
                         {:else if r.state === 'full'}
                             {t('Writable, but {free} free is less than the next backup needs ({needed}).', {free: size(r.free_bytes), needed: size(r.needed_bytes)})}
                         {:else}
-                            {stateText(r.state)} ({r.step}){#if r.error}: {r.error}{/if}
+                            {stateText(r.state)}{#if text(r.message)}: {text(r.message)}{:else}{' '}({r.step}){#if r.error}: {r.error}{/if}{/if}
                             {#if r.state === 'read-only' && (x.kind === 'nfs' || x.kind === 'share')}{' '}{t('An export that maps root to nobody (root_squash) needs a directory that user may write, or "map all users" to one account.')}{/if}
                         {/if}
                     </div>
@@ -415,6 +497,11 @@
                 {/if}
                 {#if msg[x.id]}<div class="ol-notice" data-msg>{msg[x.id]}</div>{/if}
                 <div class="ol-actions ol-card-foot">
+                    {#if x.kind === 'addon' && x.state.state === 'addon-missing'}
+                        <a class="hmm-button" href="/addons" use:link data-action="addons">{t('Addons')}</a>
+                    {:else if x.kind === 'addon' && failed(x.state.state) && x.state.action}
+                        <a class="hmm-button primary ol-ellipsis" href={x.state.action.href} use:link title={text(x.state.action.label)} data-action="provider-action">{text(x.state.action.label)}</a>
+                    {/if}
                     {#if x.state.state !== 'unsupported'}
                         <button class="hmm-button" onclick={() => void act(x, 'test')} disabled={busy !== '' || x.state.state === 'running'} data-action="test">{busy === x.id + 'test' ? t('Testing…') : t('Test')}</button>
                         <button class="hmm-button" onclick={() => void act(x, 'run')} disabled={busy !== '' || x.state.state === 'running'} data-action="run">{t('Back up now')}</button>
@@ -455,7 +542,7 @@
     </div>
     {#if draft && !draft.id}
         <div class="ol-card ol-newtarget" data-new-target={draft.kind}>
-            <div class="ol-card-title">{t('New target')}: {KIND[draft.kind]()}</div>
+            <div class="ol-card-title">{t('New target')}: {kindText({kind: draft.kind, addon: {id: draft.addon}})}</div>
             {@render form()}
         </div>
     {:else if !draft}
@@ -465,7 +552,14 @@
             <!-- task 228: NFS and SMB are shares of System → Storage; a target picks one and a folder -->
             <button class="hmm-button" onclick={() => add('share')} disabled={!!view.kinds.share} title={view.kinds.share ? unsupportedText(view.kinds.share) : ''} data-add="share">{KIND.share()}</button>
             <button class="hmm-button" onclick={() => add('sftp')} data-add="sftp">{KIND.sftp()}</button>
+            <!-- occulited task 150: one button per installed addon that provides targets -->
+            {#each providers as p (p.addon)}
+                <button class="hmm-button ol-ellipsis" onclick={() => addAddon(p.addon)} title={p.available ? text(p.label) : t('The addon {addon} is not running.', {addon: p.name})} disabled={!p.available} data-add="addon" data-provider={p.addon}>{text(p.label)}</button>
+            {/each}
         </div>
+        {#if !providers.length}
+            <p class="ol-muted ol-provider-hint" data-notice="no-provider">{t('Cloud storage (OneDrive, Google Drive, Dropbox, S3 …): install the addon Sync.')} <a href="/addons/catalog" use:link>{t('Addons')}</a></p>
+        {/if}
         {#if view.container}<div class="ol-notice" data-notice="container">{unsupportedText('container')}</div>{/if}
     {/if}
 {/if}
@@ -484,6 +578,29 @@
             {:else if draft.kind === 'share'}
                 <LocationPicker use="backup" kinds={['share']} bind:location={draft.loc} bind:folder={draft.folder} label={t('Share')} />
                 <p class="ol-muted">{t('The folder is this system\'s own on the share (the host name by default), so several systems can share it.')}</p>
+            {:else if draft.kind === 'addon'}
+                {@const p = providerOf(draft.addon)}
+                <label>{t('Account')}
+                    <select class="hmm-select ol-account" bind:value={draft.destination} required data-field="destination">
+                        {#if draft.destination && !p?.destinations.some((d) => d.id === draft?.destination)}<option value={draft.destination}>{t('account {id}', {id: draft.destination})}</option>{/if}
+                        {#each p?.destinations ?? [] as d (d.id)}<option value={d.id}>{d.detail || d.name}</option>{/each}
+                    </select>
+                    {#if p}<a href={setupHref(p)} use:link data-action="connect-account">{t('Connect an account…')}</a>{/if}
+                </label>
+                {#if p && !p.destinations.length}<p class="ol-muted" data-notice="no-account">{t('No account yet: connect one on the page of the addon {addon}, then come back.', {addon: p.name})}</p>{/if}
+                <label>{t('Folder')} <input class="hmm-input hmm-mono" bind:value={draft.folder} maxlength="255" required data-field="folder" /> <span class="ol-muted">{t('one per system, so several can share it')}</span></label>
+                <label>{t('Upload from')}
+                    <select class="hmm-select" bind:value={draft.source} data-field="source">
+                        <option value="">{t('automatic')}</option>
+                        <option value="staging">{t("the system's working copy")}</option>
+                        {#each localTargets as lt (lt.id)}<option value={lt.id}>{lt.name}</option>{/each}
+                    </select>
+                </label>
+                <p class="ol-muted" data-source-hint>
+                    {#if draft.source === '' && autoSource}{t('from "{name}", which already holds each backup', {name: autoSource.name})}
+                    {:else if draft.source === '' || draft.source === 'staging'}{t("from the system's working copy (kept only during the backup)")}
+                    {:else}{t('from "{name}", which already holds each backup', {name: localTargets.find((x) => x.id === draft?.source)?.name ?? draft.source})}{/if}
+                </p>
             {:else if draft.kind === 'nfs'}
                 <label>{t('Server')} <input class="hmm-input hmm-mono" bind:value={draft.server} placeholder="nas.local" required data-field="server" /></label>
                 <label>{t('Export')} <input class="hmm-input hmm-mono" bind:value={draft.exportPath} placeholder="/volume1/backup" required data-field="export" /></label>
@@ -505,11 +622,20 @@
                 <label>{t('Directory on the server')} <input class="hmm-input hmm-mono" bind:value={draft.sshpath} placeholder={t('(home directory)')} data-field="sshpath" /></label>
                 <p class="ol-muted">{t('The system makes a key of its own when the target is saved; you then add its line to the server\'s authorized_keys and confirm the server\'s key. Passwords are not used.')}</p>
             {/if}
-            {#if draft.kind !== 'directory' && draft.kind !== 'share'}
+            {#if draft.kind !== 'directory' && draft.kind !== 'share' && draft.kind !== 'addon'}
                 <label>{t('Subdirectory')} <input class="hmm-input hmm-mono" bind:value={draft.subdir} placeholder={view?.hostname ?? ''} data-field="subdir" /> <span class="ol-muted">{t('one per system, so several can share it')}</span></label>
             {/if}
             <label>{t('Keep')} <input class="hmm-input" type="number" min="0" max="1000" bind:value={draft.max_backups} style="width:6em" data-field="max" /> <span class="ol-muted">{t('backups of this system (0 = all)')}</span></label>
-            <label><input type="checkbox" checked={draft.encrypt} onchange={encryptChange} data-field="encrypt" /> {t('Encrypt the backups (with the recovery key)')}</label>
+            {#if draft.kind === 'addon'}
+                <!-- never a switch: an addon and its destination only ever hold encrypted backups -->
+                {#if view?.encryption}
+                    <p class="ol-muted" data-notice="always-encrypted">{t('Backups to this kind of target are always encrypted with the recovery key.')}</p>
+                {:else}
+                    <div class="ol-notice err" data-notice="needs-encryption">{t('This kind of target takes encrypted backups only. Set up encryption first.')} <a href="#encryption">{t('Set up encryption')}</a></div>
+                {/if}
+            {:else}
+                <label><input type="checkbox" checked={draft.encrypt} onchange={encryptChange} data-field="encrypt" /> {t('Encrypt the backups (with the recovery key)')}</label>
+            {/if}
             <label><input type="checkbox" bind:checked={draft.append_only} data-field="append-only" /> {t('Append-only: never delete anything here')}</label>
             <label><input type="checkbox" bind:checked={draft.enabled} data-field="enabled" /> {t('Include in the nightly backup')}</label>
             {#if formErr}<div class="ol-notice err" data-form-error>{formErr}</div>{/if}
@@ -542,4 +668,15 @@
     .ol-targetform label { display: block; }
     .ol-table td.hmm-mono { overflow-wrap: anywhere; }
     .ol-notice.err { border-left: 3px solid var(--hmm-error); }
+    /* occulited task 150: an addon target's badge reserves its widest label; the shown one is centred in it */
+    .ol-badge-sized { display: inline-grid; justify-items: center; }
+    .ol-badge-sized > span { grid-area: 1 / 1; }
+    .ol-badge-size { visibility: hidden; pointer-events: none; }
+    /* a provider's label or an account's name is as long as its author made it */
+    .ol-ellipsis { max-width: 16em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .ol-account { max-width: min(24em, 100%); text-overflow: ellipsis; }
+    .ol-provider-hint { margin: 4px 0 0; }
+    /* the way to the Addons page and a provider's action are links in the row of buttons */
+    .ol-card-foot > a.hmm-button { text-decoration: none; white-space: nowrap; }
+    .ol-card-foot > a.hmm-button:not(.primary) { color: var(--hmm-fg); }
 </style>

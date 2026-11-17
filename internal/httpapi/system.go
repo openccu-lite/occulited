@@ -496,6 +496,7 @@ func (a *SystemAPI) Register(mux *http.ServeMux) {
 	route(mux, auth.ScopeSystemWrite, "PUT "+p+"/timers/own/{name}", a.localTimerPut)
 	route(mux, auth.ScopeSystemWrite, "DELETE "+p+"/timers/own/{name}", a.localTimerDelete)
 	route(mux, auth.ScopeSystemWrite, "POST "+p+"/timers/own/{name}/run", a.localTimerRun)
+	a.registerAddonTimers(mux, p) // occulited task 154
 	route(mux, auth.ScopeSystemWrite, "POST "+p+"/timers/calendar", a.timerCalendar)
 	route(mux, auth.ScopeSystemRead, "GET "+p+"/nav", a.nav)
 	route(mux, auth.ScopeSystemRead, "GET "+p+"/network", a.network)
@@ -2998,6 +2999,8 @@ func writeTimerErr(w http.ResponseWriter, err error) {
 		writeJSON(w, http.StatusNotFound, apiError{Error: "not-found", Message: err.Error()})
 	case errors.Is(err, system.ErrLocalTimerExists):
 		writeJSON(w, http.StatusConflict, apiError{Error: "exists", Message: err.Error()})
+	case errors.Is(err, system.ErrAddonTimerService):
+		writeJSON(w, http.StatusUnprocessableEntity, apiError{Error: "addon-service", Message: err.Error()})
 	default:
 		writeJSON(w, http.StatusUnprocessableEntity, apiError{Error: "invalid", Message: err.Error()})
 	}

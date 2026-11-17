@@ -50,6 +50,13 @@ const (
 	// ScopePowerHalt is powering the box off and nothing else (occulited task 132): what a UPS addon needs. The one
 	// part of power an addon may hold; a reboot stays with power. power includes it.
 	ScopePowerHalt Scope = "power:halt"
+	// ScopeTimersAddon is an addon's own timers and nothing else (occulited task 154): the routes
+	// under /addon-timers, which serve only the token of the addon they are called by and only its
+	// timers local-<id>-<name>, with the service rendered by the system. What an addon that runs
+	// jobs on a schedule needs instead of system:write, with which a timer is a root unit. Only an
+	// addon's manifest can ask for it (AddonScopes): it is not in Grantable and not Known to a token
+	// made by a person, since no other token can use it. Full access covers it like every scope.
+	ScopeTimersAddon Scope = "timers:addon"
 	// ScopeBackup is creating and downloading backups (D-62).
 	ScopeBackup Scope = "backup"
 	// ScopeLED is the status LED's state, an override of the token's own and locate (task 95's
@@ -316,7 +323,8 @@ func AddonScopes(declared []string) (granted Scopes, refused []string) {
 	for _, n := range declared {
 		n = strings.TrimSpace(n)
 		s := Scope(n)
-		if _, ingress := AddonOf(s); n == "" || !Known(s) || contains(AddonNever, s) || ingress {
+		// timers:addon is an addon's alone: known here, and to no other token (not in Known)
+		if _, ingress := AddonOf(s); n == "" || (!Known(s) && s != ScopeTimersAddon) || contains(AddonNever, s) || ingress {
 			refused = append(refused, n)
 			continue
 		}

@@ -1498,6 +1498,45 @@
         ],
         "type": "object"
       },
+      "BackuptargetAddonRef": {
+        "properties": {
+          "destination": {
+            "type": "string"
+          },
+          "folder": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "source": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "destination",
+          "folder",
+          "id"
+        ],
+        "type": "object"
+      },
+      "BackuptargetAddonRefInput": {
+        "properties": {
+          "destination": {
+            "type": "string"
+          },
+          "folder": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "source": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
       "BackuptargetBackupFile": {
         "properties": {
           "encrypted": {
@@ -1598,6 +1637,47 @@
             "type": "string"
           }
         },
+        "type": "object"
+      },
+      "BackuptargetDestination": {
+        "properties": {
+          "action": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/BackuptargetProviderAction"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "detail": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "message": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": [
+              "object",
+              "null"
+            ]
+          },
+          "name": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "state"
+        ],
         "type": "object"
       },
       "BackuptargetDirectory": {
@@ -1710,11 +1790,118 @@
         },
         "type": "object"
       },
-      "BackuptargetResult": {
+      "BackuptargetProgress": {
         "properties": {
           "at": {
             "format": "date-time",
             "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "sent": {
+            "type": "integer"
+          },
+          "size": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "at",
+          "name",
+          "sent",
+          "size"
+        ],
+        "type": "object"
+      },
+      "BackuptargetProviderAction": {
+        "properties": {
+          "href": {
+            "type": "string"
+          },
+          "label": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": [
+              "object",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "href",
+          "label"
+        ],
+        "type": "object"
+      },
+      "BackuptargetProviderView": {
+        "properties": {
+          "addon": {
+            "type": "string"
+          },
+          "available": {
+            "type": "boolean"
+          },
+          "destinations": {
+            "items": {
+              "$ref": "#/components/schemas/BackuptargetDestination"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "label": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": [
+              "object",
+              "null"
+            ]
+          },
+          "name": {
+            "type": "string"
+          },
+          "setup": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "addon",
+          "available",
+          "destinations",
+          "label",
+          "name",
+          "setup"
+        ],
+        "type": "object"
+      },
+      "BackuptargetResult": {
+        "properties": {
+          "action": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/BackuptargetProviderAction"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "caught_up": {
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
           },
           "duration_ms": {
             "type": "integer"
@@ -1725,6 +1912,9 @@
           "error": {
             "type": "string"
           },
+          "from": {
+            "type": "string"
+          },
           "instance": {
             "type": "string"
           },
@@ -1732,6 +1922,15 @@
             "format": "date-time",
             "type": [
               "string",
+              "null"
+            ]
+          },
+          "message": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": [
+              "object",
               "null"
             ]
           },
@@ -1760,6 +1959,9 @@
             "type": "string"
           },
           "step": {
+            "type": "string"
+          },
+          "verified": {
             "type": "string"
           }
         },
@@ -1865,6 +2067,16 @@
       },
       "BackuptargetStateView": {
         "properties": {
+          "action": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/BackuptargetProviderAction"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "checked_at": {
             "format": "date-time",
             "type": [
@@ -1881,6 +2093,18 @@
           "free_bytes": {
             "type": "integer"
           },
+          "gone": {
+            "type": "boolean"
+          },
+          "message": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": [
+              "object",
+              "null"
+            ]
+          },
           "mounted": {
             "type": "boolean"
           },
@@ -1893,6 +2117,16 @@
           },
           "options": {
             "type": "string"
+          },
+          "progress": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/BackuptargetProgress"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "source": {
             "type": "string"
@@ -1916,6 +2150,16 @@
       },
       "BackuptargetTargetInput": {
         "properties": {
+          "addon": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/BackuptargetAddonRefInput"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "append_only": {
             "type": "boolean"
           },
@@ -1997,8 +2241,58 @@
         },
         "type": "object"
       },
+      "BackuptargetTargetProvider": {
+        "properties": {
+          "addon": {
+            "type": "string"
+          },
+          "destination": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/BackuptargetDestination"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "installed": {
+            "type": "boolean"
+          },
+          "label": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": [
+              "object",
+              "null"
+            ]
+          },
+          "name": {
+            "type": "string"
+          },
+          "upload_from": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "addon",
+          "installed"
+        ],
+        "type": "object"
+      },
       "BackuptargetTestResult": {
         "properties": {
+          "action": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/BackuptargetProviderAction"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "at": {
             "format": "date-time",
             "type": "string"
@@ -2011,6 +2305,15 @@
           },
           "fs_type": {
             "type": "string"
+          },
+          "message": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": [
+              "object",
+              "null"
+            ]
           },
           "needed_bytes": {
             "type": "integer"
@@ -2044,6 +2347,16 @@
       },
       "BackuptargetView": {
         "properties": {
+          "addon": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/BackuptargetAddonRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "append_only": {
             "type": "boolean"
           },
@@ -2103,6 +2416,16 @@
             "anyOf": [
               {
                 "$ref": "#/components/schemas/BackuptargetNFS"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "provider": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/BackuptargetTargetProvider"
               },
               {
                 "type": "null"
@@ -2804,6 +3127,9 @@
           },
           "requires": {
             "$ref": "#/components/schemas/ManifestRequires"
+          },
+          "root_access": {
+            "type": "boolean"
           },
           "runtime": {
             "anyOf": [
@@ -6350,6 +6676,16 @@
           "staging": {
             "type": "string"
           },
+          "targets": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ManifestBackupTargets"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "timeout": {
             "type": "integer"
           }
@@ -6357,6 +6693,31 @@
         "required": [
           "hook",
           "staging"
+        ],
+        "type": "object"
+      },
+      "ManifestBackupTargets": {
+        "properties": {
+          "label": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": [
+              "object",
+              "null"
+            ]
+          },
+          "protocol": {
+            "type": "integer"
+          },
+          "setup": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "label",
+          "protocol",
+          "setup"
         ],
         "type": "object"
       },
@@ -6530,11 +6891,24 @@
               "null"
             ]
           },
+          "read_addon_data": {
+            "type": "boolean"
+          },
           "root": {
             "type": "boolean"
           },
           "start": {
             "type": "string"
+          },
+          "timers": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ManifestTimers"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "web_ingress": {
             "anyOf": [
@@ -6547,6 +6921,26 @@
             ]
           }
         },
+        "type": "object"
+      },
+      "ManifestTimers": {
+        "properties": {
+          "args": {
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "exec": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "exec"
+        ],
         "type": "object"
       },
       "ManifestUI": {
@@ -9093,6 +9487,9 @@
           "rc_target": {
             "type": "string"
           },
+          "read_addon_data": {
+            "type": "boolean"
+          },
           "rega_dependent": {
             "type": "boolean"
           },
@@ -9354,6 +9751,104 @@
           "description",
           "name"
         ],
+        "type": "object"
+      },
+      "SystemAddonTimer": {
+        "properties": {
+          "addon": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "memory_mb": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "read": {
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "service": {
+            "type": "string"
+          },
+          "service_file": {
+            "type": "string"
+          },
+          "timeout": {
+            "type": "integer"
+          },
+          "timer_file": {
+            "type": "string"
+          },
+          "unit": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "addon",
+          "description",
+          "enabled",
+          "memory_mb",
+          "name",
+          "read",
+          "service",
+          "service_file",
+          "timeout",
+          "timer_file",
+          "unit"
+        ],
+        "type": "object"
+      },
+      "SystemAddonTimerInputInput": {
+        "properties": {
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "enabled": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "memory_mb": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "read": {
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "timeout": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "timer": {
+            "type": "string"
+          }
+        },
         "type": "object"
       },
       "SystemBackupAddon": {
@@ -11973,6 +12468,9 @@
       },
       "SystemLocalTimer": {
         "properties": {
+          "addon": {
+            "type": "string"
+          },
           "enabled": {
             "type": "boolean"
           },
@@ -13853,6 +14351,9 @@
           },
           "active": {
             "type": "boolean"
+          },
+          "addon": {
+            "type": "string"
           },
           "enabled": {
             "type": "boolean"
@@ -17961,12 +18462,29 @@
     "/api/auth/v1/state": {
       "get": {
         "operationId": "getAuthState",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "peek",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "content": {
               "application/json": {
                 "schema": {
                   "anyOf": [
+                    {
+                      "additionalProperties": {},
+                      "type": [
+                        "object",
+                        "null"
+                      ]
+                    },
                     {
                       "properties": {
                         "account_id": {
@@ -18032,6 +18550,9 @@
                           "type": "string"
                         },
                         "must_change_password": {
+                          "type": "boolean"
+                        },
+                        "peek": {
                           "type": "boolean"
                         },
                         "public": {
@@ -22136,6 +22657,538 @@
         "x-occulite-scopes": []
       }
     },
+    "/api/system/v1/addon-timers": {
+      "get": {
+        "operationId": "getSystemAddonTimers",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "addon": {
+                      "type": "string"
+                    },
+                    "max": {
+                      "type": "integer"
+                    },
+                    "readable": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": [
+                        "array",
+                        "null"
+                      ]
+                    },
+                    "timers": {
+                      "items": {
+                        "$ref": "#/components/schemas/SystemAddonTimer"
+                      },
+                      "type": [
+                        "array",
+                        "null"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "addon",
+                    "max",
+                    "readable",
+                    "timers"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": [
+              "timers:addon"
+            ]
+          },
+          {
+            "cookie": [
+              "timers:addon"
+            ]
+          }
+        ],
+        "summary": "The calling addon's own timers, and the addons whose data one may read (an addon's API token only)",
+        "tags": [
+          "system/addon-timers"
+        ],
+        "x-occulite-scopes": [
+          "timers:addon"
+        ]
+      }
+    },
+    "/api/system/v1/addon-timers/{name}": {
+      "delete": {
+        "operationId": "deleteSystemAddonTimersByName",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "ok": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "ok"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": [
+              "timers:addon"
+            ]
+          },
+          {
+            "cookie": [
+              "timers:addon"
+            ]
+          }
+        ],
+        "summary": "Removes one of the calling addon's timers",
+        "tags": [
+          "system/addon-timers"
+        ],
+        "x-occulite-scopes": [
+          "timers:addon"
+        ]
+      },
+      "get": {
+        "operationId": "getSystemAddonTimersByName",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SystemAddonTimer"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": [
+              "timers:addon"
+            ]
+          },
+          {
+            "cookie": [
+              "timers:addon"
+            ]
+          }
+        ],
+        "summary": "One of the calling addon's timers",
+        "tags": [
+          "system/addon-timers"
+        ],
+        "x-occulite-scopes": [
+          "timers:addon"
+        ]
+      },
+      "put": {
+        "operationId": "putSystemAddonTimersByName",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SystemAddonTimerInputInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SystemAddonTimer"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": [
+              "timers:addon"
+            ]
+          },
+          {
+            "cookie": [
+              "timers:addon"
+            ]
+          }
+        ],
+        "summary": "Makes or changes one of the calling addon's timers; the service is rendered by the system",
+        "tags": [
+          "system/addon-timers"
+        ],
+        "x-occulite-scopes": [
+          "timers:addon"
+        ]
+      }
+    },
+    "/api/system/v1/addon-timers/{name}/disable": {
+      "post": {
+        "operationId": "postSystemAddonTimersByNameDisable",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "enabled": {
+                      "type": "boolean"
+                    },
+                    "ok": {
+                      "type": "boolean"
+                    },
+                    "output": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "enabled",
+                    "ok",
+                    "output"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": [
+              "timers:addon"
+            ]
+          },
+          {
+            "cookie": [
+              "timers:addon"
+            ]
+          }
+        ],
+        "summary": "Switches one of the calling addon's timers off; its files stay",
+        "tags": [
+          "system/addon-timers"
+        ],
+        "x-occulite-scopes": [
+          "timers:addon"
+        ]
+      }
+    },
+    "/api/system/v1/addon-timers/{name}/enable": {
+      "post": {
+        "operationId": "postSystemAddonTimersByNameEnable",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "enabled": {
+                      "type": "boolean"
+                    },
+                    "ok": {
+                      "type": "boolean"
+                    },
+                    "output": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "enabled",
+                    "ok",
+                    "output"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": [
+              "timers:addon"
+            ]
+          },
+          {
+            "cookie": [
+              "timers:addon"
+            ]
+          }
+        ],
+        "summary": "Switches one of the calling addon's timers on",
+        "tags": [
+          "system/addon-timers"
+        ],
+        "x-occulite-scopes": [
+          "timers:addon"
+        ]
+      }
+    },
+    "/api/system/v1/addon-timers/{name}/run": {
+      "post": {
+        "operationId": "postSystemAddonTimersByNameRun",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "ok": {
+                      "type": "boolean"
+                    },
+                    "output": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "ok",
+                    "output"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": [
+              "timers:addon"
+            ]
+          },
+          {
+            "cookie": [
+              "timers:addon"
+            ]
+          }
+        ],
+        "summary": "Runs the service of one of the calling addon's timers once, now",
+        "tags": [
+          "system/addon-timers"
+        ],
+        "x-occulite-scopes": [
+          "timers:addon"
+        ]
+      }
+    },
+    "/api/system/v1/addon-timers/{name}/stop": {
+      "post": {
+        "operationId": "postSystemAddonTimersByNameStop",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "ok": {
+                      "type": "boolean"
+                    },
+                    "output": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "ok",
+                    "output"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": [
+              "timers:addon"
+            ]
+          },
+          {
+            "cookie": [
+              "timers:addon"
+            ]
+          }
+        ],
+        "summary": "Stops the running service of one of the calling addon's timers",
+        "tags": [
+          "system/addon-timers"
+        ],
+        "x-occulite-scopes": [
+          "timers:addon"
+        ]
+      }
+    },
     "/api/system/v1/addon-views": {
       "delete": {
         "operationId": "deleteSystemAddonViews",
@@ -24941,6 +25994,16 @@
     "/api/system/v1/backup/targets": {
       "get": {
         "operationId": "getSystemBackupTargets",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "providers",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "content": {
@@ -24983,6 +26046,15 @@
                       ],
                       "type": "object"
                     },
+                    "providers": {
+                      "items": {
+                        "$ref": "#/components/schemas/BackuptargetProviderView"
+                      },
+                      "type": [
+                        "array",
+                        "null"
+                      ]
+                    },
                     "targets": {
                       "items": {
                         "$ref": "#/components/schemas/BackuptargetView"
@@ -25000,6 +26072,7 @@
                     "kinds",
                     "needed_bytes",
                     "nightly",
+                    "providers",
                     "targets"
                   ],
                   "type": "object"
@@ -41220,6 +42293,10 @@
     {
       "description": "The routes under `/api/system/v1/addon-notices`.",
       "name": "system/addon-notices"
+    },
+    {
+      "description": "The routes under `/api/system/v1/addon-timers`.",
+      "name": "system/addon-timers"
     },
     {
       "description": "The routes under `/api/system/v1/addon-views`.",

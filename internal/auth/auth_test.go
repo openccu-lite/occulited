@@ -674,3 +674,53 @@ func TestTokenLastUsedSavedWithoutSync(t *testing.T) {
 		t.Errorf("last_used not written: %s", b)
 	}
 }
+
+// occulited task 151: Peek answers a live session without refreshing its idle timer - a program
+// that asks every few seconds whether a user's session still stands must not keep it alive.
+func TestPeekDoesNotTouch(t *testing.T) {
+	now := time.Date(2026, 11, 17, 12, 0, 0, 0, time.UTC)
+	s, _ := Open(t.TempDir(), Options{IdleTimeout: time.Hour, Now: func() time.Time { return now }})
+	_ = s.Setup("admin", "secret123")
+	sess, _ := s.Login("admin", "secret123", "", "")
+	// peeked every ten minutes for 50 minutes: answered each time, with the level
+	for i := 0; i < 5; i++ {
+		now = now.Add(10 * time.Minute)
+		p := s.Peek(sess.ID)
+		if p == nil || p.User != "admin" || p.Level != LevelAdminister || p.ID != sess.ID {
+			t.Fatalf("peek at +%d min: %+v", (i+1)*10, p)
+		}
+		if !p.LastSeen.Equal(sess.LastSeen) {
+			t.Fatalf("the peek moved last-seen to %v", p.LastSeen)
+		}
+	}
+	// 20 minutes later the hour is over although it was asked about all along
+	now = now.Add(20 * time.Minute)
+	if s.Peek(sess.ID) != nil {
+		t.Fatal("a peek answers an idled-out session")
+	}
+	if s.Validate(sess.ID) != nil {
+		t.Fatal("the peeks kept the session alive")
+	}
+	// the control: Validate at the same pace does keep one alive
+	sess2, _ := s.Login("admin", "secret123", "", "")
+	for i := 0; i < 7; i++ {
+		now = now.Add(10 * time.Minute)
+		if s.Validate(sess2.ID) == nil {
+			t.Fatal("validate")
+		}
+	}
+	if s.Peek(sess2.ID) == nil {
+		t.Fatal("a validated session is live")
+	}
+	// an unknown id, an ended session and a token are nil
+	if s.Peek("0000000000000000000000000000000000000000000000000000000000000000") != nil {
+		t.Fatal("unknown id")
+	}
+	s.Logout(sess2.ID)
+	if s.Peek(sess2.ID) != nil {
+		t.Fatal("a logged-out session")
+	}
+	if s.Peek(TokenPrefix+"abc") != nil {
+		t.Fatal("a token is not a session")
+	}
+}

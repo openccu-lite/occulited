@@ -112,7 +112,7 @@ func (Local) BackupHook(ctx context.Context, id, step string) (BackupHookResult,
 	if err != nil {
 		return out, fmt.Errorf("the stored manifest of %s: %w", id, err)
 	}
-	if m.ID != id || m.Backup == nil {
+	if m.ID != id || !m.Backup.HasHook() {
 		return out, fmt.Errorf("%s declares no backup block", id)
 	}
 	// the policy says who the addon is; without one (a busybox product, an addon the system has not

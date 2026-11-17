@@ -58,6 +58,9 @@
         lastTimer = nextTimer;
         lastService = nextService;
     });
+    // occulited task 154: an addon's timer - the schedule is the user's to edit, what runs is not:
+    // the service is the system's rendering and stays as it came (the API refuses another text)
+    const ofAddon = initial?.addon ?? '';
     const timerByHand = $derived(timerFile !== timerText(form));
     const serviceByHand = $derived(serviceFile !== serviceText(form));
     $effect(() => {
@@ -189,7 +192,10 @@
             </label>
         </fieldset>
 
-        <fieldset class="te-field" disabled={saving}>
+        {#if ofAddon}
+            <p class="ol-notice te-addon">{t('This timer belongs to the addon {id}. You can change when it runs; what it runs is set by the system for the addon and cannot be edited.', {id: ofAddon})}</p>
+        {/if}
+        <fieldset class="te-field" disabled={saving} hidden={!!ofAddon}>
             <legend class="te-lbl">{t('What')}</legend>
             <label class="te-stack" for={commandId}>
                 <span>{t('Command (ExecStart=)')}<Help>{t("Runs without a shell: for pipes or redirections write /bin/sh -c '…'.")}</Help></span>
@@ -218,12 +224,14 @@
         <div class="te-file">
             <div class="te-lbl">
                 <span class="hmm-mono">{unitBase}.service</span>
-                {#if serviceByHand}
+                {#if ofAddon}
+                    <span class="ol-muted">· {t('set by the system')}</span>
+                {:else if serviceByHand}
                     <span class="ol-muted">·</span><Help class="ol-muted">{#snippet trigger()}{t('edited by hand')}{/snippet}{t('The form no longer changes this file.')}</Help>
                     <button type="button" class="hmm-button te-small" disabled={saving} onclick={() => fromForm('service')}>{t('Take from the form')}</button>
                 {/if}
             </div>
-            <textarea class="hmm-input hmm-mono te-text" bind:value={serviceFile} aria-label={`${unitBase}.service`} spellcheck="false" disabled={saving}></textarea>
+            <textarea class="hmm-input hmm-mono te-text" bind:value={serviceFile} aria-label={`${unitBase}.service`} spellcheck="false" disabled={saving} readonly={!!ofAddon}></textarea>
         </div>
         {#if !analyze}
             <p class="ol-muted te-note">{t('systemd-analyze is not on this system, so the files are not verified before they are applied; a unit systemd cannot load is still refused.')}</p>
@@ -255,4 +263,6 @@
     .te-small { min-height: 18px; padding: 0 6px; font-size: var(--hmm-font-size-small); line-height: 16px; }
     .te-pre { white-space: pre-wrap; overflow-wrap: anywhere; }
     .te-error, .te-saved { margin-top: 8px; }
+    .te-addon { margin: 0; }
+    fieldset[hidden] { display: none; }
 </style>

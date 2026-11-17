@@ -671,6 +671,9 @@ type Timer struct {
 	// files are edited through /timers/own and which can be deleted; a shipped timer gets an
 	// override instead.
 	Own bool `json:"own"`
+	// Addon: an own timer that is an addon's (occulited task 154): the addon's id. Its service is
+	// rendered by the system; the timer file is edited like any own timer's.
+	Addon string `json:"addon,omitempty"`
 	// Enabled and UnitFileState as on a service (task 49): the verdict and the raw state.
 	Enabled       bool   `json:"enabled"`
 	UnitFileState string `json:"unit_file_state,omitempty"`
@@ -741,6 +744,13 @@ func (s SystemdServices) Timers(ctx context.Context) ([]Timer, error) {
 		// an own timer systemd said nothing about is not enabled: nothing links it anywhere
 		if list[i].Own && st == "" {
 			list[i].Enabled = false
+		}
+	}
+	for i := range list {
+		if list[i].Own {
+			if meta, ok := s.addonTimerMeta(localTimerName(list[i].Unit)); ok {
+				list[i].Addon = meta.Addon
+			}
 		}
 	}
 	if list == nil {

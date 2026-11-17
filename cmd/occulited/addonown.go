@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/hobbyquaker/occulited/internal/backuptarget"
 	"github.com/hobbyquaker/occulited/internal/ownwalk"
 	"github.com/hobbyquaker/occulited/internal/priv"
 	"github.com/hobbyquaker/occulited/internal/system"
@@ -39,6 +40,9 @@ type addonOwnEnv struct {
 	// ingressDir makes the addon's web ingress socket directory (openccu-lite task 406);
 	// priv.Local's on the box, a fake in the tests. nil: nothing is made.
 	ingressDir func(id string) error
+	// providerDir makes the socket directory of an addon that provides backup targets (occulited
+	// task 150); backuptarget.ProviderDir on the box, a fake in the tests. nil: nothing is made.
+	providerDir func(id string) error
 	// rootBin gives the addon's runtime.bin to root (occulited task 136): ownwalk.RootBin on the
 	// box, a fake in the tests. nil: nothing is done.
 	rootBin func(home, bin string, opt ownwalk.Options) ownwalk.Result
@@ -50,7 +54,8 @@ func addonOwnMain(args []string) int {
 		fmt.Fprintln(os.Stderr, "occulited -addon-own: must run as root")
 		return 1
 	}
-	return addonOwn(addonOwnEnv{root: "/", walk: ownwalk.Own, policy: priv.DefaultPolicy("/", ""), stdout: os.Stdout, stderr: os.Stderr, ingressDir: priv.Local{}.IngressDir, rootBin: ownwalk.RootBin}, args)
+	return addonOwn(addonOwnEnv{root: "/", walk: ownwalk.Own, policy: priv.DefaultPolicy("/", ""), stdout: os.Stdout, stderr: os.Stderr, ingressDir: priv.Local{}.IngressDir, rootBin: ownwalk.RootBin,
+		providerDir: func(id string) error { return backuptarget.ProviderDir(backuptarget.ProviderSocketBase, id) }}, args)
 }
 
 // addonOwn is the subcommand: the stored policy's directories (system.AddonOwnPlan), the helper's own
@@ -77,6 +82,15 @@ func addonOwn(env addonOwnEnv, args []string) int {
 	if env.ingressDir != nil && env.root.IngressRanges(id) != nil {
 		if err := env.ingressDir(id); err != nil {
 			fmt.Fprintf(env.stdout, "addon-own: %s: the ingress socket directory: %v\n", id, err)
+		}
+	}
+	// occulited task 150: an addon that provides backup targets binds its socket in a directory
+	// only it and the system's service reach; a socket a previous run left is removed with it
+	if env.providerDir != nil {
+		if m := env.root.ReadAddonManifest(id); m != nil && m.Backup != nil && m.Backup.Targets != nil {
+			if err := env.providerDir(id); err != nil {
+				fmt.Fprintf(env.stdout, "addon-own: %s: the backup targets' socket directory: %v\n", id, err)
+			}
 		}
 	}
 	plan, err := system.AddonOwnPlan(env.root, id)

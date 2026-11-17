@@ -1271,6 +1271,26 @@ func (s *Store) Validate(id string) *Session {
 	return &sess
 }
 
+// Peek looks a session up without touching it: the idle timer is not refreshed, nothing is
+// written, and an expired session is answered nil and left for the next Validate to drop. For a
+// program that asks whether somebody else's session still stands - an addon that holds something
+// open for a session and must end it with the session (occulited task 151) - and must not keep
+// the session alive by asking. A token is not a session: nil.
+func (s *Store) Peek(id string) *Session {
+	if IsToken(id) {
+		return nil
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	_ = s.reload()
+	x, ok := s.sessions[sessionKey(id)]
+	if !ok || s.expired(x, s.opt.Now()) {
+		return nil
+	}
+	sess := x.public(id)
+	return &sess
+}
+
 // expired reports whether a session has idled out or passed its maximum age - the one fixed at
 // the login (expires) or, when an administrator shortened the lifetime since (task 262,
 // SetSessionLimits), the new one measured from the login.

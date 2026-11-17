@@ -431,3 +431,89 @@ func TestRuntimeBin(t *testing.T) {
 		t.Fatal("bin set without a declaration")
 	}
 }
+
+// occulited task 154: runtime.timers names the program an addon's own timers run - a plain file
+// name in the root-owned bin directory and a few plain arguments, nothing a unit file expands.
+func TestRuntimeTimers(t *testing.T) {
+	with := func(extra string) string {
+		return strings.Replace(good, `"needs": [],`, `"needs": [], `+extra+`,`, 1)
+	}
+	for _, c := range []struct {
+		extra string
+		ok    bool
+	}{
+		{`"bin": "bin", "timers": {"exec": "lite-sync", "args": ["run"]}`, true},
+		{`"bin": "bin", "timers": {"exec": "job"}`, true},
+		{`"bin": "bin", "timers": {"exec": "job", "args": ["--mode=run", "a.b", "c_d", "x"]}, "read_addon_data": true`, true},
+		{`"bin": "bin", "read_addon_data": true`, true},
+		{`"timers": {"exec": "job"}`, false}, // no bin: nothing root-owned to run
+		{`"bin": "bin", "timers": {}`, false},
+		{`"bin": "bin", "timers": {"exec": ""}`, false},
+		{`"bin": "bin", "timers": {"exec": "sub/job"}`, false},
+		{`"bin": "bin", "timers": {"exec": "../job"}`, false},
+		{`"bin": "bin", "timers": {"exec": ".."}`, false},
+		{`"bin": "bin", "timers": {"exec": "-job"}`, false},
+		{`"bin": "bin", "timers": {"exec": "job x"}`, false},
+		{`"bin": "bin", "timers": {"exec": "job", "args": ["a b"]}`, false},
+		{`"bin": "bin", "timers": {"exec": "job", "args": ["%i"]}`, false},
+		{`"bin": "bin", "timers": {"exec": "job", "args": ["$HOME"]}`, false},
+		{`"bin": "bin", "timers": {"exec": "job", "args": ["a;b"]}`, false},
+		{`"bin": "bin", "timers": {"exec": "job", "args": ["a\nb"]}`, false},
+		{`"bin": "bin", "timers": {"exec": "job", "args": [""]}`, false},
+		{`"bin": "bin", "timers": {"exec": "job", "args": ["1", "2", "3", "4", "5"]}`, false},
+	} {
+		m, err := Parse([]byte(with(c.extra)))
+		if c.ok != (err == nil) {
+			t.Errorf("%s: %v", c.extra, err)
+			continue
+		}
+		if err != nil && !strings.Contains(err.Error(), "runtime.timers") {
+			t.Errorf("%s: the error does not name the key: %v", c.extra, err)
+		}
+		if c.ok && strings.Contains(c.extra, "read_addon_data") != m.Runtime.ReadAddonData {
+			t.Errorf("%s: read_addon_data read as %v", c.extra, m.Runtime.ReadAddonData)
+		}
+	}
+	if m, _ := Parse([]byte(good)); m.Runtime.Timers != nil || m.Runtime.ReadAddonData {
+		t.Fatal("timers set without a declaration")
+	}
+}
+
+// occulited task 150: backup.targets declares that the addon provides backup targets; such a block
+// needs neither hook nor staging, and may stand beside them.
+func TestBackupTargets(t *testing.T) {
+	base := `{"format":1,"id":"sync","name":"Sync","backup":%s}`
+	ok := []string{
+		`{"targets":{"protocol":1,"label":{"de":"Cloud-Speicher","en":"Cloud storage"},"setup":"/addon-settings/sync#accounts"}}`,
+		`{"targets":{"protocol":1,"label":"Cloud storage","setup":"/addons/sync/"}}`,
+		`{"hook":"bin/snap","staging":"var/backup","targets":{"protocol":1,"label":{"en":"Cloud storage"},"setup":"/addons/sync/?tab=accounts"}}`,
+	}
+	for _, b := range ok {
+		m, err := Parse([]byte(fmt.Sprintf(base, b)))
+		if err != nil || m.Backup == nil || m.Backup.Targets == nil {
+			t.Errorf("%s: %v", b, err)
+		}
+	}
+	if m, _ := Parse([]byte(fmt.Sprintf(base, ok[0]))); m.Backup.HasHook() {
+		t.Error("targets alone count as a snapshot hook")
+	}
+	if m, _ := Parse([]byte(fmt.Sprintf(base, ok[2]))); !m.Backup.HasHook() {
+		t.Error("a hook beside targets is lost")
+	}
+	bad := map[string]string{
+		"protocol":       `{"targets":{"protocol":2,"label":{"en":"x"},"setup":"/addons/sync/"}}`,
+		"no label":       `{"targets":{"protocol":1,"setup":"/addons/sync/"}}`,
+		"long label":     `{"targets":{"protocol":1,"label":{"en":"` + strings.Repeat("x", 41) + `"},"setup":"/addons/sync/"}}`,
+		"other site":     `{"targets":{"protocol":1,"label":{"en":"x"},"setup":"https://example.org/"}}`,
+		"scheme-less":    `{"targets":{"protocol":1,"label":{"en":"x"},"setup":"//example.org/addons/x"}}`,
+		"system page":    `{"targets":{"protocol":1,"label":{"en":"x"},"setup":"/system/backup"}}`,
+		"dots":           `{"targets":{"protocol":1,"label":{"en":"x"},"setup":"/addons/../api/x"}}`,
+		"hook, no stage": `{"hook":"bin/snap","targets":{"protocol":1,"label":{"en":"x"},"setup":"/addons/sync/"}}`,
+		"empty":          `{}`,
+	}
+	for name, b := range bad {
+		if _, err := Parse([]byte(fmt.Sprintf(base, b))); err == nil {
+			t.Errorf("%s accepted", name)
+		}
+	}
+}

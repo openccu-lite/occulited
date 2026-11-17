@@ -335,6 +335,9 @@ type Addon struct {
 	// APIScopes are the scopes the addon's own API token holds (task 66): the catalogue's
 	// runtime.api_scopes less what an addon never gets; absent when it has no token of its own.
 	APIScopes []string `json:"api_scopes,omitempty"`
+	// ReadAddonData is the manifest's runtime.read_addon_data (occulited task 154): a timer of
+	// the addon may read other addons' data with their groups; the Addons page says so.
+	ReadAddonData bool `json:"read_addon_data,omitempty"`
 	// SessionHeader: the addon's settings page reads the gate's X-Occulite-Session, so the shell
 	// opens it without ?sid= (task 88, D-67). Set per request by GET /addons (httpapi.SessionHeader).
 	SessionHeader bool `json:"session_header,omitempty"`

@@ -126,6 +126,51 @@ type Backup struct {
 	// location, when reachable and newer than the snapshot, stays; otherwise the snapshot is
 	// copied there - and then empties Staging. With nothing in Staging it does nothing.
 	Restore string `json:"restore,omitempty"`
+	// Targets (occulited task 150): the addon provides backup targets - its destinations (a cloud
+	// account, a bucket) appear under Add target on the Backup page, and the system hands each
+	// encrypted backup to the addon's daemon over a Unix socket (docs/backup-provider.md). A block
+	// with targets alone needs neither hook nor staging.
+	Targets *BackupTargets `json:"targets,omitempty"`
+}
+
+// BackupTargets is an addon's declaration that it provides backup targets (occulited task 150).
+type BackupTargets struct {
+	// Protocol is the contract's version, BackupTargetsProtocol.
+	Protocol int `json:"protocol"`
+	// Label names the kind on the Backup page: the Add target button and the card ("Cloud storage").
+	Label Text `json:"label"`
+	// Setup is the in-app path where the user makes destinations (the addon's page), the link
+	// behind "Connect an account…": an absolute path on this system, never another site.
+	Setup string `json:"setup"`
+}
+
+// BackupTargetsProtocol is the provider contract's version this system speaks.
+const BackupTargetsProtocol = 1
+
+// HasHook says whether the block declares the snapshot hook (a block may declare targets alone).
+func (b *Backup) HasHook() bool { return b != nil && b.Hook != "" }
+
+var setupPathRe = regexp.MustCompile(`^/(addons|addon-settings)/[A-Za-z0-9._~/?#=&%+-]{1,200}$`)
+
+func (t *BackupTargets) validate() error {
+	if t == nil {
+		return nil
+	}
+	if t.Protocol != BackupTargetsProtocol {
+		return fmt.Errorf("backup.targets.protocol %d is not %d", t.Protocol, BackupTargetsProtocol)
+	}
+	if t.Label.In("en") == "" {
+		return errors.New("backup.targets.label is empty")
+	}
+	for _, v := range t.Label {
+		if len(v) > 40 || strings.ContainsAny(v, "\n\r\t") {
+			return errors.New("backup.targets.label: one line of at most 40 characters")
+		}
+	}
+	if !setupPathRe.MatchString(t.Setup) || strings.Contains(t.Setup, "..") || strings.Contains(t.Setup, "//") {
+		return fmt.Errorf("backup.targets.setup %q is not a path under /addons/ or /addon-settings/", t.Setup)
+	}
+	return nil
 }
 
 // The backup hook's limits (openccu-lite task 399).
@@ -155,6 +200,12 @@ func (b *Backup) Large() bool { return b != nil && b.SizeHintMB > BackupLargeMB 
 func (b *Backup) validate() error {
 	if b == nil {
 		return nil
+	}
+	if err := b.Targets.validate(); err != nil {
+		return err
+	}
+	if b.Targets != nil && b.Hook == "" && b.Staging == "" && b.Restore == "" && b.Timeout == 0 && b.SizeHintMB == 0 {
+		return nil // targets alone: no snapshot hook
 	}
 	if b.Hook == "" || b.Staging == "" {
 		return errors.New("backup needs hook and staging")
@@ -261,6 +312,51 @@ type Runtime struct {
 	// interactive login shells while the addon is installed and switched on - through a profile
 	// snippet it renders itself (/usr/local/etc/profile.d/addon-<id>.sh). ValidBin is the rule.
 	Bin string `json:"bin,omitempty"`
+	// Timers (occulited task 154): the program the addon's own timers run. An addon whose token
+	// holds the scope timers:addon keeps timers local-<id>-<name>; the system renders each one's
+	// service itself - the addon's user and confinement, ExecStart this program with the timer's
+	// name as its last argument - and takes only the timer's text from the addon. Needs Bin: the
+	// program is a file in that root-owned directory, so the unit can never be made to run a file
+	// the addon's user replaced.
+	Timers *Timers `json:"timers,omitempty"`
+	// ReadAddonData (occulited task 154): a timer of this addon may name other installed addons
+	// whose data its run reads; the rendered service then carries those addons' own groups
+	// (addon-<x>) as supplementary groups, and no other. Without it no timer gets a foreign group.
+	ReadAddonData bool `json:"read_addon_data,omitempty"`
+}
+
+// Timers is runtime.timers (occulited task 154): what a timer of the addon runs.
+type Timers struct {
+	// Exec is a file name inside the runtime.bin directory ("lite-sync"): no slash.
+	Exec string `json:"exec"`
+	// Args come between the program and the timer's name ("run"): at most 4, each of letters,
+	// digits, _ . = and -, not starting with a dash's lookalike of an option the system adds.
+	Args []string `json:"args,omitempty"`
+}
+
+var (
+	timerExecRe = regexp.MustCompile(`^[A-Za-z0-9_][A-Za-z0-9_.-]{0,63}$`)
+	timerArgRe  = regexp.MustCompile(`^[A-Za-z0-9_.=-]{1,64}$`)
+)
+
+// Validate is the rule for runtime.timers: a plain file name and a few plain arguments - nothing
+// that needs quoting in a unit file, nothing systemd expands (no %, $, space, quote or backslash).
+func (t *Timers) Validate() error {
+	if t == nil {
+		return nil
+	}
+	if !timerExecRe.MatchString(t.Exec) || t.Exec == "." || t.Exec == ".." {
+		return fmt.Errorf("runtime.timers.exec %q is not a file name inside the runtime.bin directory", t.Exec)
+	}
+	if len(t.Args) > 4 {
+		return errors.New("runtime.timers.args has more than 4 entries")
+	}
+	for _, a := range t.Args {
+		if !timerArgRe.MatchString(a) {
+			return fmt.Errorf("runtime.timers.args %q", a)
+		}
+	}
+	return nil
 }
 
 // WebIngress is an addon's declaration of a web ingress (openccu-lite task 406).
@@ -513,6 +609,14 @@ func (rt *Runtime) validate() error {
 	if rt.Bin != "" {
 		if err := ValidBin(rt.Bin); err != nil {
 			return err
+		}
+	}
+	if rt.Timers != nil {
+		if err := rt.Timers.Validate(); err != nil {
+			return err
+		}
+		if rt.Bin == "" {
+			return errors.New("runtime.timers needs runtime.bin: the program a timer runs is in the root-owned directory")
 		}
 	}
 	return nil

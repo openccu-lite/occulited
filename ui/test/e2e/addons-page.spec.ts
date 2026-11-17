@@ -39,6 +39,10 @@ test('the cards: installed first with the update on top, then by stars; logos on
     await expect(card(page, 'tm-devices').locator('.ad-untested')).toHaveCount(1);
     await expect(card(page, 'repo-SukramJ-openccu-loom').locator('.ad-untested')).toHaveText('untested');
     await expect(card(page, 'mosquitto').locator('.ad-untested')).toHaveCount(0);
+    // occulited task 153: an entry the catalogue marks root access says so, in the warn colour's class
+    await expect(card(page, 'xml-api').locator('.ad-root-access')).toHaveText('root access');
+    await expect(card(page, 'xml-api').locator('.ad-root-access')).toHaveClass(/warn/);
+    await expect(card(page, 'mosquitto').locator('.ad-root-access')).toHaveCount(0);
     await expect(page.locator('.ad-badges').getByText('verified', {exact: true})).toHaveCount(0);
     // an entry whose manifest is not fetched yet is a card by its repository, without an Install button
     const loom = card(page, 'repo-SukramJ-openccu-loom');
@@ -164,6 +168,7 @@ test('after a restore, in German; no section when nothing is missing', async ({p
     await expect(page.locator('[data-section="reinstall"]')).toHaveCount(0);
     // task 255: the untested label in German
     await expect(page.locator('.ad-untested').first()).toHaveText('ungetestet');
+    await expect(page.locator('.ad-root-access').first()).toHaveText('Root-Zugriff');
     await page.route('**/api/system/v1/addons', async (r) => {
         const res = await r.fetch();
         const body = await res.json();

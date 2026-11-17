@@ -121,6 +121,35 @@ func TestAddonScopes(t *testing.T) {
 	}
 }
 
+// occulited task 154: timers:addon is an addon's alone - its manifest may ask for it, a token made
+// by a person cannot carry it, no other scope but Full access covers it, and it covers nothing.
+func TestTimersAddonScope(t *testing.T) {
+	granted, refused := AddonScopes([]string{"system:read", "timers:addon"})
+	if strings.Join(granted.Strings(), ",") != "system:read,timers:addon" || len(refused) != 0 {
+		t.Errorf("an addon's declaration: granted %v, refused %v", granted, refused)
+	}
+	if Known(ScopeTimersAddon) {
+		t.Error("timers:addon is known to a token made by a person")
+	}
+	if _, err := ParseScopes([]string{"timers:addon"}); err == nil {
+		t.Error("a token made by a person carries timers:addon")
+	}
+	for _, g := range Grantable {
+		if g == ScopeTimersAddon {
+			t.Error("timers:addon is offered when a token is made")
+		}
+		if Covers(g, ScopeTimersAddon) {
+			t.Errorf("%s covers timers:addon", g)
+		}
+		if Covers(ScopeTimersAddon, g) {
+			t.Errorf("timers:addon covers %s", g)
+		}
+	}
+	if !Covers(ScopeAll, ScopeTimersAddon) {
+		t.Error("Full access does not cover timers:addon")
+	}
+}
+
 // openccu-lite task 307: the addon ingress scope addon:<id> is known when its id has the manifest's
 // shape, is covered by Full access and by nothing else, survives Normalize beside the fixed scopes,
 // and is never granted to an addon's own token.

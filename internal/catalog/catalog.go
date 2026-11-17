@@ -55,13 +55,18 @@ type Catalog struct {
 	Addons []Entry `json:"addons"`
 }
 
-// Entry is one addon in the catalogue file: exactly three fields (D-119, revised 2026-09-25).
+// Entry is one addon in the catalogue file: where its manifest is, and two labels (D-119, revised
+// 2026-09-25; root_access since occulited task 153).
 // A catalogue written before then carries `verified` instead of `untested`; the field is
 // ignored like any other unknown key.
 type Entry struct {
 	Git      string `json:"git"`                // the addon's repository, https://
 	Manifest string `json:"manifest"`           // the manifest's path in it, or an adapter under AdapterPrefix
 	Untested bool   `json:"untested,omitempty"` // not tried on openccu-lite yet; a label, grants and refuses nothing
+	// RootAccess marks an addon whose purpose is to give its user root on the system (a web
+	// shell) although its own process is confined: a label like Untested, set by the catalogue
+	// maintainers, grants and refuses nothing (occulited task 153).
+	RootAccess bool `json:"root_access,omitempty"`
 }
 
 // Adapter says whether the entry's manifest is an adapter in the catalogue's repository.
@@ -72,6 +77,7 @@ type Item struct {
 	Git          string `json:"git"`
 	ManifestPath string `json:"manifest_path"`
 	Untested     bool   `json:"untested,omitempty"`
+	RootAccess   bool   `json:"root_access,omitempty"`
 	Adapter      bool   `json:"adapter,omitempty"`
 	// Manifest is the fetched (or bundled adapter) manifest, flattened into the item: id, name,
 	// description, homepage, release, requires, ui, runtime. Nil until the first check.
@@ -698,7 +704,7 @@ func (s *Service) view() *View {
 				v.Source = "published"
 			}
 		}
-		it := Item{Git: e.Git, ManifestPath: e.Manifest, Untested: e.Untested, Adapter: e.Adapter()}
+		it := Item{Git: e.Git, ManifestPath: e.Manifest, Untested: e.Untested, RootAccess: e.RootAccess, Adapter: e.Adapter()}
 		if c, ok := s.cache.Entries[entryKey(e.Git)]; ok {
 			it.Manifest, it.Tag, it.Error = c.Manifest, c.Tag, c.Error
 			if len(c.Images) > 0 {

@@ -1969,6 +1969,11 @@ func replayUnitSwitch(sd system.SystemdServices, log *slog.Logger) {
 	defer cancel()
 	// task 50: the own timers first - written into /run, reloaded, the ones not switched off
 	// enabled - so that the switch replay below still applies on top of them
+	// occulited task 154: an addon's timers first get their service rendered from what the addon is
+	// now; one whose addon is gone is removed
+	if changed, removed := sd.RefreshAddonTimers(ctx, "", false, true); len(changed)+len(removed) > 0 {
+		log.Info("services: the addons' own timers were rendered again", "rendered", strings.Join(changed, ", "), "removed", strings.Join(removed, ", "))
+	}
 	tapplied, tproblems := sd.ReplayLocalTimers(ctx)
 	if len(tapplied) > 0 {
 		log.Info("services: the own timers were written and enabled", "units", strings.Join(tapplied, ", "))

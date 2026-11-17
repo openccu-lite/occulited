@@ -230,7 +230,7 @@ func TestLocalTimerLifecycle(t *testing.T) {
 	if err := rig.s.DeleteLocalTimer(ctx, "backup"); err != nil {
 		t.Fatal(err)
 	}
-	if strings.Join(rig.calls, "|") != "systemctl disable --runtime --now --no-pager -- local-backup.timer|systemctl stop --no-pager -- local-backup.service|systemctl daemon-reload" {
+	if strings.Join(rig.calls, "|") != "systemctl disable --runtime --now --no-pager -- local-backup.timer|systemctl stop --no-pager -- local-backup.service|systemctl daemon-reload|systemctl reset-failed --no-pager -- local-backup.service local-backup.timer" {
 		t.Errorf("delete calls: %v", rig.calls)
 	}
 	if len(rig.fp.files) != 0 {

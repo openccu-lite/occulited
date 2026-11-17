@@ -353,6 +353,35 @@ func TestAddonOwnIngressDir(t *testing.T) {
 	}
 }
 
+// occulited task 150: an addon whose stored manifest declares backup.targets gets its socket
+// directory before its start; one without does not.
+func TestAddonOwnProviderDir(t *testing.T) {
+	root := t.TempDir()
+	pol := filepath.Join(root, system.AddonPolicyDir)
+	if err := os.MkdirAll(pol, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(pol, "sync"+system.AddonManifestSuffix), []byte(`{"format": 1, "id": "sync", "name": "Sync", "backup": {"targets": {"protocol": 1, "label": {"de": "Cloud-Speicher", "en": "Cloud storage"}, "setup": "/addon-settings/sync#accounts"}}, "runtime": {"daemon": true, "needs": []}}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(pol, "nut"+system.AddonManifestSuffix), []byte(`{"format": 1, "id": "nut", "name": "UPS", "runtime": {"daemon": true}}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	var made []string
+	var out bytes.Buffer
+	env := addonOwnEnv{root: system.Root(root), policy: priv.DefaultPolicy(root, "/usr/local/etc/occulite"), stdout: &out, stderr: &out,
+		providerDir: func(id string) error { made = append(made, id); return nil }}
+	if rc := addonOwn(env, []string{"sync"}); rc != 0 {
+		t.Fatalf("exit %d: %s", rc, out.String())
+	}
+	if rc := addonOwn(env, []string{"nut"}); rc != 0 {
+		t.Fatalf("exit %d: %s", rc, out.String())
+	}
+	if len(made) != 1 || made[0] != "sync" {
+		t.Fatalf("provider directories made for %v", made)
+	}
+}
+
 // occulited task 136: an addon whose stored manifest declares runtime.bin has it left out of the walk
 // that gives its tree to its user, and given to root after it - at every start, also when the quick
 // check finds nothing to do.

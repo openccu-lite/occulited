@@ -184,7 +184,7 @@ func (h *BackupHooks) declared(s backupHookState) []BackupHookAddon {
 	var out []BackupHookAddon
 	for id := range h.Root.AddonPolicies() {
 		m := h.Root.ReadAddonManifest(id)
-		if m == nil || m.Backup == nil {
+		if m == nil || !m.Backup.HasHook() {
 			continue
 		}
 		a := BackupHookAddon{ID: id, Name: m.Name, Hook: m.Backup.Hook, Staging: m.Backup.Staging, Restore: m.Backup.Restore,

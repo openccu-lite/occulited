@@ -228,6 +228,9 @@ type TestResult struct {
 	WriteMBps   float64   `json:"write_mbps,omitempty"`
 	FSType      string    `json:"fs_type,omitempty"`
 	At          time.Time `json:"at"`
+	// Message and Action are a provider's own sentence and link (an addon target, task 150).
+	Message ProviderText    `json:"message,omitempty"`
+	Action  *ProviderAction `json:"action,omitempty"`
 }
 
 // BackupFile is one backup on a target.

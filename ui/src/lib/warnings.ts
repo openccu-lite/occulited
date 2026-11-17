@@ -222,6 +222,9 @@ export function warningText(w: Warning, words: Words): string {
                 'no-sftp': t('The server of the backup target {name} offers no SFTP.', {name}),
                 'too-old': t('No successful backup to {name} for more than a day.', {name}),
                 // B-247: on the system's own storage the backup keeps room for a system update
+                // occulited task 150: a target an addon provides
+                'addon-missing': t('The backup target {name} needs the addon {addon}, which is not installed or not running.', {name, addon: String(p.addon || '?')}),
+                'not-encrypted': t('The backup target {name} gets encrypted backups only, and encryption is switched off.', {name}),
                 'update-room': t('The backup to {name} was skipped: on the system itself it would leave too little room for a system update, even with the older backups removed. Use a USB stick or a share.', {name}),
             };
             return why[String(p.cause ?? '')] ?? t('The last backup to {name} failed.', {name});

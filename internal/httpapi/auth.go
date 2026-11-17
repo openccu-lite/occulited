@@ -810,6 +810,16 @@ func (a *AuthAPI) state(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	out := map[string]any{"setup_required": a.Store.SetupRequired(), "authenticated": false}
+	// occulited task 151: ?peek=1 asks without touching - the session's idle timer is not
+	// refreshed, no cookie is set and no ticket is spent. For a program that asks whether a
+	// user's session still stands (an addon holding a terminal open for it) and must not keep it
+	// alive by asking. The answer says "peek": true, so the caller can tell a system that knows
+	// the parameter from an older one, which ignored it and touched the session.
+	if r.URL.Query().Get("peek") != "" {
+		out["peek"] = true
+		a.statePeek(w, r, out)
+		return
+	}
 	sess := a.session(r)
 	// occulited B-129: an addon confirms the credential the gate let through by asking here from the
 	// system itself, where the caller's address is the loopback's, not the caller's. The answer says
@@ -864,6 +874,45 @@ func (a *AuthAPI) state(w http.ResponseWriter, r *http.Request) {
 		}
 		if sess.Legacy != "" {
 			out["legacy_sid"] = sess.Legacy // its alias, when this process made one (POST /legacy-sid)
+		}
+	}
+	writeJSON(w, 200, out)
+}
+
+// statePeek answers GET /state?peek=1 (occulited task 151): the caller's session as Peek sees it,
+// or its token (a token has no idle timer; it is held to its ranges as on the plain route). The
+// public mode's principal is not answered: a peek asks about a credential.
+func (a *AuthAPI) statePeek(w http.ResponseWriter, r *http.Request, out map[string]any) {
+	var sess *auth.Session
+	loopback := false
+	if ip := net.ParseIP(remote(r)); ip != nil && ip.IsLoopback() {
+		loopback = true
+	}
+	for _, id := range sessionIDs(r) {
+		if auth.IsToken(id) {
+			if sess = a.Store.ValidateFrom(id, remote(r)); sess == nil && loopback {
+				sess = a.Store.ValidateAnyRange(id) // occulited B-129, as on the plain route
+			}
+		} else {
+			sess = a.Store.Peek(id)
+		}
+		if sess != nil {
+			break
+		}
+	}
+	if sess != nil {
+		out["authenticated"] = true
+		out["user"] = sess.User
+		if sess.Role != "" {
+			out["role"] = sess.Role
+			out["level"] = sess.Level
+			out["account_id"] = sess.AccountID
+		}
+		out["scopes"] = sess.Scopes
+		out["must_change_password"] = sess.Method == auth.MethodPassword && a.Store.MustChangePassword(sess.User)
+		if !sess.IsToken() && sess.ID != "" {
+			out["sid"] = sess.ID
+			out["method"] = sess.Method
 		}
 	}
 	writeJSON(w, 200, out)

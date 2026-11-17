@@ -106,7 +106,7 @@
         begin();
         // task 57: arrived with ?edit=<unit>: that unit's editor, as it was left
         const linkedEdit = new URLSearchParams(router.search).get('edit');
-        if (linkedEdit) void openEditor(linkedEdit);
+        if (linkedEdit) void openLinked(linkedEdit);
         document.addEventListener('visibilitychange', visibility);
         // task 177: back from another page - a fresh load and the chain again
         const stopReturn = life.onReturn(visibility);
@@ -375,6 +375,24 @@
         } catch (e) {
             output = (e as Error).message;
         }
+    }
+    // occulited task 154: a link to an own timer (an addon's page links its jobs' timers with
+    // ?edit=local-<id>-<name>.timer) opens that timer's two files, as Edit… on its row does; any
+    // other unit, and a timer that is not stored, its override as before
+    async function openLinked(id: string) {
+        if (/^local-[A-Za-z0-9_-]+\.timer$/.test(id)) {
+            try {
+                const [own, stored] = await Promise.all([
+                    api.get<{analyze: boolean}>('/api/system/v1/timers/own'),
+                    api.get<LocalTimer>(`/api/system/v1/timers/own/${encodeURIComponent(id)}`),
+                ]);
+                timerEdit = {key: ++editKey, timer: stored, analyze: own.analyze};
+                return;
+            } catch {
+                // not an own timer: the override editor says what it is
+            }
+        }
+        return openEditor(id);
     }
     const overrideDirty = () => editor !== null && editor.text !== editor.data.override;
     // task 50: an own timer's editor (lib/TimerEditor.svelte): a new timer, or one opened again
@@ -728,7 +746,7 @@
                     {#each timers as tm (tm.unit)}
                         {@const left = whenLeft(tm)}
                         <tr>
-                            <td>{tm.unit}{#if tm.own}{' '}<span class="ol-badge">{t('own')}</span>{/if}<span class="sv-runs-sub ol-muted">{tm.activates}</span></td>
+                            <td>{tm.unit}{#if tm.addon}{' '}<span class="ol-badge" title={t('Made by the addon {id} for one of its jobs. You can change when it runs, switch it off or delete it; what it runs is set by the system.', {id: tm.addon})}>{t('addon {id}', {id: tm.addon})}</span>{:else if tm.own}{' '}<span class="ol-badge">{t('own')}</span>{/if}<span class="sv-runs-sub ol-muted">{tm.activates}</span></td>
                             <td class="sv-runs">{tm.activates}</td>
                             <!-- B-68: the runs in the reader's language and time zone, short, the full stamp as
                                  the title; the time and the countdown each stay whole, so a narrow cell

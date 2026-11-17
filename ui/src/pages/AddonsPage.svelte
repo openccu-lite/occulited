@@ -50,7 +50,7 @@
     // manifest flattened into it once the user's check has fetched it (id, name, description, ...)
     interface Text { de?: string; en?: string }
     interface Entry {
-        git: string; manifest_path: string; untested?: boolean; adapter?: boolean;
+        git: string; manifest_path: string; untested?: boolean; root_access?: boolean; adapter?: boolean;
         id?: string; name?: Text; description?: Text; homepage?: string; licence?: string;
         release?: {github?: string; prerelease?: boolean}; requires?: {architectures?: string[]; lite?: string}; lite_unmet?: boolean;
         ui?: {own_updater?: boolean}; runtime?: {note?: Text};
@@ -421,7 +421,17 @@
         // the question says so before
         const message = t('Uninstall {name}? Its configuration under /usr/local may be left behind by the addon itself.', {name: a.name || a.id})
             + (a.enabled ? '' : ` ${t('The addon is disabled: should its uninstall script fail, the system removes its rc.d entry and its directory {dir} with everything in it.', {dir: `/usr/local/addons/${a.id}`})}`);
-        if (!(await ask({message, confirm: t('Uninstall'), danger: true}))) return;
+        // occulited task 150: the backup targets this addon provides stay configured and say
+        // "addon missing" afterwards; the question names them
+        let targets = '';
+        try {
+            const v = await api.get<{targets: {name: string; kind: string; addon?: {id: string}}[]}>('/api/system/v1/backup/targets');
+            const names = v.targets.filter((x) => x.kind === 'addon' && x.addon?.id === a.id).map((x) => `"${x.name}"`);
+            if (names.length) targets = ` ${t('The backup targets {names} use this addon: they stay set up, but get no backup until it is installed again.', {names: names.join(', ')})}`;
+        } catch {
+            /* the question goes without the note */
+        }
+        if (!(await ask({message: message + targets, confirm: t('Uninstall'), danger: true}))) return;
         await withBusy(a.id, async () => {
             const r = await api.post<{output: string; system_removed?: string[]; forced?: boolean; script_error?: string}>(`/api/system/v1/addons/${encodeURIComponent(a.id)}/uninstall`);
             // B-283: a confined addon's script cannot remove the rc.d entry and its directories itself
@@ -758,6 +768,7 @@
                 </div>
                 <div class="ad-badges">
                     {#if e?.untested}{@render badge('ol-badge warn ad-untested', t('untested'), t('Not tested on openccu-lite yet: install it at your own risk. Every addon declares what it needs itself; the label neither grants nor refuses anything.'))}{/if}
+                    {#if e?.root_access}{@render badge('ol-badge warn ad-root-access', t('root access'), t('This addon gives whoever uses it a root shell on the system. Its own process runs confined; root is what its user signs in as. Install it only if you want that, and switch it off when you do not need it.'))}{/if}
                     {#if e?.release?.prerelease}<span class="ol-badge">{t('prerelease')}</span>{/if}
                     {#if e?.ui?.own_updater}{@render badge('ol-badge warn', t('own updater'), t('This addon still carries an update mechanism of its own. On openccu-lite the system installs its updates; what the addon\'s own updater does bypasses that.'))}{/if}
                     {#if a}
@@ -793,6 +804,9 @@
                         {/if}
                         {#if a.api_scopes?.length}
                             {@render badge('ol-badge ad-scopes', t('API token: {scopes}', {scopes: a.api_scopes.join(', ')}), t('The addon\'s manifest declares these scopes; the system mints a token with exactly them at every start and hands it to the addon alone. Every other addon reads names and rooms with the local token and nothing else.'))}
+                        {/if}
+                        {#if a.read_addon_data}
+                            {@render badge('ol-badge ad-readdata', t('can read other addons\' data'), t('A job of this addon can read the data of another addon you choose for it, with that addon\'s own group: its data and the settings it keeps readable for its group, passwords and tokens in them included. Only for the addons a job names, and read-only.'))}
                         {/if}
                         {#if a.legacy_session}
                             {@render badge('ol-badge warn ad-legacy', t('session in URL'), t('This addon receives your session in its URL (?sid=, the legacy CCU convention) because it does not read the session header. What goes there is an alias that only addon pages accept, never the API, and it ends with your session. The ⋯ menu switches it off for this addon; its pages then refuse to open until the addon reads the header.'))}

@@ -481,6 +481,8 @@ export interface Addon {
     directory?: boolean;
     /** task 66: the scopes of the addon's own API token, from its catalogue entry */
     api_scopes?: string[];
+    /** occulited task 154: the manifest's runtime.read_addon_data - its timers may read other addons' data */
+    read_addon_data?: boolean;
     /** occulited task 24: the manifest declares ui.fullscreen - the frontend offers its own way back, so
      *  Settings offers to show it as the whole window (the user's choice is the preference) */
     fullscreen?: boolean;
@@ -543,6 +545,8 @@ export interface Timer {
     active: boolean;
     /** task 50: made on the Services page (local-<name>.timer): edited as two files, deletable */
     own?: boolean;
+    /** occulited task 154: an own timer an addon made (its id): the service is the system's rendering */
+    addon?: string;
     enabled?: boolean;
     unit_file_state?: string;
 }
@@ -554,6 +558,8 @@ export interface LocalTimer {
     timer_file: string;
     service_file: string;
     enabled: boolean;
+    /** occulited task 154: the addon whose timer it is; its service file cannot be changed */
+    addon?: string;
 }
 /** task 50: `systemd-analyze calendar` on an OnCalendar= expression; available false without it */
 export interface CalendarCheck {

@@ -85,6 +85,12 @@ type Pipeline struct {
 	UID, GID int
 	Now      func() time.Time
 	Log      *slog.Logger
+	// ListLocal and OpenLocal read a directory or share target's backups for an addon target that
+	// uploads from it (occulited task 150); nil = the files as this process reads them.
+	ListLocal func(ctx context.Context, t Target) ([]BackupFile, error)
+	OpenLocal func(ctx context.Context, t Target, name string) (io.ReadCloser, error)
+	// Retry are the pauses between the attempts of an upload to a provider; nil = providerRetries.
+	Retry []time.Duration
 }
 
 func (p *Pipeline) now() time.Time {
@@ -171,8 +177,12 @@ func hashFile(path string) (string, int64, error) {
 		return "", 0, err
 	}
 	defer f.Close()
+	return hashReader(f)
+}
+
+func hashReader(r io.Reader) (string, int64, error) {
 	h := sha256.New()
-	n, err := io.Copy(h, f)
+	n, err := io.Copy(h, r)
 	if err != nil {
 		return "", 0, err
 	}
@@ -281,6 +291,26 @@ func (p *Pipeline) CreateRun(ctx context.Context, instance string) error {
 	checked := ready
 	ready = nil
 	for _, t := range checked {
+		if t.Kind == KindAddon && t.Addon != nil {
+			// occulited task 150: an addon's target gets the encrypted file only, and its provider
+			// must be there - both known before the backup is made. Root opens the socket and reads
+			// nothing: the provider's answers are the occulite half's to parse.
+			var r Result
+			switch {
+			case p.Crypt == nil || !p.Crypt.Enabled():
+				r = Result{At: at, Instance: instance, Encrypted: true, State: StateNotEncrypted, Step: "encrypt", Error: "encryption is switched off: a target an addon provides gets encrypted backups only"}
+			default:
+				if err := NewProviderClient(t.Addon.ID).Reachable(ctx); err != nil {
+					r = Result{At: at, Instance: instance, Encrypted: true, State: StateAddonMissing, Step: "addon", Error: err.Error()}
+				}
+			}
+			if r.State != "" {
+				p.writeResult(t, r)
+				failed = append(failed, t.ID)
+				log.Warn("backup: skipped, the addon's target cannot take a backup", "target", t.ID, "addon", t.Addon.ID, "state", r.State, "err", r.Error)
+				continue
+			}
+		}
 		if t.IsLocal() {
 			if r, ok := p.probe(t, at, instance); !ok {
 				p.writeResult(t, r)
@@ -521,6 +551,23 @@ func (p *Pipeline) DeliverRun(ctx context.Context, instance string) error {
 	// task 139: which target verified which file - the SFTP uploads here, the local deliveries
 	// from the results the root half wrote for this run
 	delivered := map[string]string{}
+	all, _ := p.Store.List()
+	for _, t := range targets {
+		if t.Kind != KindAddon || t.Addon == nil || !in[t.ID] {
+			continue
+		}
+		// occulited task 150: the provider's answers are parsed here, as occulite
+		r := p.deliverAddon(ctx, t, run, host, all)
+		r.Instance = instance
+		p.writeResult(t, r)
+		if r.OK {
+			delivered[t.ID] = r.SHA256
+			log.Info("backup: handed to the addon", "target", t.ID, "addon", t.Addon.ID, "file", r.Name, "ms", r.DurationMS, "from", r.From, "verified", r.Verified, "caught_up", len(r.CaughtUp), "removed", len(r.Removed))
+		} else {
+			failed = append(failed, t.ID)
+			log.Warn("backup: the addon's target failed", "target", t.ID, "addon", t.Addon.ID, "state", r.State, "step", r.Step, "err", r.Error)
+		}
+	}
 	for _, t := range targets {
 		if t.Kind != KindSFTP || !in[t.ID] {
 			continue

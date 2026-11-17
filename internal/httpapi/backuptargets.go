@@ -53,6 +53,8 @@ func writeTargetErr(w http.ResponseWriter, err error) {
 		writeJSON(w, http.StatusBadRequest, apiError{Error: "invalid", Message: err.Error()})
 	case errors.Is(err, backuptarget.ErrNotMount):
 		writeJSON(w, http.StatusConflict, apiError{Error: "not-a-mount", Message: err.Error()})
+	case errors.Is(err, backuptarget.ErrNeedsEncryption):
+		writeJSON(w, http.StatusConflict, apiError{Error: "not-encrypted", Message: err.Error()})
 	case errors.Is(err, backuptarget.ErrBusy):
 		writeJSON(w, http.StatusConflict, apiError{Error: "busy", Message: err.Error()})
 	case errors.Is(err, backuptarget.ErrFingerprint):
@@ -95,6 +97,9 @@ func (a *SystemAPI) targetsList(w http.ResponseWriter, r *http.Request) {
 		"hostname":     host,
 		"needed_bytes": m.NeededBytes(),
 		"targets":      views,
+		// occulited task 150: the installed addons that provide targets, with their destinations
+		// ?providers=fresh asks each provider now (the hand-over of an account made a moment ago)
+		"providers": m.ProviderViews(r.Context(), r.URL.Query().Get("providers") == "fresh"),
 	})
 }
 
@@ -177,6 +182,10 @@ func (a *SystemAPI) targetsPut(w http.ResponseWriter, r *http.Request) {
 
 func (a *SystemAPI) saveTarget(w http.ResponseWriter, r *http.Request, t backuptarget.Target, created bool) {
 	m := a.BackupTargets
+	if err := m.CheckAddonTarget(t); err != nil {
+		writeTargetErr(w, err)
+		return
+	}
 	saved, err := m.Store.Put(t)
 	if err != nil {
 		writeTargetErr(w, err)
@@ -427,7 +436,7 @@ func (a *SystemAPI) backupDeliveryWarnings(ctx context.Context) ([]warnings.Warn
 			sev = warnings.SeverityWarning
 		}
 		out = append(out, warnings.Warning{ID: "backup-delivery", Variant: p.ID + ":" + p.Cause, Severity: sev, Href: "/backup#targets",
-			Params: map[string]any{"name": p.Name, "cause": p.Cause, "detail": p.Detail}})
+			Params: map[string]any{"name": p.Name, "cause": p.Cause, "detail": p.Detail, "addon": p.Addon}})
 	}
 	return out, true
 }

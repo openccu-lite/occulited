@@ -418,7 +418,7 @@ func renderDropIn(p *AddonPolicy, hasGroup func(string) bool, restore string) st
 // block (openccu-lite task 399), "" when it declares none: rendered into the drop-in as
 // ExecStartPre, so the addon's unit puts a restored snapshot back before the addon starts.
 func (r Root) backupRestoreHook(id string) string {
-	if m := r.ReadAddonManifest(id); m != nil && m.Backup != nil {
+	if m := r.ReadAddonManifest(id); m != nil && m.Backup.HasHook() {
 		return m.Backup.Restore
 	}
 	return ""
@@ -618,6 +618,8 @@ func (a *SystemdAddons) SetPolicy(ctx context.Context, id, mode, source string, 
 	_, _ = a.Systemd.run(ctx, "daemon-reload")
 	a.RefreshAddonTokens(ctx) // 28.8: the token file follows the addon's user
 	a.regenerateFirewall(ctx) // D-47: a changed runtime block can take a declared port away
+	// occulited task 154: the services of the addon's own timers are rendered from its policy
+	a.Systemd.RefreshAddonTimers(ctx, id, true, false)
 	return p, nil
 }
 

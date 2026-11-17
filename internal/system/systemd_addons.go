@@ -481,6 +481,11 @@ func (a *SystemdAddons) Install(ctx context.Context, archive io.Reader) (*Instal
 	// openccu-lite task 406: an addon's web ingress exists once its manifest is stored and its group
 	// made, both after the installer's own drop-in sync - rendered now, lighttpd reloaded when new
 	syncIngressAfterChange(ctx, a.Scripts.Root)
+	// occulited task 154: the services of the addons' own timers follow the stored manifests (the
+	// program, the bin directory, the read grant); a timer of an addon that declares none any more goes
+	if changed, removed := a.Systemd.RefreshAddonTimers(ctx, "", true, true); len(changed)+len(removed) > 0 {
+		slog.Info("addons: the addons' own timers follow the install", "rendered", strings.Join(changed, " "), "removed", strings.Join(removed, " "))
+	}
 	return res, nil
 }
 
@@ -644,6 +649,8 @@ func (a *SystemdAddons) Uninstall(ctx context.Context, id string) (UninstallResu
 	// uid stays reserved in the uid registry (B-288: addon-uids.json is not one of these files), so
 	// a reinstall runs as the same uid and no other addon gets it. The firewall follows: the opened
 	// ports were the policy's.
+	// occulited task 154: and its own timers, before the policy that says they are its
+	out.SystemRemoved = append(out.SystemRemoved, a.Systemd.RemoveAddonTimers(ctx, id)...)
 	out.SystemRemoved = append(out.SystemRemoved, a.Scripts.Root.removeAddonPolicyFiles(id)...)
 	// the script's output, then what the system removed after it (B-26: the refused rm lines of a
 	// confined script read as handled), then how it ended
@@ -705,9 +712,11 @@ func (a *SystemdAddons) overlayAddonPolicy(list []Addon) []Addon {
 	running := a.Scripts.Root.ReadVersion().Lite
 	for i := range list {
 		// occulited task 134: an addon the system no longer meets (a downgrade) is marked, not removed
-		if m := a.Scripts.Root.ReadAddonManifest(list[i].ID); !m.LiteMet(running) {
+		m := a.Scripts.Root.ReadAddonManifest(list[i].ID)
+		if !m.LiteMet(running) {
 			list[i].RequiresLite = m.Requires.Lite
 		}
+		list[i].ReadAddonData = m != nil && m.Runtime != nil && m.Runtime.ReadAddonData && m.Runtime.Timers != nil // occulited task 154
 		v := a.PolicyView(list[i].ID)
 		list[i].PolicyMode, list[i].PolicySource, list[i].Undeclared = v.Mode, v.Source, v.Undeclared
 		list[i].MayMount, list[i].RemountRefused = v.MayMount, refused[list[i].ID]
@@ -791,6 +800,7 @@ func (a *SystemdAddons) RemoveRCEntry(ctx context.Context, id string, withTarget
 	if err != nil {
 		return res, err
 	}
+	res.Removed = append(res.Removed, a.Systemd.RemoveAddonTimers(ctx, id)...)
 	res.Removed = append(res.Removed, a.Scripts.Root.removeAddonPolicyFiles(id)...)
 	a.syncProfilesAfterChange() // occulited task 136
 	a.regenerateFirewall(ctx)

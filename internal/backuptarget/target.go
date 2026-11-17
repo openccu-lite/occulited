@@ -90,6 +90,8 @@ type Target struct {
 	NFS       *NFS       `json:"nfs,omitempty"`
 	CIFS      *CIFS      `json:"cifs,omitempty"`
 	SFTP      *SFTP      `json:"sftp,omitempty"`
+	// Addon: a destination of an addon that provides backup targets (occulited task 150).
+	Addon *AddonRef `json:"addon,omitempty"`
 }
 
 // Directory is the directory target: its path, and - chosen with task 228's location picker -
@@ -249,13 +251,13 @@ func (t Target) Validate() error {
 		return invalid("subdir: one directory name (letters, digits, . _ -)")
 	}
 	set := 0
-	for _, p := range []bool{t.Directory != nil, t.NFS != nil, t.CIFS != nil, t.SFTP != nil, t.Share != nil} {
+	for _, p := range []bool{t.Directory != nil, t.NFS != nil, t.CIFS != nil, t.SFTP != nil, t.Share != nil, t.Addon != nil} {
 		if p {
 			set++
 		}
 	}
 	if set != 1 {
-		return invalid("exactly one of directory, share, sftp (nfs, cifs: the older kinds)")
+		return invalid("exactly one of directory, share, sftp, addon (nfs, cifs: the older kinds)")
 	}
 	switch t.Kind {
 	case KindDirectory:
@@ -330,8 +332,21 @@ func (t Target) Validate() error {
 		if s.Path != "" && (!printable(s.Path, 1024) || strings.Contains(s.Path, "..")) {
 			return invalid("sftp.path: a directory on the server, without ..")
 		}
+	case KindAddon:
+		if t.ID == DirectoryID || t.Addon == nil {
+			return invalid("addon settings missing")
+		}
+		if err := t.Addon.validate(); err != nil {
+			return err
+		}
+		if t.Subdir != "" {
+			return invalid("subdir: an addon target's folder is addon.folder")
+		}
+		if !t.Encrypt {
+			return invalid("encrypt: a target an addon provides gets encrypted backups only")
+		}
 	default:
-		return invalid("kind %q: directory, share or sftp (nfs, cifs: the older kinds)", t.Kind)
+		return invalid("kind %q: directory, share, sftp or addon (nfs, cifs: the older kinds)", t.Kind)
 	}
 	return nil
 }
@@ -593,6 +608,10 @@ func (s *Store) Put(t Target) (Target, error) {
 	if t.SFTP != nil && t.SFTP.Port == 0 {
 		t.SFTP.Port = 22
 	}
+	if t.Kind == KindAddon {
+		// never a switch: an addon and its destination only ever hold ciphertext
+		t.Encrypt = true
+	}
 	if t.Kind == KindDirectory && t.Directory != nil && t.Directory.Location != "" {
 		// the path follows the location; the marker keeps it for upstream's tools
 		t.Directory.Path = s.LocationPath(t.Directory.Location, t.Directory.Path)
@@ -613,6 +632,17 @@ func (s *Store) Put(t Target) (Target, error) {
 	c, err := s.load()
 	if err != nil {
 		return Target{}, err
+	}
+	if t.Kind == KindAddon && t.Addon.Source != "" && t.Addon.Source != SourceStaging {
+		ok := t.Addon.Source == DirectoryID && readTrim(s.join(MarkerPath)) != ""
+		for _, o := range c.Targets {
+			if o.ID == t.Addon.Source && o.IsLocal() {
+				ok = true
+			}
+		}
+		if !ok {
+			return Target{}, invalid("addon.source: %q is no directory or share target", t.Addon.Source)
+		}
 	}
 	if t.Kind == KindDirectory {
 		if err := s.writeMarker(MarkerPath, []byte(t.Directory.Path+"\n")); err != nil {

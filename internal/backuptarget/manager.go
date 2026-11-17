@@ -53,9 +53,12 @@ type Manager struct {
 	Root   string
 	Now    func() time.Time
 	Prober Prober
+	// Providers answers the installed addons that declare backup.targets (occulited task 150).
+	Providers func() []Provider
 
 	mu     sync.Mutex
 	checks map[string]Check
+	infos  map[string]infoEntry
 }
 
 // Check is the last test or probe of a target.
@@ -84,6 +87,12 @@ type StateView struct {
 	FreeBytes   int64      `json:"free_bytes,omitempty"`
 	TotalBytes  int64      `json:"total_bytes,omitempty"`
 	Unsupported string     `json:"unsupported,omitempty"`
+	// An addon target (occulited task 150): the provider's own sentence and link for the state,
+	// the running upload's progress, and Gone when the destination no longer exists.
+	Message  ProviderText    `json:"message,omitempty"`
+	Action   *ProviderAction `json:"action,omitempty"`
+	Progress *Progress       `json:"progress,omitempty"`
+	Gone     bool            `json:"gone,omitempty"`
 }
 
 // View is one target for GET /backup/targets.
@@ -91,6 +100,8 @@ type View struct {
 	Target
 	State      StateView `json:"state"`
 	LastBackup *Result   `json:"last_backup,omitempty"`
+	// Provider is an addon target's provider and destination (occulited task 150).
+	Provider *TargetProvider `json:"provider,omitempty"`
 }
 
 func (m *Manager) now() time.Time {
@@ -152,7 +163,7 @@ func RetryDelay(n int) time.Duration {
 // Kinds answers which kinds this system supports, and why not. NFS and SMB are task 86's kinds,
 // migrated to shares (task 228): answered for an older client, never offered for a new target.
 func (m *Manager) Kinds() map[string]string {
-	out := map[string]string{KindDirectory: "", KindSFTP: "", KindShare: "", KindNFS: "", KindCIFS: ""}
+	out := map[string]string{KindDirectory: "", KindSFTP: "", KindShare: "", KindNFS: "", KindCIFS: "", KindAddon: ""}
 	if m.Container != nil && m.Container() != "" {
 		out[KindNFS], out[KindCIFS], out[KindShare] = "container", "container", "container"
 		return out
@@ -252,7 +263,9 @@ func (m *Manager) Views(ctx context.Context) ([]View, error) {
 	run := m.running(ctx, ids)
 	out := make([]View, 0, len(list))
 	for _, t := range list {
-		out = append(out, m.view(t, kinds, run[t.ID]))
+		v := m.view(t, kinds, run[t.ID])
+		m.addonView(ctx, t, &v, list)
+		out = append(out, v)
 	}
 	return out, nil
 }
@@ -266,7 +279,12 @@ func (m *Manager) View(ctx context.Context, id string) (View, error) {
 	if !ok {
 		return View{}, ErrNotFound
 	}
-	return m.view(t, m.Kinds(), m.running(ctx, []string{id})[id]), nil
+	v := m.view(t, m.Kinds(), m.running(ctx, []string{id})[id])
+	if t.Kind == KindAddon {
+		all, _ := m.Store.List()
+		m.addonView(ctx, t, &v, all)
+	}
+	return v, nil
 }
 
 func (m *Manager) view(t Target, kinds map[string]string, running bool) View {
@@ -413,6 +431,8 @@ func (m *Manager) Test(ctx context.Context, id string) (TestResult, error) {
 	switch {
 	case t.Kind == KindSFTP:
 		r = m.testSFTP(ctx, t)
+	case t.Kind == KindAddon:
+		r = m.testAddon(ctx, t)
 	default:
 		r = m.testLocal(ctx, t)
 	}
@@ -620,6 +640,19 @@ func (m *Manager) Backups(ctx context.Context, id string) ([]BackupFile, error) 
 		m.annotate(files, func(name string) (io.ReadCloser, error) { return c.Open(t.RemoteDir(), name) })
 		return files, nil
 	}
+	if t.Kind == KindAddon {
+		c := NewProviderClient(t.Addon.ID)
+		files, err := c.List(ctx, t.Addon.Destination, t.Addon.Folder)
+		if err != nil {
+			m.setCheck(id, Check{At: m.now(), State: Classify(err), Step: "list", Detail: err.Error()})
+			return nil, err
+		}
+		m.annotate(files, func(name string) (io.ReadCloser, error) {
+			rc, _, err := c.Get(ctx, t.Addon.Destination, t.Addon.Folder, name)
+			return rc, err
+		})
+		return files, nil
+	}
 	dir := m.join(t.Dir())
 	var files []BackupFile
 	err = m.Prober.DoWithin("list:"+id, shares.MountWait, func() error {
@@ -716,6 +749,10 @@ func (m *Manager) Open(ctx context.Context, id, name string) (io.ReadCloser, err
 			return nil, err
 		}
 		return &closeBoth{ReadCloser: f, conn: c}, nil
+	}
+	if t.Kind == KindAddon {
+		rc, _, err := NewProviderClient(t.Addon.ID).Get(ctx, t.Addon.Destination, t.Addon.Folder, name)
+		return rc, err
 	}
 	var f *os.File
 	err = m.Prober.DoWithin("open:"+id, shares.MountWait, func() error {
@@ -895,6 +932,8 @@ func (m *Manager) WatchOnce(ctx context.Context) {
 func (m *Manager) recheck(ctx context.Context, t Target) {
 	c := Check{At: m.now(), State: StateIdle, Step: "retry"}
 	switch {
+	case t.Kind == KindAddon:
+		c = m.recheckAddon(ctx, t)
 	case t.Kind == KindSFTP:
 		cctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 		conn, err := DialSFTP(cctx, t.SFTP, m.Store.SecretDir(t.ID))
@@ -958,6 +997,8 @@ type Problem struct {
 	Name   string `json:"name"`
 	Cause  string `json:"cause"`
 	Detail string `json:"detail,omitempty"`
+	// Addon is the name of the addon an addon target needs (occulited task 150).
+	Addon string `json:"addon,omitempty"`
 }
 
 // Problems answers the warnings: a failed state, and too-old.
@@ -998,7 +1039,14 @@ func (m *Manager) Problems(ctx context.Context) ([]Problem, error) {
 			}
 		}
 		if cause != "" {
-			out = append(out, Problem{ID: v.ID, Name: v.Name, Cause: cause, Detail: v.State.Detail})
+			p := Problem{ID: v.ID, Name: v.Name, Cause: cause, Detail: v.State.Detail}
+			if v.Provider != nil {
+				p.Addon = v.Provider.Name
+				if p.Addon == "" {
+					p.Addon = v.Provider.Addon
+				}
+			}
+			out = append(out, p)
 		}
 	}
 	return out, nil
