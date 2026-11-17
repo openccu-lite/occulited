@@ -50,6 +50,15 @@
       "manifest": "addon/openccu-lite.json"
     },
     {
+      "git": "https://github.com/openccu-lite/lite-addon-sync",
+      "manifest": "addon/openccu-lite.json"
+    },
+    {
+      "git": "https://github.com/openccu-lite/lite-addon-shell",
+      "manifest": "addon/openccu-lite.json",
+      "root_access": true
+    },
+    {
       "git": "https://github.com/jp112sdl/JP-HB-Devices-addon",
       "manifest": "catalog/manifests/jp-hb-devices-addon.json",
       "untested": true

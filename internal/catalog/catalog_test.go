@@ -65,6 +65,10 @@ func TestRepositoryCatalogue(t *testing.T) {
 		if it.Untested != untested[it.Git] {
 			t.Errorf("%s: untested %v", it.Git, it.Untested)
 		}
+		// occulited task 153: the one addon that gives its user a root shell carries the label
+		if it.RootAccess != (it.Git == "https://github.com/openccu-lite/lite-addon-shell") {
+			t.Errorf("%s: root_access %v", it.Git, it.RootAccess)
+		}
 		if !it.Adapter {
 			if it.Manifest != nil {
 				t.Errorf("%s: a manifest before any check", it.Git)
@@ -135,7 +139,7 @@ func TestLoadCatalog(t *testing.T) {
 	dir := t.TempDir()
 	published := writeFile(t, dir, "pub/catalog.json", `{"format": 1, "addons": [
 		{"git": "https://github.com/o/a", "manifest": "openccu-lite.json", "verified": true},
-		{"git": "https://github.com/o/b.git", "manifest": "x/openccu-lite.json"},
+		{"git": "https://github.com/o/b.git", "manifest": "x/openccu-lite.json", "root_access": true},
 		{"git": "not a url", "manifest": "openccu-lite.json"},
 		{"git": "https://github.com/o/c", "manifest": "../etc/passwd"},
 		{"git": "https://github.com/o/d", "manifest": ""}]}`)
@@ -163,6 +167,10 @@ func TestLoadCatalog(t *testing.T) {
 	}
 	if v.Addons[0].Untested || v.Addons[0].ManifestPath != "openccu-lite.json" {
 		t.Errorf("the published entry wins, flag and all: %+v", v.Addons[0])
+	}
+	// occulited task 153: the label root access travels with its entry, like untested
+	if !v.Addons[1].RootAccess || v.Addons[0].RootAccess || v.Addons[2].RootAccess {
+		t.Errorf("root_access: %v %v %v", v.Addons[0].RootAccess, v.Addons[1].RootAccess, v.Addons[2].RootAccess)
 	}
 	if e := v.Addons[2]; !e.Adapter || e.Manifest == nil || e.ID != "e" || !e.Untested {
 		t.Errorf("the bundled adapter is known without a check: %+v", e)
