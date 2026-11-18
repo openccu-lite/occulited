@@ -348,6 +348,9 @@ const CATALOGUE: Record<string, {de: string; en?: string}> = {
     'Start of the log': {de: 'Anfang des Protokolls'},
     'Start of the time range': {de: 'Anfang des Zeitraums'},
     Newest: {de: 'Neueste'},
+    // occulited task 156: the two buttons floating over the log
+    'Jump to the oldest entry': {de: 'Zum ältesten Eintrag springen'},
+    'Jump to the newest entry': {de: 'Zum neuesten Eintrag springen'},
     'Loading older entries…': {de: 'Ältere Einträge werden geladen …'},
     'Loading newer entries…': {de: 'Neuere Einträge werden geladen …'},
     'Older entries load while scrolling.': {de: 'Ältere Einträge laden beim Scrollen.'},

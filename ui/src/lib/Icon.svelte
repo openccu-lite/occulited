@@ -74,7 +74,10 @@
         | 'history'
         | 'arrow-up'
         // occulited task 148: the Status page's temperature panel
-        | 'thermometer';
+        | 'thermometer'
+        // occulited task 156: the Log page's jumps to the log's two ends - an arrow against a bar
+        | 'to-top'
+        | 'to-bottom';
 
     const PATHS: Record<IconName, string> = {
         // the head is one closed shape so `fill: currentColor` on the svg fills it; the needle is a line
@@ -85,6 +88,8 @@
         clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/>',
         unlink: '<path d="M9 17H7a5 5 0 0 1 0-10h2"/><path d="M15 7h2a5 5 0 0 1 4 8"/><path d="M8 12h3"/><path d="M3 3l18 18"/>',
         history: '<path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l3 2"/>',
+        'to-top': '<path d="M5 4h14"/><path d="M12 20V9"/><path d="M7 14l5-5 5 5"/>',
+        'to-bottom': '<path d="M5 20h14"/><path d="M12 4v11"/><path d="M7 10l5 5 5-5"/>',
         'arrow-up': '<circle cx="12" cy="12" r="9"/><path d="M12 16V8"/><path d="M8.5 11.5L12 8l3.5 3.5"/>',
         // the maintainer, 2026-09-22: a green tick before what a module can do, a red cross before
         // what it cannot (the HmIP routing line of the connections)

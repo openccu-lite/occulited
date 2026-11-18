@@ -1,5 +1,5 @@
 import {describe, expect, it} from 'vitest';
-import {joinPages, rowAt, rowOffsets, rowWindow} from './logvirtual';
+import {joinPages, jumpButtons, LOG_AT_END, rowAt, rowOffsets, rowWindow} from './logvirtual';
 
 // task 178: the windowed list's arithmetic and the pages' join
 
@@ -52,5 +52,31 @@ describe('joining pages', () => {
         expect(joinPages(run, [1, 2], 'old', 4)).toEqual({lines: [1, 2, 3, 4], dropped: 'new'});
         expect(joinPages(run, [6, 7], 'new', 4)).toEqual({lines: [4, 5, 6, 7], dropped: 'old'});
         expect(joinPages([], [1], 'new', 1)).toEqual({lines: [1], dropped: null});
+    });
+});
+
+// occulited task 156: the two floating jump buttons
+describe('the jump buttons', () => {
+    const none = {moreTop: false, moreBottom: false};
+
+    it('hide the one whose end the view stands at, and show both in between', () => {
+        expect(jumpButtons({top: 0, bottom: 5000, ...none})).toEqual({top: false, bottom: true});
+        expect(jumpButtons({top: 2500, bottom: 2500, ...none})).toEqual({top: true, bottom: true});
+        expect(jumpButtons({top: 5000, bottom: 0, ...none})).toEqual({top: true, bottom: false});
+    });
+
+    it('take a few pixels from an end as the end', () => {
+        expect(jumpButtons({top: LOG_AT_END, bottom: LOG_AT_END, ...none})).toEqual({top: false, bottom: false});
+        expect(jumpButtons({top: LOG_AT_END + 1, bottom: LOG_AT_END + 1, ...none})).toEqual({top: true, bottom: true});
+        expect(jumpButtons({top: 12, bottom: 5, ...none}, 10)).toEqual({top: true, bottom: false});
+    });
+
+    it('show neither for a log that fits its box', () => {
+        expect(jumpButtons({top: 0, bottom: 0, ...none})).toEqual({top: false, bottom: false});
+    });
+
+    it('show a button at the end of the loaded run while the log goes on beyond it', () => {
+        expect(jumpButtons({top: 0, bottom: 5000, moreTop: true, moreBottom: false})).toEqual({top: true, bottom: true});
+        expect(jumpButtons({top: 5000, bottom: 0, moreTop: false, moreBottom: true})).toEqual({top: true, bottom: true});
     });
 });

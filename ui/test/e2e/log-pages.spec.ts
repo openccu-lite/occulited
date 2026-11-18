@@ -141,7 +141,7 @@ test('the jump to the start of the boot pages towards the newest, then the strea
     await expect(page.locator('[data-count]')).toHaveText('1,000 entries · more load while scrolling');
     // the run is detached from the live end: the newer pages load at the bottom, the button back
     await expect(page.locator('[data-edge="more"]')).toHaveText('Newer entries load while scrolling.');
-    const newest = page.getByRole('button', {name: 'Newest'});
+    const newest = page.getByRole('button', {name: 'Newest', exact: true});
     await expect(newest).toBeVisible();
     // B-292: the count is read once per round - read twice, a page that landed in between left the
     // round waiting for a change after the last page
@@ -167,7 +167,7 @@ test('past 20 000 entries the far end is unloaded and says so; Newest is the tai
     await expect(page.locator('[data-edge="unloaded"]')).toHaveText('Newer entries were unloaded; they load again while scrolling.');
     await scrollTo(page, 'top');
     await expect.poll(async () => (await rowNumbers(page))[0]).toBe(0);
-    await page.getByRole('button', {name: 'Newest'}).click();
+    await page.getByRole('button', {name: 'Newest', exact: true}).click();
     await expect(page.locator('[data-count]')).toHaveAttribute('data-count', '1000');
     await expect.poll(async () => (await rowNumbers(page)).at(-1)).toBe(21_499);
 });

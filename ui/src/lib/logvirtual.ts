@@ -12,6 +12,20 @@ export const LOG_OVERSCAN = 600;
 /** how close to an end the view must be for the next page to load */
 export const LOG_LOAD_AHEAD = 1500;
 
+/** how close to an end of the list the view counts as standing at it (task 40's 40 px) */
+export const LOG_AT_END = 40;
+
+/**
+ * occulited task 156: which of the two floating jump buttons show. `top` and `bottom` are the
+ * pixels scrolled away from the list's two ends, `moreTop` and `moreBottom` whether the log goes
+ * on beyond the loaded run there. A button is hidden only where the view stands at that end of
+ * the log itself: at the end of the loaded run with more to come, the jump still has somewhere to
+ * go. A log that fits its box shows neither.
+ */
+export function jumpButtons(v: {top: number; bottom: number; moreTop: boolean; moreBottom: boolean}, tolerance = LOG_AT_END): {top: boolean; bottom: boolean} {
+    return {top: v.moreTop || v.top > tolerance, bottom: v.moreBottom || v.bottom > tolerance};
+}
+
 /** the top of every row and, at the end, the height of them all: offsets[i] is row i's top */
 export function rowOffsets(n: number, height: (i: number) => number): Float64Array {
     const offsets = new Float64Array(n + 1);

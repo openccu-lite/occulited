@@ -19,7 +19,7 @@
     import {OCCULITED_AREAS} from '../lib/loglevels';
     import {LASTING_MAX, LASTING_MIN} from '../lib/lasting';
     import {bootParam, bootSpanMs, durationLabel, findBoot, isEarlierBoot, kernelParam, lineStamp, logPath, runParam, settingsParam, sourceParam, type BootInfo, type BootList, type LogSettingsTab, type LogSource} from '../lib/logpage';
-    import {countLabel, joinPages, LOG_KEEP, LOG_LOAD_AHEAD, LOG_PAGE, rowAt, rowOffsets, rowWindow} from '../lib/logvirtual';
+    import {countLabel, joinPages, jumpButtons, LOG_AT_END, LOG_KEEP, LOG_LOAD_AHEAD, LOG_PAGE, rowAt, rowOffsets, rowWindow} from '../lib/logvirtual';
 
     // Task 93: the viewer shows every message, the system's without the kernel's, or the kernel's
     // alone (a Source among the filters); above it the boot the lines are of, the download, and the
@@ -193,6 +193,7 @@
         } catch {
             /* fine */
         }
+        startPin = false;
         scrollHome();
     }
     // task 93: a kernel line's time since the boot, as dmesg prints it, or the wall clock; per browser
@@ -374,6 +375,7 @@
         flushSync(() => (hv += 1));
         restore(a);
         if (home) scrollHome();
+        else if (startPin) scrollStart();
     }
     function record(l: LogLine, h: number): boolean {
         if (!(h > 0)) return false;
@@ -435,6 +437,7 @@
         flushSync(change);
         restore(a);
         if (home) scrollHome();
+        else if (startPin) scrollStart();
     }
     // the end of the log the reader watches: the bottom when oldest first, the top otherwise
     function scrollHome() {
@@ -458,8 +461,17 @@
     function atHome(): boolean {
         if (!box) return true;
         const away = newestFirst ? box.scrollTop : box.scrollHeight - box.scrollTop - box.clientHeight;
-        return away <= 40;
+        return away <= LOG_AT_END;
     }
+    // occulited task 156: the same at the other end, the start. A view sent there by the jump stays
+    // there while the rows it has just rendered are measured (startPin) - with the newest first the
+    // start is the bottom, and the list's height is an estimate until then.
+    function atStart(): boolean {
+        if (!box) return true;
+        const away = newestFirst ? box.scrollHeight - box.scrollTop - box.clientHeight : box.scrollTop;
+        return away <= LOG_AT_END;
+    }
+    let startPin = false;
     // task 104: the log's height changes with the panel above it - a row that wraps once the boot list has
     // answered, the phone's fold, a resized window. A view that stood at its end stays at its end; one the
     // reader has scrolled into the history is left where it is. Its own scrolling says which it is, since a
@@ -471,6 +483,7 @@
         let width = el.clientWidth;
         const observer = new ResizeObserver(() => {
             viewport = el.clientHeight;
+            barWidth = el.offsetWidth - el.clientWidth;
             if (el.clientWidth !== width) {
                 // the lines wrap differently now: every remembered height is stale, and the
                 // rows in the DOM are measured again
@@ -482,9 +495,11 @@
                 applyMeasured([...rowOf.keys()].map((n) => [n, heightOf(n)]));
             }
             if (home) scrollHome();
+            else if (startPin) scrollStart();
         });
         observer.observe(el);
         viewport = el.clientHeight;
+        barWidth = el.offsetWidth - el.clientWidth;
         return () => observer.disconnect();
     });
     $effect(() => {
@@ -510,7 +525,67 @@
         seenTop = box.scrollTop;
         if (newestFirst ? moved > 0.5 : moved < -0.5) home = atHome();
         else if (atHome()) home = true;
+        // the same rule for the start's pin: only a scroll away from the start lifts it
+        if (startPin && (newestFirst ? moved < -0.5 : moved > 0.5)) startPin = atStart();
         nearEnds();
+        jumpState();
+    }
+    // ---- occulited task 156: the two floating buttons over the log ----
+    // One at the top right that jumps to the top of the list, one at the bottom right that jumps to
+    // its bottom - the log's start and its end, whichever way round the order puts them. A button
+    // is hidden while the view stands at its end of the log (within LOG_AT_END px, and nothing
+    // more to load beyond it); in between both show. They are laid over the log's box, so showing
+    // and hiding moves nothing.
+    let jump = $state.raw({top: false, bottom: false});
+    // the scroll bar's width: the buttons stand beside it, not on it
+    let barWidth = $state(0);
+    function jumpState() {
+        const next = box
+            ? jumpButtons({top: box.scrollTop, bottom: box.scrollHeight - box.scrollTop - box.clientHeight, moreTop: newestFirst ? newer : older, moreBottom: newestFirst ? older : newer})
+            : {top: false, bottom: false};
+        const was = untrack(() => jump);
+        if (next.top !== was.top || next.bottom !== was.bottom) jump = next;
+    }
+    // after every change of the rows, their heights or the box - the DOM has them by now - and on
+    // every scroll (onScroll): new lines below a reader in the history bring the button to the end
+    $effect(() => {
+        void box;
+        void scrollTop;
+        void viewport;
+        void offsets;
+        void edgeTopH;
+        void older;
+        void newer;
+        void loadingOlder;
+        void loadingNewer;
+        void newestFirst;
+        jumpState();
+    });
+    // "Start" is the start of what the page shows - of the boot chosen, of the time range, or of
+    // the whole log with every boot on screen - not the oldest line that happens to be loaded: where
+    // older pages are still to come, the oldest page is loaded (as the filter row's jump does, but
+    // the boot stays the one chosen), otherwise the view only scrolls.
+    function toStart() {
+        if (older) {
+            closeStream();
+            pendingHead = true;
+            reload();
+            return;
+        }
+        home = false;
+        startPin = true;
+        scrollStart();
+    }
+    // "End" is the newest line: the tail loaded again where the run is detached from it, otherwise
+    // a scroll; and the view is at its home end again, so it follows the lines that arrive.
+    function toEnd() {
+        startPin = false;
+        if (newer) {
+            jumpToNewest();
+            return;
+        }
+        home = true;
+        scrollHome();
     }
     // the next page loads when the view comes within LOG_LOAD_AHEAD px of an end that has more
     function nearEnds() {
@@ -545,6 +620,7 @@
         newerUnloaded = false;
         loadingOlder = false;
         loadingNewer = false;
+        startPin = head;
         if (head) {
             home = false;
             scrollStart();
@@ -1046,6 +1122,7 @@
             <div class="lg-edge ol-muted" data-edge="more">{end === 'old' ? t('Older entries load while scrolling.') : t('Newer entries load while scrolling.')}</div>
         {/if}
     {/snippet}
+    <div class="lg-view" style:--lg-bar="{barWidth}px">
     <div class="ol-log ol-journal lg-box" class:lg-kernel={kernel} bind:this={box} onscroll={onScroll}>
         <div class="lg-edges" bind:this={edgeTop}>{@render edge(newestFirst ? 'new' : 'old')}</div>
         <div class="lg-pad" style:height="{padTop}px" aria-hidden="true"></div>
@@ -1074,6 +1151,18 @@
         {/each}
         <div class="lg-pad" style:height="{padBottom}px" aria-hidden="true"></div>
         <div class="lg-edges">{@render edge(newestFirst ? 'old' : 'new')}</div>
+    </div>
+    <!-- occulited task 156: the jumps to the two ends, floating over the log. Always in the DOM and
+         always the same box: a hidden one is invisible and out of the tab order, nothing moves. -->
+    {#snippet jumpButton(at: 'top' | 'bottom')}
+        {@const to = (at === 'top') === newestFirst ? 'end' : 'start'}
+        {@const label = to === 'start' ? t('Jump to the oldest entry') : t('Jump to the newest entry')}
+        <button type="button" class="hmm-button lg-jump lg-jump-{at}" class:lg-jump-on={at === 'top' ? jump.top : jump.bottom} data-float={to} aria-label={label} title={label} onclick={to === 'start' ? toStart : toEnd}>
+            <Icon name={at === 'top' ? 'to-top' : 'to-bottom'} size={18} />
+        </button>
+    {/snippet}
+    {@render jumpButton('top')}
+    {@render jumpButton('bottom')}
     </div>
 {/if}
 
@@ -1141,11 +1230,27 @@
        rightmost thing in the window and its bottom the window's bottom (app.css, .ol-main.ol-fill has no
        padding). A hairline above it where the page meets the log, the log's own surface, and a small
        inner padding so the text does not touch the window's edges. */
+    /* occulited task 156: the box stands in a frame of the same size that does not scroll, which the
+       two jump buttons are laid over; the floor is the frame's now */
+    .lg-view { position: relative; flex: 1 1 auto; min-height: 80px; display: flex; flex-direction: column; }
     .lg-box {
-        flex: 1 1 auto; min-height: 80px; contain: size; overflow: auto; overflow-anchor: none;
+        flex: 1 1 auto; min-height: 0; contain: size; overflow: auto; overflow-anchor: none;
         margin: 0; border: 0; border-top: 1px solid var(--hmm-border-muted); border-radius: 0; padding: 6px 16px;
         background: var(--hmm-bg);
     }
+    /* occulited task 156: the jumps to the log's two ends - a fixed box each, beside the scroll bar;
+       hidden is invisible, never gone, so nothing in the page moves when one comes or goes */
+    .lg-jump {
+        position: absolute; right: calc(var(--lg-bar, 0px) + 12px); width: 36px; height: 36px; padding: 0;
+        display: inline-flex; align-items: center; justify-content: center;
+        box-shadow: var(--hmm-shadow-menu);
+        opacity: 0; visibility: hidden; pointer-events: none;
+        transition: opacity 0.15s, visibility 0s 0.15s;
+    }
+    .lg-jump-top { top: 10px; }
+    .lg-jump-bottom { bottom: 10px; }
+    .lg-jump.lg-jump-on { opacity: 1; visibility: visible; pointer-events: auto; transition: opacity 0.15s; }
+    @media (prefers-reduced-motion: reduce) { .lg-jump, .lg-jump.lg-jump-on { transition: none; } }
     /* task 178: the rows at the two ends of the run, and the spacers for the rows not in the DOM */
     .lg-edge { padding: 6px 0; font-size: var(--hmm-font-size-small); font-style: italic; }
     .lg-pad { flex: none; }
