@@ -1,6 +1,6 @@
 {
   "format": 1,
-  "generated_at": "2026-11-17T23:34:16Z",
+  "generated_at": "2026-11-18T00:54:24Z",
   "catalog": "file:///home/runner/work/occulited/occulited/catalog/catalog.json",
   "repos": {
     "SukramJ/openccu-loom": {
@@ -11617,6 +11617,66 @@
     "openccu-lite/lite-addon-shell": {
       "releases": [
         {
+          "tag_name": "v0.2.1",
+          "name": "v0.2.1",
+          "draft": false,
+          "prerelease": false,
+          "html_url": "https://github.com/openccu-lite/lite-addon-shell/releases/tag/v0.2.1",
+          "published_at": "2026-11-18T00:13:25Z",
+          "assets": [
+            {
+              "name": "shell-aarch64-0.2.1.tar.gz",
+              "size": 4597811,
+              "browser_download_url": "https://github.com/openccu-lite/lite-addon-shell/releases/download/v0.2.1/shell-aarch64-0.2.1.tar.gz"
+            },
+            {
+              "name": "shell-aarch64-0.2.1.tar.gz.sha256",
+              "size": 93,
+              "browser_download_url": "https://github.com/openccu-lite/lite-addon-shell/releases/download/v0.2.1/shell-aarch64-0.2.1.tar.gz.sha256"
+            },
+            {
+              "name": "shell-x86_64-0.2.1.tar.gz",
+              "size": 4937983,
+              "browser_download_url": "https://github.com/openccu-lite/lite-addon-shell/releases/download/v0.2.1/shell-x86_64-0.2.1.tar.gz"
+            },
+            {
+              "name": "shell-x86_64-0.2.1.tar.gz.sha256",
+              "size": 92,
+              "browser_download_url": "https://github.com/openccu-lite/lite-addon-shell/releases/download/v0.2.1/shell-x86_64-0.2.1.tar.gz.sha256"
+            }
+          ]
+        },
+        {
+          "tag_name": "v0.2.0",
+          "name": "v0.2.0",
+          "draft": false,
+          "prerelease": false,
+          "html_url": "https://github.com/openccu-lite/lite-addon-shell/releases/tag/v0.2.0",
+          "published_at": "2026-11-17T23:49:52Z",
+          "assets": [
+            {
+              "name": "shell-aarch64-0.2.0.tar.gz",
+              "size": 4596018,
+              "browser_download_url": "https://github.com/openccu-lite/lite-addon-shell/releases/download/v0.2.0/shell-aarch64-0.2.0.tar.gz"
+            },
+            {
+              "name": "shell-aarch64-0.2.0.tar.gz.sha256",
+              "size": 93,
+              "browser_download_url": "https://github.com/openccu-lite/lite-addon-shell/releases/download/v0.2.0/shell-aarch64-0.2.0.tar.gz.sha256"
+            },
+            {
+              "name": "shell-x86_64-0.2.0.tar.gz",
+              "size": 4934468,
+              "browser_download_url": "https://github.com/openccu-lite/lite-addon-shell/releases/download/v0.2.0/shell-x86_64-0.2.0.tar.gz"
+            },
+            {
+              "name": "shell-x86_64-0.2.0.tar.gz.sha256",
+              "size": 92,
+              "browser_download_url": "https://github.com/openccu-lite/lite-addon-shell/releases/download/v0.2.0/shell-x86_64-0.2.0.tar.gz.sha256"
+            }
+          ]
+        },
+        {
           "tag_name": "v0.1.0",
           "name": "v0.1.0",
           "draft": false,
@@ -11652,6 +11712,36 @@
     },
     "openccu-lite/lite-addon-sync": {
       "releases": [
+        {
+          "tag_name": "v0.4.1",
+          "name": "v0.4.1",
+          "draft": false,
+          "prerelease": false,
+          "html_url": "https://github.com/openccu-lite/lite-addon-sync/releases/tag/v0.4.1",
+          "published_at": "2026-11-18T00:50:51Z",
+          "assets": [
+            {
+              "name": "sync-aarch64-0.4.1.tar.gz",
+              "size": 29874146,
+              "browser_download_url": "https://github.com/openccu-lite/lite-addon-sync/releases/download/v0.4.1/sync-aarch64-0.4.1.tar.gz"
+            },
+            {
+              "name": "sync-aarch64-0.4.1.tar.gz.sha256",
+              "size": 92,
+              "browser_download_url": "https://github.com/openccu-lite/lite-addon-sync/releases/download/v0.4.1/sync-aarch64-0.4.1.tar.gz.sha256"
+            },
+            {
+              "name": "sync-x86_64-0.4.1.tar.gz",
+              "size": 33263044,
+              "browser_download_url": "https://github.com/openccu-lite/lite-addon-sync/releases/download/v0.4.1/sync-x86_64-0.4.1.tar.gz"
+            },
+            {
+              "name": "sync-x86_64-0.4.1.tar.gz.sha256",
+              "size": 91,
+              "browser_download_url": "https://github.com/openccu-lite/lite-addon-sync/releases/download/v0.4.1/sync-x86_64-0.4.1.tar.gz.sha256"
+            }
+          ]
+        },
         {
           "tag_name": "v0.4.0",
           "name": "v0.4.0",
@@ -18331,7 +18421,7 @@
       "git": "https://github.com/openccu-lite/lite-addon-sync",
       "manifest": "addon/openccu-lite.json",
       "id": "sync",
-      "tag": "v0.4.0",
+      "tag": "v0.4.1",
       "release_repo": "openccu-lite/lite-addon-sync",
       "images": {
         "icon": "ok",
@@ -18342,7 +18432,7 @@
       "git": "https://github.com/openccu-lite/lite-addon-shell",
       "manifest": "addon/openccu-lite.json",
       "id": "shell",
-      "tag": "v0.1.0",
+      "tag": "v0.2.1",
       "release_repo": "openccu-lite/lite-addon-shell",
       "images": {
         "icon": "ok",
