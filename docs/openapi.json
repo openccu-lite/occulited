@@ -12067,8 +12067,18 @@
           "target_max_use": {
             "type": "string"
           },
+          "target_max_use_default": {
+            "type": "string"
+          },
           "target_ok": {
             "type": "boolean"
+          },
+          "target_oldest": {
+            "format": "date-time",
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "target_path": {
             "type": "string"
@@ -12111,7 +12121,9 @@
           "target_free",
           "target_max_age",
           "target_max_use",
+          "target_max_use_default",
           "target_ok",
+          "target_oldest",
           "target_usage"
         ],
         "type": "object"

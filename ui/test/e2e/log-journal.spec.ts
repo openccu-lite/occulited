@@ -434,3 +434,29 @@ test('in German: the stick target', async ({page}) => {
     await expect(panel.locator('[data-stick-chosen]')).toHaveText('Die Kopien gehen nach journal auf den USB-Stick mit dem Label LOG_STICK; ein Stick mit anderem Label wird nie beschrieben.');
     await expect(panel.locator('[data-location-button]')).toContainText('USB-Stick');
 });
+
+test('B-352: how far back the copies on a stick reach, and the stick\'s size limit when none is set', async ({page}) => {
+    await answer(page, {...STICK_ON, target_max_use: '', target_max_use_default: '1024M', target_oldest: '2026-11-15T20:48:00Z'});
+    await locations(page);
+    const panel = await openJournal(page);
+    await expect(panel.locator('[data-figure="oldest-copy"]')).toContainText('15');
+    await expect(panel.locator('[data-figure="oldest-copy"]')).not.toHaveText('—');
+    await expect(page.locator('#ol-jr-targetuse')).toHaveValue('');
+    await expect(page.locator('#ol-jr-targetuse')).toHaveAttribute('placeholder', '1024M');
+});
+
+test('B-352: no copies yet, and the userfs keeps 64M', async ({page}) => {
+    await answer(page, {...RAM_SYNC, target_max_use: '', target_max_use_default: '64M', target_oldest: null});
+    const panel = await openJournal(page);
+    await expect(panel.locator('[data-figure="oldest-copy"]')).toHaveText('—');
+    await expect(page.locator('#ol-jr-targetuse')).toHaveAttribute('placeholder', '64M');
+});
+
+test('B-352 in German: the span of the copies', async ({page}) => {
+    await page.addInitScript(() => localStorage.setItem('ol.language', 'de'));
+    await answer(page, {...RAM_SYNC, target_oldest: '2026-11-15T20:48:00Z'});
+    await page.goto('/system/log');
+    await page.getByRole('button', {name: 'Protokoll-Einstellungen'}).click();
+    await page.getByRole('dialog').getByRole('tab', {name: 'Journal'}).click();
+    await expect(page.locator('.jr-panel')).toContainText('Kopien reichen zurück bis');
+});

@@ -94,6 +94,33 @@ const (
 	JournalDefaultTargetMaxUse = "64M"
 )
 
+// The default size limit of the copies on a USB stick (B-352): 1G, but at most a tenth of what the
+// stick has free plus what the copies already take, at least 1M - lite-journal-sync's
+// target_max_use, which also takes the old default 64M as the default there.
+const (
+	journalStickMaxUseKiB = 1 << 20
+	journalStickMinUseKiB = 1 << 10
+)
+
+// JournalStickMaxUse is the size limit lite-journal-sync gives the copies on a stick whose setting
+// is empty: free and copies are bytes, the answer a size as journald writes it (195M, 1024M).
+func JournalStickMaxUse(free, copies int64) string {
+	if free < 0 {
+		free = 0
+	}
+	if copies < 0 {
+		copies = 0
+	}
+	l := (free/1024 + copies/1024) / 10
+	if l > journalStickMaxUseKiB {
+		l = journalStickMaxUseKiB
+	}
+	if l < journalStickMinUseKiB {
+		l = journalStickMinUseKiB
+	}
+	return strconv.FormatInt(l/1024, 10) + "M"
+}
+
 // JournalConfig is the file plus what is in effect right now.
 type JournalConfig struct {
 	Storage        string `json:"storage"`          // "" = the product's default, "ram", "ram-sync", "persistent"
@@ -107,6 +134,13 @@ type JournalConfig struct {
 	SyncInterval string `json:"sync_interval"`
 	TargetMaxUse string `json:"target_max_use"`
 	TargetMaxAge string `json:"target_max_age"`
+	// TargetMaxUseDefault is what an empty TargetMaxUse means for this target (B-352): 64M on the
+	// userfs and a share; on a stick that is plugged in 1G, at most a tenth of its free space plus
+	// the copies (JournalStickMaxUse); "" for a stick that is not.
+	TargetMaxUseDefault string `json:"target_max_use_default"`
+	// TargetOldest is when the oldest entry in the copies was written - the start of the span they
+	// cover (B-352); null when there are none or they cannot be read (a stick not plugged in).
+	TargetOldest *time.Time `json:"target_oldest"`
 	// TargetLabel and TargetDir are a USB stick target's two halves; TargetPath is where the copies
 	// go now - the userfs directory, or the directory on the stick while it is plugged in ("" while
 	// it is not).
@@ -392,8 +426,11 @@ func (r Root) readJournalConfig(shareFigures bool) JournalConfig {
 			var used, free int64
 			var okUsed, okFree bool
 			var unreadable bool
+			var oldest time.Time
+			var okOldest bool
 			err := journalShareProbe.Do("journal:"+c.TargetShare, func() error {
 				used, okUsed = dirUsage(r.join(c.TargetPath))
+				oldest, okOldest = journalOldestCopy(r.join(c.TargetPath))
 				free, okFree = freeBytes(r.join(netmount.Base + "/" + c.TargetShare))
 				unreadable = journalReadBack(r.join(c.TargetPath)) != nil
 				return nil
@@ -406,12 +443,18 @@ func (r Root) readJournalConfig(shareFigures bool) JournalConfig {
 			if err == nil && okFree {
 				c.TargetFree = &free
 			}
+			if err == nil && okOldest {
+				c.TargetOldest = &oldest
+			}
 		}
 	case c.TargetLabel != "":
 		if stick != nil {
 			c.TargetPath = stick.Mount + "/" + c.TargetDir
 			if n, ok := dirUsage(r.join(c.TargetPath)); ok {
 				c.TargetUsage = &n
+			}
+			if t, ok := journalOldestCopy(r.join(c.TargetPath)); ok {
+				c.TargetOldest = &t
 			}
 			free := stick.Free
 			c.TargetFree = &free
@@ -426,13 +469,62 @@ func (r Root) readJournalConfig(shareFigures bool) JournalConfig {
 		if n, ok := dirUsage(r.join(dir)); ok {
 			c.TargetUsage = &n
 		}
+		if t, ok := journalOldestCopy(r.join(dir)); ok {
+			c.TargetOldest = &t
+		}
 		if n, ok := freeBytes(r.join("/usr/local")); ok {
 			c.TargetFree = &n
 		}
 		c.TargetOK = r.journalUserfsOK(mountinfo)
 	}
+	switch {
+	case c.TargetLabel != "":
+		// the old default on a stick is the new one there, as lite-journal-sync reads it
+		if strings.EqualFold(c.TargetMaxUse, JournalDefaultTargetMaxUse) {
+			c.TargetMaxUse = ""
+		}
+		if stick != nil {
+			var copies int64
+			if c.TargetUsage != nil {
+				copies = *c.TargetUsage
+			}
+			c.TargetMaxUseDefault = JournalStickMaxUse(stick.Free, copies)
+		}
+	default:
+		c.TargetMaxUseDefault = JournalDefaultTargetMaxUse
+	}
 	r.readJournalSync(&c)
 	return c
+}
+
+// journalOldestCopy is when the oldest entry under dir was written, from the names of the archived
+// journal files there: journald names one <name>@<seqnum id>-<head seqnum>-<head realtime>.journal,
+// the last part its first entry's time in hexadecimal microseconds - so no file is opened, which
+// matters on a stick or a share. Files journald set aside as corrupt (.journal~) are left out.
+func journalOldestCopy(dir string) (time.Time, bool) {
+	var oldest uint64
+	for _, pattern := range []string{"/*/*@*.journal", "/*@*.journal"} {
+		m, _ := filepath.Glob(dir + pattern)
+		for _, f := range m {
+			name := strings.TrimSuffix(filepath.Base(f), ".journal")
+			_, rest, _ := strings.Cut(name, "@")
+			parts := strings.Split(rest, "-")
+			if len(parts) != 3 || len(parts[2]) != 16 {
+				continue
+			}
+			us, err := strconv.ParseUint(parts[2], 16, 64)
+			if err != nil || us == 0 {
+				continue
+			}
+			if oldest == 0 || us < oldest {
+				oldest = us
+			}
+		}
+	}
+	if oldest == 0 || oldest > uint64(1)<<62 {
+		return time.Time{}, false
+	}
+	return time.UnixMicro(int64(oldest)).UTC(), true
 }
 
 // runtimeJournalLeft: a journal file is in RAM, as lite-journal-persist's wait for the flush asks.

@@ -2,6 +2,7 @@ package system
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"slices"
 	"strings"
@@ -224,5 +225,63 @@ func TestJournalSourceArgs(t *testing.T) {
 	}
 	if got := (JournalLog{}).sourceArgs(); got != nil {
 		t.Errorf("no root: %v", got)
+	}
+}
+
+// B-352: the copies' default size limit on a stick, the old 64M read as that default, and the
+// oldest entry the copies hold, from the archived files' names
+func TestJournalStickMaxUseAndOldest(t *testing.T) {
+	for _, tc := range []struct {
+		free, copies int64
+		want         string
+	}{
+		{2000000 * 1024, 0, "195M"},
+		{1900000 * 1024, 100000 * 1024, "195M"},
+		{50000000 * 1024, 0, "1024M"},
+		{5000 * 1024, 0, "1M"},
+		{-1, -1, "1M"},
+	} {
+		if got := JournalStickMaxUse(tc.free, tc.copies); got != tc.want {
+			t.Errorf("JournalStickMaxUse(%d, %d) = %q, want %q", tc.free, tc.copies, got, tc.want)
+		}
+	}
+
+	// 2026-11-15 20:48:00 UTC and a day later, in hexadecimal microseconds
+	older, newer := time.Date(2026, 11, 15, 20, 48, 0, 0, time.UTC), time.Date(2026, 11, 16, 20, 48, 0, 0, time.UTC)
+	name := func(at time.Time, seq int) string {
+		return fmt.Sprintf("system@0123456789abcdef0123456789abcdef-%016x-%016x.journal", seq, at.UnixMicro())
+	}
+	r := stickRoot(t, "STORAGE=ram-sync\nTARGET=usb:LOGSTICK/journal\nTARGET_MAX_USE=64M\n", "rw")
+	putFile(t, r, "run/log/journal/0123abcd/system.journal", "x")
+	putFile(t, r, "media/usb2/journal/0123abcd/"+name(newer, 9), "j")
+	putFile(t, r, "media/usb2/journal/0123abcd/"+name(older, 1), "j")
+	putFile(t, r, "media/usb2/journal/0123abcd/system@0000000000000001-0123456789abcdef.journal~", "corrupt")
+	putFile(t, r, "media/usb2/journal/0123abcd/system@a-1-1.journal", "no time")
+	c := r.ReadJournalConfig()
+	if c.TargetOldest == nil || !c.TargetOldest.Equal(older) {
+		t.Errorf("oldest %v, want %v", c.TargetOldest, older)
+	}
+	if c.TargetMaxUse != "" {
+		t.Errorf("the old default 64M on a stick reads as %q, want the default", c.TargetMaxUse)
+	}
+	if c.TargetFree == nil || c.TargetUsage == nil || c.TargetMaxUseDefault != JournalStickMaxUse(*c.TargetFree, *c.TargetUsage) {
+		t.Errorf("stick default %q (free %v, copies %v)", c.TargetMaxUseDefault, c.TargetFree, c.TargetUsage)
+	}
+	if c = stickRoot(t, "STORAGE=ram-sync\nTARGET=usb:LOGSTICK/journal\nTARGET_MAX_USE=128M\n", "rw").ReadJournalConfig(); c.TargetMaxUse != "128M" {
+		t.Errorf("the user's value: %q", c.TargetMaxUse)
+	}
+	// not plugged in: no default to tell, no span
+	r = stickRoot(t, "STORAGE=ram-sync\nTARGET=usb:LOGSTICK/journal\n", "")
+	if c = r.ReadJournalConfig(); c.TargetMaxUseDefault != "" || c.TargetOldest != nil {
+		t.Errorf("missing stick: default %q oldest %v", c.TargetMaxUseDefault, c.TargetOldest)
+	}
+	// the userfs: 64M stays 64M, and the copies there have a span too
+	r = journalRoot(t, "rpi4", "STORAGE=ram-sync\nTARGET_MAX_USE=64M\n")
+	putFile(t, r, "usr/local/var/log/journal/0123abcd/"+name(older, 1), "j")
+	if c = r.ReadJournalConfig(); c.TargetMaxUse != "64M" || c.TargetMaxUseDefault != "64M" || c.TargetOldest == nil || !c.TargetOldest.Equal(older) {
+		t.Errorf("userfs: use %q default %q oldest %v", c.TargetMaxUse, c.TargetMaxUseDefault, c.TargetOldest)
+	}
+	if c = journalRoot(t, "rpi4", "STORAGE=ram-sync\n").ReadJournalConfig(); c.TargetOldest != nil {
+		t.Errorf("no copies: oldest %v", c.TargetOldest)
 	}
 }

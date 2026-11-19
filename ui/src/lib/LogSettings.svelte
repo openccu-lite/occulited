@@ -657,6 +657,8 @@
                                 {#if journal.effective === 'ram-sync'}
                                     <div><dt>{t('Next copy')}</dt><dd data-figure="next-sync">{journalWhen(journal.next_sync)}</dd></div>
                                 {/if}
+                                <!-- B-352: how far back the copies reach - the oldest entry they hold -->
+                                <div><dt>{t('Copies reach back to')}</dt><dd data-figure="oldest-copy">{journal.target_oldest ? journalWhen(journal.target_oldest) : '—'}</dd></div>
                             </dl>
                             {#if journal.last_sync_result === 'failed'}
                                 <p class="ol-warn jr-sync-failed">{t('The last copy failed: {reason}', {reason: journal.last_sync_error ?? ''})}</p>
@@ -671,8 +673,8 @@
                                         </datalist>
                                     </label>
                                     <label class="lv-field" for="ol-jr-targetuse">
-                                        <span>{t('Copies: size limit')} <span class="ol-muted">· TARGET_MAX_USE</span><Help>{t('The most the copies on the userfs may take; the oldest go first. Empty = 64M.')}</Help></span>
-                                        <input id="ol-jr-targetuse" class="hmm-input hmm-mono" bind:value={journal.target_max_use} placeholder="64M" disabled={journalBusy} />
+                                        <span>{t('Copies: size limit')} <span class="ol-muted">· TARGET_MAX_USE</span><Help>{t('The most the copies may take; the oldest go first. Empty = 64M on the userfs and on a network share; on a USB stick 1G, but at most a tenth of its free space.')}</Help></span>
+                                        <input id="ol-jr-targetuse" class="hmm-input hmm-mono" bind:value={journal.target_max_use} placeholder={journal.target_max_use_default || (onStick && !onShare ? '1G' : '64M')} disabled={journalBusy} />
                                     </label>
                                     <label class="lv-field" for="ol-jr-targetage">
                                         <span>{t('Copies: age limit')} <span class="ol-muted">· TARGET_MAX_AGE</span><Help>{t('Copies older than this are removed, e.g. 30d or 2w; empty = no age limit.')}</Help></span>

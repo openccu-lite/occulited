@@ -657,10 +657,15 @@ export interface JournalConfig {
     system_max_use: string;
     system_max_file: string;
     rate_limit_burst: string;
-    /** ram-sync: the copy interval ('' = 6h), the copies' size and age limits ('' = 64M, no limit) */
+    /** ram-sync: the copy interval ('' = 6h), the copies' size and age limits ('' = target_max_use_default, no limit) */
     sync_interval: string;
     target_max_use: string;
     target_max_age: string;
+    /** B-352: what an empty target_max_use means for this target - 64M on the userfs and a share, on a
+     * plugged-in USB stick 1G at most a tenth of its free space; '' for a stick that is not plugged in */
+    target_max_use_default?: string;
+    /** B-352: when the oldest entry in the copies was written (the start of the span they cover); null = none, or unknown */
+    target_oldest?: string | null;
     /** deprecated, derived from storage: '1' persistent, '0' ram and ram-sync, '' the default; never sent */
     persist: '' | '0' | '1';
     platform: string;
