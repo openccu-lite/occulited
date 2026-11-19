@@ -1061,9 +1061,10 @@
     <!-- task 178: the jump to the oldest page - of the boot, or of the range when one is set - and,
          while the run is detached from the live end, back to the newest -->
     <button type="button" class="hmm-button" data-jump="start" onclick={jumpToStart} disabled={!lines || !!error}>{since ? t('Start of the range') : t('Start of the boot')}</button>
-    {#if newer}
-        <button type="button" class="hmm-button" data-jump="newest" onclick={jumpToNewest}>{t('Newest')}</button>
-    {/if}
+    <!-- B-150: always in the row and always its box - while the run is at the live end it is only
+         invisible (and out of the tab order), so the row does not grow and the log does not move when
+         it comes -->
+    <button type="button" class="hmm-button lg-newest" class:lg-newest-on={newer} data-jump="newest" onclick={jumpToNewest}>{t('Newest')}</button>
     <span class="ol-muted">{source === 'journald' ? 'journald' : source === 'dmesg' ? 'dmesg' : t('syslog (busybox)')}</span>
     {#if lines && lines.length > 0}
         <!-- task 178: how many are in the page, and that the rest loads while scrolling - the page never
@@ -1193,6 +1194,9 @@
     .lg-panel .ol-toolbar { margin: 0; }
     .lg-panel > .ol-notice { margin: 8px 0 0; }
     .lg-filters-toggle { display: inline-flex; align-items: center; gap: 6px; }
+    /* B-150: the filter row's "Newest" keeps its box while hidden */
+    .lg-newest { visibility: hidden; }
+    .lg-newest.lg-newest-on { visibility: visible; }
     .lg-state { padding: 0 16px 14px; }
     /* task 64: the row's menus - the same hmm-button, an icon before its word and the caret of the
        shell's other menus after it; the menu hangs under it like the power menu's */
@@ -1232,16 +1236,24 @@
        inner padding so the text does not touch the window's edges. */
     /* occulited task 156: the box stands in a frame of the same size that does not scroll, which the
        two jump buttons are laid over; the floor is the frame's now */
-    .lg-view { position: relative; flex: 1 1 auto; min-height: 80px; display: flex; flex-direction: column; }
+    .lg-view { --lg-jump-right: 12px; --lg-jump-size: 36px; position: relative; flex: 1 1 auto; min-height: 80px; display: flex; flex-direction: column; }
+    /* B-151: the right padding is the jump buttons' column (their offset beside the scroll bar, their
+       width and a gap), so a long line wraps before it and never runs under a button - the same in
+       every state, as the buttons keep their boxes.
+       B-149: `.ol-log` is `pre-wrap`, and the whitespace between the box's children (the edge rows,
+       the spacers, the rows) became empty lines of their own above the first entry and below the
+       last; the box and its edge rows collapse it, the entries keep `pre-wrap` for the messages. */
     .lg-box {
         flex: 1 1 auto; min-height: 0; contain: size; overflow: auto; overflow-anchor: none;
-        margin: 0; border: 0; border-top: 1px solid var(--hmm-border-muted); border-radius: 0; padding: 6px 16px;
-        background: var(--hmm-bg);
+        margin: 0; border: 0; border-top: 1px solid var(--hmm-border-muted); border-radius: 0;
+        padding: 6px calc(var(--lg-jump-right) + var(--lg-jump-size) + 8px) 6px 16px;
+        background: var(--hmm-bg); white-space: normal;
     }
+    .lg-box :global(.ol-line) { white-space: pre-wrap; }
     /* occulited task 156: the jumps to the log's two ends - a fixed box each, beside the scroll bar;
        hidden is invisible, never gone, so nothing in the page moves when one comes or goes */
     .lg-jump {
-        position: absolute; right: calc(var(--lg-bar, 0px) + 12px); width: 36px; height: 36px; padding: 0;
+        position: absolute; right: calc(var(--lg-bar, 0px) + var(--lg-jump-right)); width: var(--lg-jump-size); height: var(--lg-jump-size); padding: 0;
         display: inline-flex; align-items: center; justify-content: center;
         box-shadow: var(--hmm-shadow-menu);
         opacity: 0; visibility: hidden; pointer-events: none;
@@ -1273,7 +1285,8 @@
         .ol-journal .ol-msg { flex: 1 0 100%; }
         /* task 104: the phone's side margin */
         .lg-top { padding: 10px 10px 8px; }
-        .lg-box { padding: 4px 10px; }
+        .lg-view { --lg-jump-right: 6px; --lg-jump-size: 32px; }
+        .lg-box { padding: 4px calc(var(--lg-jump-right) + var(--lg-jump-size) + 6px) 4px 10px; }
         .lg-state { padding: 0 10px 10px; }
     }
 </style>
