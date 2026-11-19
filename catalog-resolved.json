@@ -1,6 +1,6 @@
 {
   "format": 1,
-  "generated_at": "2026-11-19T12:02:12Z",
+  "generated_at": "2026-11-19T14:57:27Z",
   "catalog": "file:///home/runner/work/occulited/occulited/catalog/catalog.json",
   "repos": {
     "SukramJ/openccu-loom": {
@@ -4905,6 +4905,131 @@
               "name": "SHA256SUMS",
               "size": 2481,
               "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.0-beta.9/SHA256SUMS"
+            }
+          ]
+        },
+        {
+          "tag_name": "v2.0.0-beta.10",
+          "name": "v2.0.0-beta.10",
+          "draft": false,
+          "prerelease": true,
+          "html_url": "https://github.com/openccu-lite/openccu-lite/releases/tag/v2.0.0-beta.10",
+          "published_at": "2026-11-19T14:56:19Z",
+          "assets": [
+            {
+              "name": "occulited-asyncapi-2.0.0-beta.10.json",
+              "size": 56720,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.0-beta.10/occulited-asyncapi-2.0.0-beta.10.json"
+            },
+            {
+              "name": "occulited-asyncapi-2.0.0-beta.10.json.sha256",
+              "size": 104,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.0-beta.10/occulited-asyncapi-2.0.0-beta.10.json.sha256"
+            },
+            {
+              "name": "occulited-lite-rpc-methods-2.0.0-beta.10.json",
+              "size": 5152,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.0-beta.10/occulited-lite-rpc-methods-2.0.0-beta.10.json"
+            },
+            {
+              "name": "occulited-lite-rpc-methods-2.0.0-beta.10.json.sha256",
+              "size": 112,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.0-beta.10/occulited-lite-rpc-methods-2.0.0-beta.10.json.sha256"
+            },
+            {
+              "name": "occulited-openapi-2.0.0-beta.10.json",
+              "size": 1018924,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.0-beta.10/occulited-openapi-2.0.0-beta.10.json"
+            },
+            {
+              "name": "occulited-openapi-2.0.0-beta.10.json.sha256",
+              "size": 103,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.0-beta.10/occulited-openapi-2.0.0-beta.10.json.sha256"
+            },
+            {
+              "name": "openccu-lite-aarch64-rpi3-2.0.0-beta.10-ccu3.tgz",
+              "size": 309804917,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.0-beta.10/openccu-lite-aarch64-rpi3-2.0.0-beta.10-ccu3.tgz"
+            },
+            {
+              "name": "openccu-lite-aarch64-rpi3-2.0.0-beta.10-ccu3.tgz.sha256",
+              "size": 115,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.0-beta.10/openccu-lite-aarch64-rpi3-2.0.0-beta.10-ccu3.tgz.sha256"
+            },
+            {
+              "name": "openccu-lite-aarch64-rpi3-2.0.0-beta.10.cdx.json",
+              "size": 2314867,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.0-beta.10/openccu-lite-aarch64-rpi3-2.0.0-beta.10.cdx.json"
+            },
+            {
+              "name": "openccu-lite-aarch64-rpi3-2.0.0-beta.10.cdx.json.sha256",
+              "size": 115,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.0-beta.10/openccu-lite-aarch64-rpi3-2.0.0-beta.10.cdx.json.sha256"
+            },
+            {
+              "name": "openccu-lite-aarch64-rpi3-2.0.0-beta.10.zip",
+              "size": 313640643,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.0-beta.10/openccu-lite-aarch64-rpi3-2.0.0-beta.10.zip"
+            },
+            {
+              "name": "openccu-lite-aarch64-rpi3-2.0.0-beta.10.zip.sha256",
+              "size": 110,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.0-beta.10/openccu-lite-aarch64-rpi3-2.0.0-beta.10.zip.sha256"
+            },
+            {
+              "name": "openccu-lite-aarch64-rpi4-2.0.0-beta.10.cdx.json",
+              "size": 2322148,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.0-beta.10/openccu-lite-aarch64-rpi4-2.0.0-beta.10.cdx.json"
+            },
+            {
+              "name": "openccu-lite-aarch64-rpi4-2.0.0-beta.10.cdx.json.sha256",
+              "size": 115,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.0-beta.10/openccu-lite-aarch64-rpi4-2.0.0-beta.10.cdx.json.sha256"
+            },
+            {
+              "name": "openccu-lite-aarch64-rpi4-2.0.0-beta.10.zip",
+              "size": 313678593,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.0-beta.10/openccu-lite-aarch64-rpi4-2.0.0-beta.10.zip"
+            },
+            {
+              "name": "openccu-lite-aarch64-rpi4-2.0.0-beta.10.zip.sha256",
+              "size": 110,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.0-beta.10/openccu-lite-aarch64-rpi4-2.0.0-beta.10.zip.sha256"
+            },
+            {
+              "name": "openccu-lite-x86_64-ova-2.0.0-beta.10.cdx.json",
+              "size": 2279103,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.0-beta.10/openccu-lite-x86_64-ova-2.0.0-beta.10.cdx.json"
+            },
+            {
+              "name": "openccu-lite-x86_64-ova-2.0.0-beta.10.cdx.json.sha256",
+              "size": 113,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.0-beta.10/openccu-lite-x86_64-ova-2.0.0-beta.10.cdx.json.sha256"
+            },
+            {
+              "name": "openccu-lite-x86_64-ova-2.0.0-beta.10.ova",
+              "size": 311234560,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.0-beta.10/openccu-lite-x86_64-ova-2.0.0-beta.10.ova"
+            },
+            {
+              "name": "openccu-lite-x86_64-ova-2.0.0-beta.10.ova.sha256",
+              "size": 108,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.0-beta.10/openccu-lite-x86_64-ova-2.0.0-beta.10.ova.sha256"
+            },
+            {
+              "name": "openccu-lite-x86_64-ova-2.0.0-beta.10.zip",
+              "size": 306093663,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.0-beta.10/openccu-lite-x86_64-ova-2.0.0-beta.10.zip"
+            },
+            {
+              "name": "openccu-lite-x86_64-ova-2.0.0-beta.10.zip.sha256",
+              "size": 108,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.0-beta.10/openccu-lite-x86_64-ova-2.0.0-beta.10.zip.sha256"
+            },
+            {
+              "name": "SHA256SUMS",
+              "size": 2503,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.0-beta.10/SHA256SUMS"
             }
           ]
         },
@@ -12275,6 +12400,131 @@
               "name": "SHA256SUMS",
               "size": 2481,
               "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.0-beta.9/SHA256SUMS"
+            }
+          ]
+        },
+        {
+          "tag_name": "v2.0.0-beta.10",
+          "name": "v2.0.0-beta.10",
+          "draft": false,
+          "prerelease": true,
+          "html_url": "https://github.com/openccu-lite/openccu-lite/releases/tag/v2.0.0-beta.10",
+          "published_at": "2026-11-19T14:56:19Z",
+          "assets": [
+            {
+              "name": "occulited-asyncapi-2.0.0-beta.10.json",
+              "size": 56720,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.0-beta.10/occulited-asyncapi-2.0.0-beta.10.json"
+            },
+            {
+              "name": "occulited-asyncapi-2.0.0-beta.10.json.sha256",
+              "size": 104,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.0-beta.10/occulited-asyncapi-2.0.0-beta.10.json.sha256"
+            },
+            {
+              "name": "occulited-lite-rpc-methods-2.0.0-beta.10.json",
+              "size": 5152,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.0-beta.10/occulited-lite-rpc-methods-2.0.0-beta.10.json"
+            },
+            {
+              "name": "occulited-lite-rpc-methods-2.0.0-beta.10.json.sha256",
+              "size": 112,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.0-beta.10/occulited-lite-rpc-methods-2.0.0-beta.10.json.sha256"
+            },
+            {
+              "name": "occulited-openapi-2.0.0-beta.10.json",
+              "size": 1018924,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.0-beta.10/occulited-openapi-2.0.0-beta.10.json"
+            },
+            {
+              "name": "occulited-openapi-2.0.0-beta.10.json.sha256",
+              "size": 103,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.0-beta.10/occulited-openapi-2.0.0-beta.10.json.sha256"
+            },
+            {
+              "name": "openccu-lite-aarch64-rpi3-2.0.0-beta.10-ccu3.tgz",
+              "size": 309804917,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.0-beta.10/openccu-lite-aarch64-rpi3-2.0.0-beta.10-ccu3.tgz"
+            },
+            {
+              "name": "openccu-lite-aarch64-rpi3-2.0.0-beta.10-ccu3.tgz.sha256",
+              "size": 115,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.0-beta.10/openccu-lite-aarch64-rpi3-2.0.0-beta.10-ccu3.tgz.sha256"
+            },
+            {
+              "name": "openccu-lite-aarch64-rpi3-2.0.0-beta.10.cdx.json",
+              "size": 2314867,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.0-beta.10/openccu-lite-aarch64-rpi3-2.0.0-beta.10.cdx.json"
+            },
+            {
+              "name": "openccu-lite-aarch64-rpi3-2.0.0-beta.10.cdx.json.sha256",
+              "size": 115,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.0-beta.10/openccu-lite-aarch64-rpi3-2.0.0-beta.10.cdx.json.sha256"
+            },
+            {
+              "name": "openccu-lite-aarch64-rpi3-2.0.0-beta.10.zip",
+              "size": 313640643,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.0-beta.10/openccu-lite-aarch64-rpi3-2.0.0-beta.10.zip"
+            },
+            {
+              "name": "openccu-lite-aarch64-rpi3-2.0.0-beta.10.zip.sha256",
+              "size": 110,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.0-beta.10/openccu-lite-aarch64-rpi3-2.0.0-beta.10.zip.sha256"
+            },
+            {
+              "name": "openccu-lite-aarch64-rpi4-2.0.0-beta.10.cdx.json",
+              "size": 2322148,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.0-beta.10/openccu-lite-aarch64-rpi4-2.0.0-beta.10.cdx.json"
+            },
+            {
+              "name": "openccu-lite-aarch64-rpi4-2.0.0-beta.10.cdx.json.sha256",
+              "size": 115,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.0-beta.10/openccu-lite-aarch64-rpi4-2.0.0-beta.10.cdx.json.sha256"
+            },
+            {
+              "name": "openccu-lite-aarch64-rpi4-2.0.0-beta.10.zip",
+              "size": 313678593,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.0-beta.10/openccu-lite-aarch64-rpi4-2.0.0-beta.10.zip"
+            },
+            {
+              "name": "openccu-lite-aarch64-rpi4-2.0.0-beta.10.zip.sha256",
+              "size": 110,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.0-beta.10/openccu-lite-aarch64-rpi4-2.0.0-beta.10.zip.sha256"
+            },
+            {
+              "name": "openccu-lite-x86_64-ova-2.0.0-beta.10.cdx.json",
+              "size": 2279103,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.0-beta.10/openccu-lite-x86_64-ova-2.0.0-beta.10.cdx.json"
+            },
+            {
+              "name": "openccu-lite-x86_64-ova-2.0.0-beta.10.cdx.json.sha256",
+              "size": 113,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.0-beta.10/openccu-lite-x86_64-ova-2.0.0-beta.10.cdx.json.sha256"
+            },
+            {
+              "name": "openccu-lite-x86_64-ova-2.0.0-beta.10.ova",
+              "size": 311234560,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.0-beta.10/openccu-lite-x86_64-ova-2.0.0-beta.10.ova"
+            },
+            {
+              "name": "openccu-lite-x86_64-ova-2.0.0-beta.10.ova.sha256",
+              "size": 108,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.0-beta.10/openccu-lite-x86_64-ova-2.0.0-beta.10.ova.sha256"
+            },
+            {
+              "name": "openccu-lite-x86_64-ova-2.0.0-beta.10.zip",
+              "size": 306093663,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.0-beta.10/openccu-lite-x86_64-ova-2.0.0-beta.10.zip"
+            },
+            {
+              "name": "openccu-lite-x86_64-ova-2.0.0-beta.10.zip.sha256",
+              "size": 108,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.0-beta.10/openccu-lite-x86_64-ova-2.0.0-beta.10.zip.sha256"
+            },
+            {
+              "name": "SHA256SUMS",
+              "size": 2503,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.0-beta.10/SHA256SUMS"
             }
           ]
         },
