@@ -206,9 +206,17 @@ test("a scroll towards the end whose event sees the fold's shrink still follows"
     const gap = () => box.evaluate((el) => el.scrollHeight - el.scrollTop - el.clientHeight);
     await expect.poll(() => box.evaluate((el) => el.scrollHeight - el.clientHeight), 'the log overflows').toBeGreaterThan(100);
     await expect.poll(gap).toBeLessThanOrEqual(2);
-    // a little up, still within the end's 40 px: the view still follows
-    await box.evaluate((el) => el.scrollBy({top: -30}));
-    await expect.poll(gap).toBeGreaterThan(20);
+    // a little up, still within the end's 40 px: the view still follows. A row the scroll brings into
+    // the window is measured, and a view at its end is kept there when heights change - so the scroll
+    // is repeated once the rows it rendered are measured (occulited B-149: without the empty lines at
+    // the box's end, the first scroll up renders a row that is new to the window)
+    await expect.poll(async () => {
+        if ((await gap()) <= 20) {
+            await box.evaluate((el) => el.scrollBy({top: -30}));
+            await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
+        }
+        return gap();
+    }).toBeGreaterThan(20);
     await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
     // back to the end and the fold open, in one task: the scroll's event comes after the shrink
     await box.evaluate((el) => {
