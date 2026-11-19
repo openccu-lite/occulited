@@ -705,6 +705,81 @@ func (a *SystemdAddons) ensureUser(p *AddonPolicy) error {
 	return nil
 }
 
+// removeAddonUser takes an uninstalled addon's user and group out of /etc/passwd and /etc/group
+// (occulited B-148), as the next boot would: the fork rebuilds the two files from the stored
+// policies, and the uninstall has just removed this addon's. The uid stays reserved in the uid
+// registry (B-288), so a reinstall gets it back and the files the addon left on the userfs keep
+// matching its user. The registry is made to hold it first; where it cannot (another uid is
+// registered for the id, or the registry cannot be written) the user stays, as it did before.
+// Answers what went, in SystemRemoved's words ("/etc/passwd: addon-<id>").
+func (a *SystemdAddons) removeAddonUser(id string) []string {
+	root := a.Scripts.Root
+	uid, ok := root.passwdAddonUIDs()[id]
+	if !ok {
+		return nil
+	}
+	if !a.reserveUID(id, uid) {
+		return nil
+	}
+	name := priv.AddonUserPrefix + id
+	if err := Priv.RemoveAddonUser(root.join("/etc/passwd"), root.join("/etc/group"), name, uid); err != nil {
+		slog.Warn("addons: the addon's user was not removed at the uninstall; it goes at the next boot", "id", id, "user", name, "err", err)
+		return nil
+	}
+	return []string{"/etc/passwd: " + name, "/etc/group: " + name}
+}
+
+// reserveUID makes sure the uid registry holds uid for id; false when it holds another one for it
+// or cannot be written.
+func (a *SystemdAddons) reserveUID(id string, uid int) bool {
+	policyMu.Lock()
+	defer policyMu.Unlock()
+	root := a.Scripts.Root
+	reg := root.ReadAddonUIDs()
+	if have, ok := reg[id]; ok {
+		if have != uid {
+			slog.Warn("addons: the uid registry holds another uid for the addon than its user; the user stays", "id", id, "user_uid", uid, "registered", have)
+		}
+		return have == uid
+	}
+	if len(mergeAddonUIDs(reg, map[string]int{id: uid})) == 0 {
+		return false // the uid is registered to another addon (logged by the merge)
+	}
+	if err := root.writeAddonUIDs(reg); err != nil {
+		slog.Warn("addons: the uid registry could not be written; the addon's user stays", "id", id, "err", err)
+		return false
+	}
+	return true
+}
+
+// removeAddonRuntimeDirs removes the runtime directories the system made for an uninstalled addon
+// (occulited B-148) - its web ingress socket's and its backup provider socket's - through the
+// helper, which derives the paths from the id. Only asked when one of them is there (or cannot be
+// looked at); answers those that went.
+func (a *SystemdAddons) removeAddonRuntimeDirs(id string) []string {
+	root := a.Scripts.Root
+	var there []string
+	for _, base := range priv.AddonRuntimeDirBases {
+		dir := base + "/" + id
+		if _, err := os.Lstat(root.join(dir)); err == nil || !errors.Is(err, os.ErrNotExist) {
+			there = append(there, dir)
+		}
+	}
+	if len(there) == 0 {
+		return nil
+	}
+	if err := Priv.RemoveAddonRuntimeDirs(id); err != nil {
+		slog.Warn("addons: the addon's runtime directories were not all removed at the uninstall", "id", id, "err", err)
+	}
+	var gone []string
+	for _, dir := range there {
+		if _, err := os.Lstat(root.join(dir)); errors.Is(err, os.ErrNotExist) {
+			gone = append(gone, dir)
+		}
+	}
+	return gone
+}
+
 // readOnlyEtcHint names the cause when the account write hits the read-only rootfs. That was
 // B-28 for months and the bare message - "read-only file system" - sends the reader to the wrong
 // place: nothing is wrong with the request, the box is missing the unit that makes those two

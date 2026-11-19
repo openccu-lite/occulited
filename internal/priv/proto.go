@@ -115,6 +115,14 @@ const (
 // on the program list.
 const opAddonUser = "addonuser"
 
+// opAddonUserRemove takes that account out again at an uninstall (occulited B-148), under the same
+// checks: the two exact paths, the addon-<id> shape, a uid in the addon range.
+const opAddonUserRemove = "addonuser-remove"
+
+// opAddonRuntimeRemove removes an uninstalled addon's runtime directories (occulited B-148). The
+// request names the addon and nothing else; the helper derives the paths (AddonRuntimeDirBases).
+const opAddonRuntimeRemove = "addonruntime-remove"
+
 // opOpen is the descriptor-passing operation: its answer carries the file descriptor as
 // ancillary data, so it is the one request the Server does not answer through do().
 const opOpen = "openfd"
@@ -428,6 +436,18 @@ func (c Client) ReadCertificate(path string) ([]byte, string, error) {
 
 func (c Client) AddAddonUser(passwd, group, name string, uid int) error {
 	return c.fileOp(request{Op: opAddonUser, Path: passwd, GroupFile: group, Name: name, UID: uid})
+}
+
+func (c Client) RemoveAddonUser(passwd, group, name string, uid int) error {
+	return c.fileOp(request{Op: opAddonUserRemove, Path: passwd, GroupFile: group, Name: name, UID: uid})
+}
+
+// RemoveAddonRuntimeDirs asks the helper to remove an addon's runtime directories.
+func (c Client) RemoveAddonRuntimeDirs(id string) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	_, err := c.call(ctx, request{Op: opAddonRuntimeRemove, Name: id})
+	return err
 }
 
 // FlashCoprocessor asks the helper to run the flasher; the run takes minutes and the answer is
@@ -1540,6 +1560,11 @@ func (s *Server) do(ctx context.Context, req request) response {
 			return refuse("ingressdir: not an addon id: " + req.Name)
 		}
 		return fail(ops.IngressDir(req.Name))
+	case opAddonRuntimeRemove:
+		if !shapeAddonIDRe.MatchString(req.Name) {
+			return refuse("addonruntime-remove: not an addon id: " + req.Name)
+		}
+		return fail(ops.RemoveAddonRuntimeDirs(req.Name))
 	case opOwnTree:
 		if err := s.Policy.OwnTreeAllowed(req.Name, req.Args, req.UID); err != nil {
 			s.log("helper: refused the ownership walk for %s: %v", req.Name, err)
@@ -1612,6 +1637,12 @@ func (s *Server) do(ctx context.Context, req request) response {
 			return refuse("addon account " + req.Name)
 		}
 		return fail(ops.AddAddonUser(req.Path, req.GroupFile, req.Name, req.UID))
+	case opAddonUserRemove:
+		if !s.Policy.accountAllowed(req.Path, req.GroupFile, req.Name, req.UID) {
+			s.log("helper: refused the removal of the addon account %s (%d) from %s, %s", req.Name, req.UID, req.Path, req.GroupFile)
+			return refuse("addon account " + req.Name)
+		}
+		return fail(ops.RemoveAddonUser(req.Path, req.GroupFile, req.Name, req.UID))
 	case opFlashCopro:
 		if !s.Policy.coproAllowed(req.Name, req.Path, req.Src, req.Version) {
 			s.log("helper: refused the coprocessor flash %s %s %s %q", req.Name, req.Path, req.Src, req.Version)

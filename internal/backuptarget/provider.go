@@ -20,6 +20,8 @@ import (
 	"sync/atomic"
 	"syscall"
 	"time"
+
+	"github.com/hobbyquaker/occulited/internal/priv"
 )
 
 // Addon-provided backup targets (occulited task 150): an installed addon declares backup.targets
@@ -50,7 +52,7 @@ const ProviderProtocol = 1
 // ProviderSocketBase holds one directory per provider, made by root before the addon's unit starts
 // (occulited -addon-own): <base>/<addon id>/, owned by occulite with the addon's group, 0770 - the
 // addon binds target.sock there, the system's service connects, nobody else reaches it.
-const ProviderSocketBase = "/run/occulite/backup-targets"
+const ProviderSocketBase = priv.ProviderDirBase
 
 // ProviderSocketName is the socket's file name in the provider's directory.
 const ProviderSocketName = "target.sock"

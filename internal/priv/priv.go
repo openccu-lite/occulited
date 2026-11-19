@@ -76,6 +76,10 @@ type Ops interface {
 	// own while the addon has no group yet), 0750. lighttpd binds the PROXY socket in it; the
 	// directory is what keeps every other addon out.
 	IngressDir(id string) error
+	// RemoveAddonRuntimeDirs removes the runtime directories the system made for one addon
+	// (occulited B-148): IngressDirBase/<id> and ProviderDirBase/<id>, each with what is in it
+	// (a socket). A missing one is fine; a link in a directory's place is removed, never followed.
+	RemoveAddonRuntimeDirs(id string) error
 	// NetMount writes a backup target's .mount and .automount units (rendered from the checked
 	// spec, openccu-lite task 86) into PID 1's runtime unit directory and (re)starts the
 	// automount; NetUnmount stops the mount now; NetMountRemove removes both units.
@@ -156,6 +160,14 @@ type Ops interface {
 	// nobody can log in to, which is what /bin/false says as well; busybox with -D wrote a
 	// locked "!" line there, and nothing needed it.
 	AddAddonUser(passwd, group, name string, uid int) error
+	// RemoveAddonUser takes an uninstalled addon's account out of the two files again (occulited
+	// B-148): the passwd line and the group line of exactly that name *and* that number, nothing
+	// else - a name with another number, or a file without the line, is left as it is. Rewritten
+	// **in place** like AddAddonUser's append (the same bind mounts): one write of the new
+	// content at offset 0, then the file cut to its length. The uid itself stays reserved in the
+	// uid registry, so a reinstall gets it back; at the next boot the fork rebuilds the files from
+	// the policies and the account would be gone anyway.
+	RemoveAddonUser(passwd, group, name string, uid int) error
 	// FlashCoprocessor runs the radio module's coprocessor flasher (task 41) - the exact
 	// invocation S48UpdateRFHardware uses at boot, built here from three checked pieces rather
 	// than handed over as a command line: for CoproHmIP the jar
@@ -939,6 +951,64 @@ func (Local) AddAddonUser(passwd, group, name string, uid int) error {
 	return nil
 }
 
+func (Local) RemoveAddonUser(passwd, group, name string, uid int) error {
+	if !ValidAddonUser(name, uid) {
+		return fmt.Errorf("not an addon account: %s (%d)", name, uid)
+	}
+	accountMu.Lock()
+	defer accountMu.Unlock()
+	// the user first, the reverse of the add: a failure between the two leaves a group without a
+	// user, which the next install's add completes
+	if err := removeAccountLine(passwd, name, uid); err != nil {
+		return fmt.Errorf("passwd: %w", err)
+	}
+	if err := removeAccountLine(group, name, uid); err != nil {
+		return fmt.Errorf("group: %w", err)
+	}
+	return nil
+}
+
+// removeAccountLine drops the lines of a passwd- or group-shaped file whose name and number are
+// exactly name and id; nothing is written when there is none. The new content goes over the old
+// on the same inode in one write, then the file is cut to its length: a reader in between sees
+// every line but the removed one, followed by the old file's last bytes, never an empty file.
+func removeAccountLine(path, name string, id int) error {
+	b, err := os.ReadFile(path)
+	if err != nil {
+		return err
+	}
+	lines := strings.SplitAfter(string(b), "\n")
+	kept := lines[:0]
+	for _, l := range lines {
+		f := strings.Split(strings.TrimSuffix(l, "\n"), ":")
+		if len(f) >= 3 && f[0] == name && f[2] == strconv.Itoa(id) {
+			continue
+		}
+		kept = append(kept, l)
+	}
+	out := strings.Join(kept, "")
+	if len(out) == len(b) {
+		return nil
+	}
+	f, err := os.OpenFile(path, os.O_WRONLY, 0)
+	if err != nil {
+		return err
+	}
+	if _, err := f.WriteAt([]byte(out), 0); err != nil {
+		f.Close()
+		return err
+	}
+	if err := f.Truncate(int64(len(out))); err != nil {
+		f.Close()
+		return err
+	}
+	if err := f.Sync(); err != nil {
+		f.Close()
+		return err
+	}
+	return f.Close()
+}
+
 // appendAccountLine adds line to a passwd- or group-shaped file unless a line with the same name
 // and number is there already, and refuses when either is taken by something else. The read is a
 // plain read of the path - what the bind mount presents - and the write is an O_APPEND write to
@@ -1022,6 +1092,34 @@ type OwnTreeOptions struct {
 // IngressDirBase is where lighttpd's per-addon ingress sockets live (the fork's lighttpd.service
 // may write there; its tmpfiles entry makes the base at boot).
 const IngressDirBase = "/run/lighttpd-addons"
+
+// ProviderDirBase holds the socket directory of each addon that provides backup targets
+// (occulited task 150; backuptarget.ProviderSocketBase is this).
+const ProviderDirBase = "/run/occulite/backup-targets"
+
+// AddonRuntimeDirBases are the directories under which the system makes one runtime directory per
+// addon, named by its id; an uninstall removes the addon's in each (occulited B-148).
+var AddonRuntimeDirBases = []string{IngressDirBase, ProviderDirBase}
+
+// RemoveAddonRuntimeDirs is the local implementation over AddonRuntimeDirBases.
+func (Local) RemoveAddonRuntimeDirs(id string) error {
+	return removeAddonRuntimeDirs(AddonRuntimeDirBases, id)
+}
+
+func removeAddonRuntimeDirs(bases []string, id string) error {
+	if !shapeAddonIDRe.MatchString(id) {
+		return fmt.Errorf("not an addon id: %q", id)
+	}
+	var errs []error
+	for _, base := range bases {
+		// os.RemoveAll unlinks a link without following it, and walks a directory without
+		// following the links in it
+		if err := os.RemoveAll(filepath.Join(base, id)); err != nil {
+			errs = append(errs, err)
+		}
+	}
+	return errors.Join(errs...)
+}
 
 // IngressWebUser is lighttpd's user on openccu-lite.
 const IngressWebUser = "www-data"

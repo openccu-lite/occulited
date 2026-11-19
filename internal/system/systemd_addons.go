@@ -615,7 +615,8 @@ func (a *SystemdAddons) stoppedAddons(ctx context.Context, ranBefore map[string]
 }
 
 // Uninstall stops the addon's unit (the whole cgroup), runs the rc.d uninstall, removes the
-// entry and reloads the generator so the unit disappears, and removes the addon's policy files.
+// entry and reloads the generator so the unit disappears, and removes the addon's policy files,
+// its runtime directories and its user (its uid stays reserved, B-148).
 func (a *SystemdAddons) Uninstall(ctx context.Context, id string) (UninstallResult, error) {
 	a.jobs.Add(1) // B-30
 	defer a.jobs.Add(-1)
@@ -659,6 +660,10 @@ func (a *SystemdAddons) Uninstall(ctx context.Context, id string) (UninstallResu
 	} else if removed {
 		slog.Info("addons: the addon's SSH key for root went with it", "id", id)
 	}
+	// occulited B-148: and what the system made for it outside its files - its runtime directories
+	// and its user; the uid stays reserved
+	out.SystemRemoved = append(out.SystemRemoved, a.removeAddonRuntimeDirs(id)...)
+	out.SystemRemoved = append(out.SystemRemoved, a.removeAddonUser(id)...)
 	// the script's output, then what the system removed after it (B-26: the refused rm lines of a
 	// confined script read as handled), then how it ended
 	a.journalUninstall(id, out, asUser, err)

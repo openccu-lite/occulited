@@ -138,7 +138,8 @@ type UninstallResult struct {
 	// SystemRemoved are the paths the system removed after the script, in the order it did: the
 	// rc.d entry, the www link, the emptied standard directories, the monit fragment, the
 	// hm_addons.cfg entry (named as "hm_addons.cfg: <id>"), and on systemd the addon's policy
-	// files. Only what was there and went.
+	// files, its runtime directories and its user ("/etc/passwd: addon-<id>", "/etc/group:
+	// addon-<id>"; B-148). Only what was there and went.
 	SystemRemoved []string `json:"system_removed,omitempty"`
 	// Forced (occulited B-136): the addon was disabled and its uninstall script failed or could not
 	// run - a foreign-architecture addon a CCU backup brought along - and the system removed its
