@@ -215,7 +215,7 @@ type EditView struct {
 	Leftover             []Member    `json:"leftover"`
 }
 
-// SuitableView is suitableGroupMembers' answer (JSON from hmipserver's code, not a template).
+// SuitableView is suitableGroupMembers' answer, which hmipserver sends as JSON of its own (not a template).
 type SuitableView struct {
 	Assignable []suitable `json:"assignableGroupMembers"`
 	Leftover   []suitable `json:"leftoverGroupMembers"`
