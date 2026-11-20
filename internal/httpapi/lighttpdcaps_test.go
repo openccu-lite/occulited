@@ -66,8 +66,9 @@ func TestLighttpdUploadRoutes(t *testing.T) {
 // occulited B-141: the two routes that take a backup have a ceiling of their own in occulited.conf,
 // above the global 2.25 GiB - MaxSBKUpload plus room for the multipart framing - and stream with
 // minimal buffering, so lighttpd neither refuses a backup occulited would take nor copies it into
-// its upload directory on the same userfs first. This keeps the block, its routes and the figure
-// together.
+// its upload directories first (the fork's global mode is 2 as well since openccu-lite B-358; the
+// route's own line stays in case that changes, occulited task 162). This keeps the block, its routes
+// and the figure together.
 func TestLighttpdBackupCeiling(t *testing.T) {
 	fullAPI(t)
 	conf, err := os.ReadFile("../../deploy/lighttpd/occulited.conf")
