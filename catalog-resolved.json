@@ -1,10 +1,60 @@
 {
   "format": 1,
-  "generated_at": "2026-11-20T11:36:28Z",
+  "generated_at": "2026-11-20T20:14:50Z",
   "catalog": "file:///home/runner/work/occulited/occulited/catalog/catalog.json",
   "repos": {
     "SukramJ/openccu-loom": {
       "releases": [
+        {
+          "tag_name": "v0.106.0",
+          "name": "v0.106.0",
+          "draft": false,
+          "prerelease": false,
+          "html_url": "https://github.com/SukramJ/openccu-loom/releases/tag/v0.106.0",
+          "published_at": "2026-11-20T19:40:55Z",
+          "assets": [
+            {
+              "name": "checksums.txt",
+              "size": 530,
+              "browser_download_url": "https://github.com/SukramJ/openccu-loom/releases/download/v0.106.0/checksums.txt"
+            },
+            {
+              "name": "hmcli_0.106.0_linux_amd64.tar.gz",
+              "size": 5735458,
+              "browser_download_url": "https://github.com/SukramJ/openccu-loom/releases/download/v0.106.0/hmcli_0.106.0_linux_amd64.tar.gz"
+            },
+            {
+              "name": "openccu-loom-ccu-0.106.0.tar.gz",
+              "size": 86171049,
+              "browser_download_url": "https://github.com/SukramJ/openccu-loom/releases/download/v0.106.0/openccu-loom-ccu-0.106.0.tar.gz"
+            },
+            {
+              "name": "openccu-loom-ccu-0.106.0.tar.gz.sha256",
+              "size": 98,
+              "browser_download_url": "https://github.com/SukramJ/openccu-loom/releases/download/v0.106.0/openccu-loom-ccu-0.106.0.tar.gz.sha256"
+            },
+            {
+              "name": "openccu-loom-remote_0.106.0_linux_amd64.tar.gz",
+              "size": 4150492,
+              "browser_download_url": "https://github.com/SukramJ/openccu-loom/releases/download/v0.106.0/openccu-loom-remote_0.106.0_linux_amd64.tar.gz"
+            },
+            {
+              "name": "openccu-loom_0.106.0_linux_amd64.tar.gz",
+              "size": 30394828,
+              "browser_download_url": "https://github.com/SukramJ/openccu-loom/releases/download/v0.106.0/openccu-loom_0.106.0_linux_amd64.tar.gz"
+            },
+            {
+              "name": "openccu-loom_0.106.0_linux_arm64.tar.gz",
+              "size": 28435288,
+              "browser_download_url": "https://github.com/SukramJ/openccu-loom/releases/download/v0.106.0/openccu-loom_0.106.0_linux_arm64.tar.gz"
+            },
+            {
+              "name": "openccu-loom_0.106.0_linux_armv7.tar.gz",
+              "size": 28672739,
+              "browser_download_url": "https://github.com/SukramJ/openccu-loom/releases/download/v0.106.0/openccu-loom_0.106.0_linux_armv7.tar.gz"
+            }
+          ]
+        },
         {
           "tag_name": "v0.105.0",
           "name": "v0.105.0",
@@ -454,56 +504,6 @@
               "browser_download_url": "https://github.com/SukramJ/openccu-loom/releases/download/v0.99.0/openccu-loom_0.99.0_linux_armv7.tar.gz"
             }
           ]
-        },
-        {
-          "tag_name": "v0.98.0",
-          "name": "v0.98.0",
-          "draft": false,
-          "prerelease": false,
-          "html_url": "https://github.com/SukramJ/openccu-loom/releases/tag/v0.98.0",
-          "published_at": "2026-11-09T09:48:40Z",
-          "assets": [
-            {
-              "name": "checksums.txt",
-              "size": 525,
-              "browser_download_url": "https://github.com/SukramJ/openccu-loom/releases/download/v0.98.0/checksums.txt"
-            },
-            {
-              "name": "hmcli_0.98.0_linux_amd64.tar.gz",
-              "size": 5729588,
-              "browser_download_url": "https://github.com/SukramJ/openccu-loom/releases/download/v0.98.0/hmcli_0.98.0_linux_amd64.tar.gz"
-            },
-            {
-              "name": "openccu-loom-ccu-0.98.0.tar.gz",
-              "size": 84324198,
-              "browser_download_url": "https://github.com/SukramJ/openccu-loom/releases/download/v0.98.0/openccu-loom-ccu-0.98.0.tar.gz"
-            },
-            {
-              "name": "openccu-loom-ccu-0.98.0.tar.gz.sha256",
-              "size": 97,
-              "browser_download_url": "https://github.com/SukramJ/openccu-loom/releases/download/v0.98.0/openccu-loom-ccu-0.98.0.tar.gz.sha256"
-            },
-            {
-              "name": "openccu-loom-remote_0.98.0_linux_amd64.tar.gz",
-              "size": 4106541,
-              "browser_download_url": "https://github.com/SukramJ/openccu-loom/releases/download/v0.98.0/openccu-loom-remote_0.98.0_linux_amd64.tar.gz"
-            },
-            {
-              "name": "openccu-loom_0.98.0_linux_amd64.tar.gz",
-              "size": 29740740,
-              "browser_download_url": "https://github.com/SukramJ/openccu-loom/releases/download/v0.98.0/openccu-loom_0.98.0_linux_amd64.tar.gz"
-            },
-            {
-              "name": "openccu-loom_0.98.0_linux_arm64.tar.gz",
-              "size": 27886616,
-              "browser_download_url": "https://github.com/SukramJ/openccu-loom/releases/download/v0.98.0/openccu-loom_0.98.0_linux_arm64.tar.gz"
-            },
-            {
-              "name": "openccu-loom_0.98.0_linux_armv7.tar.gz",
-              "size": 28048303,
-              "browser_download_url": "https://github.com/SukramJ/openccu-loom/releases/download/v0.98.0/openccu-loom_0.98.0_linux_armv7.tar.gz"
-            }
-          ]
         }
       ],
       "per_page": 10,
@@ -667,6 +667,56 @@
     },
     "firsttris/ccu-addon-mui": {
       "releases": [
+        {
+          "tag_name": "v1.0.34",
+          "name": "v1.0.34",
+          "draft": false,
+          "prerelease": false,
+          "html_url": "https://github.com/firsttris/ccu-addon-mui/releases/tag/v1.0.34",
+          "published_at": "2026-11-20T19:32:03Z",
+          "assets": [
+            {
+              "name": "mui-1.0.34-aarch64-lite.tar.gz",
+              "size": 4889073,
+              "browser_download_url": "https://github.com/firsttris/ccu-addon-mui/releases/download/v1.0.34/mui-1.0.34-aarch64-lite.tar.gz"
+            },
+            {
+              "name": "mui-1.0.34-aarch64-lite.tar.gz.sha256",
+              "size": 97,
+              "browser_download_url": "https://github.com/firsttris/ccu-addon-mui/releases/download/v1.0.34/mui-1.0.34-aarch64-lite.tar.gz.sha256"
+            },
+            {
+              "name": "mui-1.0.34-arm-ccu3-raspi.tar.gz",
+              "size": 5373223,
+              "browser_download_url": "https://github.com/firsttris/ccu-addon-mui/releases/download/v1.0.34/mui-1.0.34-arm-ccu3-raspi.tar.gz"
+            },
+            {
+              "name": "mui-1.0.34-arm-ccu3-raspi.tar.gz.sha256",
+              "size": 99,
+              "browser_download_url": "https://github.com/firsttris/ccu-addon-mui/releases/download/v1.0.34/mui-1.0.34-arm-ccu3-raspi.tar.gz.sha256"
+            },
+            {
+              "name": "mui-1.0.34-x86_64-lite.tar.gz",
+              "size": 5292396,
+              "browser_download_url": "https://github.com/firsttris/ccu-addon-mui/releases/download/v1.0.34/mui-1.0.34-x86_64-lite.tar.gz"
+            },
+            {
+              "name": "mui-1.0.34-x86_64-lite.tar.gz.sha256",
+              "size": 96,
+              "browser_download_url": "https://github.com/firsttris/ccu-addon-mui/releases/download/v1.0.34/mui-1.0.34-x86_64-lite.tar.gz.sha256"
+            },
+            {
+              "name": "mui-1.0.34-x86_64-pc.tar.gz",
+              "size": 5554503,
+              "browser_download_url": "https://github.com/firsttris/ccu-addon-mui/releases/download/v1.0.34/mui-1.0.34-x86_64-pc.tar.gz"
+            },
+            {
+              "name": "mui-1.0.34-x86_64-pc.tar.gz.sha256",
+              "size": 94,
+              "browser_download_url": "https://github.com/firsttris/ccu-addon-mui/releases/download/v1.0.34/mui-1.0.34-x86_64-pc.tar.gz.sha256"
+            }
+          ]
+        },
         {
           "tag_name": "v1.0.33",
           "name": "v1.0.33",
@@ -1116,56 +1166,6 @@
               "browser_download_url": "https://github.com/firsttris/ccu-addon-mui/releases/download/v1.0.22/mui-1.0.22-x86_64-pc.tar.gz.sha256"
             }
           ]
-        },
-        {
-          "tag_name": "v1.0.21",
-          "name": "v1.0.21",
-          "draft": false,
-          "prerelease": false,
-          "html_url": "https://github.com/firsttris/ccu-addon-mui/releases/tag/v1.0.21",
-          "published_at": "2026-10-22T08:36:55Z",
-          "assets": [
-            {
-              "name": "mui-1.0.21-aarch64-lite.tar.gz",
-              "size": 4934621,
-              "browser_download_url": "https://github.com/firsttris/ccu-addon-mui/releases/download/v1.0.21/mui-1.0.21-aarch64-lite.tar.gz"
-            },
-            {
-              "name": "mui-1.0.21-aarch64-lite.tar.gz.sha256",
-              "size": 97,
-              "browser_download_url": "https://github.com/firsttris/ccu-addon-mui/releases/download/v1.0.21/mui-1.0.21-aarch64-lite.tar.gz.sha256"
-            },
-            {
-              "name": "mui-1.0.21-arm-ccu3-raspi.tar.gz",
-              "size": 5418185,
-              "browser_download_url": "https://github.com/firsttris/ccu-addon-mui/releases/download/v1.0.21/mui-1.0.21-arm-ccu3-raspi.tar.gz"
-            },
-            {
-              "name": "mui-1.0.21-arm-ccu3-raspi.tar.gz.sha256",
-              "size": 99,
-              "browser_download_url": "https://github.com/firsttris/ccu-addon-mui/releases/download/v1.0.21/mui-1.0.21-arm-ccu3-raspi.tar.gz.sha256"
-            },
-            {
-              "name": "mui-1.0.21-x86_64-lite.tar.gz",
-              "size": 5338434,
-              "browser_download_url": "https://github.com/firsttris/ccu-addon-mui/releases/download/v1.0.21/mui-1.0.21-x86_64-lite.tar.gz"
-            },
-            {
-              "name": "mui-1.0.21-x86_64-lite.tar.gz.sha256",
-              "size": 96,
-              "browser_download_url": "https://github.com/firsttris/ccu-addon-mui/releases/download/v1.0.21/mui-1.0.21-x86_64-lite.tar.gz.sha256"
-            },
-            {
-              "name": "mui-1.0.21-x86_64-pc.tar.gz",
-              "size": 5600492,
-              "browser_download_url": "https://github.com/firsttris/ccu-addon-mui/releases/download/v1.0.21/mui-1.0.21-x86_64-pc.tar.gz"
-            },
-            {
-              "name": "mui-1.0.21-x86_64-pc.tar.gz.sha256",
-              "size": 94,
-              "browser_download_url": "https://github.com/firsttris/ccu-addon-mui/releases/download/v1.0.21/mui-1.0.21-x86_64-pc.tar.gz.sha256"
-            }
-          ]
         }
       ],
       "per_page": 10,
@@ -1173,6 +1173,46 @@
     },
     "hobbyquaker/ccu-addon-battery": {
       "releases": [
+        {
+          "tag_name": "v1.3.0",
+          "name": "v1.3.0",
+          "draft": false,
+          "prerelease": false,
+          "html_url": "https://github.com/hobbyquaker/ccu-addon-battery/releases/tag/v1.3.0",
+          "published_at": "2026-11-20T18:51:10Z",
+          "assets": [
+            {
+              "name": "battery-aarch64-1.3.0.tar.gz",
+              "size": 4950234,
+              "browser_download_url": "https://github.com/hobbyquaker/ccu-addon-battery/releases/download/v1.3.0/battery-aarch64-1.3.0.tar.gz"
+            },
+            {
+              "name": "battery-aarch64-1.3.0.tar.gz.sha256",
+              "size": 95,
+              "browser_download_url": "https://github.com/hobbyquaker/ccu-addon-battery/releases/download/v1.3.0/battery-aarch64-1.3.0.tar.gz.sha256"
+            },
+            {
+              "name": "battery-armv7l-1.3.0.tar.gz",
+              "size": 5042616,
+              "browser_download_url": "https://github.com/hobbyquaker/ccu-addon-battery/releases/download/v1.3.0/battery-armv7l-1.3.0.tar.gz"
+            },
+            {
+              "name": "battery-armv7l-1.3.0.tar.gz.sha256",
+              "size": 94,
+              "browser_download_url": "https://github.com/hobbyquaker/ccu-addon-battery/releases/download/v1.3.0/battery-armv7l-1.3.0.tar.gz.sha256"
+            },
+            {
+              "name": "battery-x86_64-1.3.0.tar.gz",
+              "size": 5299561,
+              "browser_download_url": "https://github.com/hobbyquaker/ccu-addon-battery/releases/download/v1.3.0/battery-x86_64-1.3.0.tar.gz"
+            },
+            {
+              "name": "battery-x86_64-1.3.0.tar.gz.sha256",
+              "size": 94,
+              "browser_download_url": "https://github.com/hobbyquaker/ccu-addon-battery/releases/download/v1.3.0/battery-x86_64-1.3.0.tar.gz.sha256"
+            }
+          ]
+        },
         {
           "tag_name": "v1.2.0",
           "name": "v1.2.0",
@@ -1666,6 +1706,46 @@
     "hobbyquaker/hm2mqtt.js": {
       "releases": [
         {
+          "tag_name": "v3.10.2",
+          "name": "v3.10.2",
+          "draft": false,
+          "prerelease": false,
+          "html_url": "https://github.com/hobbyquaker/hm2mqtt.js/releases/tag/v3.10.2",
+          "published_at": "2026-11-20T14:26:08Z",
+          "assets": [
+            {
+              "name": "hm2mqtt-ccu-aarch64-3.10.2.tar.gz",
+              "size": 47285011,
+              "browser_download_url": "https://github.com/hobbyquaker/hm2mqtt.js/releases/download/v3.10.2/hm2mqtt-ccu-aarch64-3.10.2.tar.gz"
+            },
+            {
+              "name": "hm2mqtt-ccu-aarch64-3.10.2.tar.gz.sha256",
+              "size": 100,
+              "browser_download_url": "https://github.com/hobbyquaker/hm2mqtt.js/releases/download/v3.10.2/hm2mqtt-ccu-aarch64-3.10.2.tar.gz.sha256"
+            },
+            {
+              "name": "hm2mqtt-ccu-armv7l-3.10.2.tar.gz",
+              "size": 27781880,
+              "browser_download_url": "https://github.com/hobbyquaker/hm2mqtt.js/releases/download/v3.10.2/hm2mqtt-ccu-armv7l-3.10.2.tar.gz"
+            },
+            {
+              "name": "hm2mqtt-ccu-armv7l-3.10.2.tar.gz.sha256",
+              "size": 99,
+              "browser_download_url": "https://github.com/hobbyquaker/hm2mqtt.js/releases/download/v3.10.2/hm2mqtt-ccu-armv7l-3.10.2.tar.gz.sha256"
+            },
+            {
+              "name": "hm2mqtt-ccu-x86_64-3.10.2.tar.gz",
+              "size": 47602323,
+              "browser_download_url": "https://github.com/hobbyquaker/hm2mqtt.js/releases/download/v3.10.2/hm2mqtt-ccu-x86_64-3.10.2.tar.gz"
+            },
+            {
+              "name": "hm2mqtt-ccu-x86_64-3.10.2.tar.gz.sha256",
+              "size": 99,
+              "browser_download_url": "https://github.com/hobbyquaker/hm2mqtt.js/releases/download/v3.10.2/hm2mqtt-ccu-x86_64-3.10.2.tar.gz.sha256"
+            }
+          ]
+        },
+        {
           "tag_name": "v3.10.1",
           "name": "v3.10.1",
           "draft": false,
@@ -2024,46 +2104,6 @@
               "browser_download_url": "https://github.com/hobbyquaker/hm2mqtt.js/releases/download/v3.8.0/hm2mqtt-ccu-x86_64-3.8.0.tar.gz.sha256"
             }
           ]
-        },
-        {
-          "tag_name": "v3.7.0",
-          "name": "v3.7.0",
-          "draft": false,
-          "prerelease": false,
-          "html_url": "https://github.com/hobbyquaker/hm2mqtt.js/releases/tag/v3.7.0",
-          "published_at": "2026-09-26T18:27:51Z",
-          "assets": [
-            {
-              "name": "hm2mqtt-ccu-aarch64-3.7.0.tar.gz",
-              "size": 46971459,
-              "browser_download_url": "https://github.com/hobbyquaker/hm2mqtt.js/releases/download/v3.7.0/hm2mqtt-ccu-aarch64-3.7.0.tar.gz"
-            },
-            {
-              "name": "hm2mqtt-ccu-aarch64-3.7.0.tar.gz.sha256",
-              "size": 99,
-              "browser_download_url": "https://github.com/hobbyquaker/hm2mqtt.js/releases/download/v3.7.0/hm2mqtt-ccu-aarch64-3.7.0.tar.gz.sha256"
-            },
-            {
-              "name": "hm2mqtt-ccu-armv7l-3.7.0.tar.gz",
-              "size": 28891619,
-              "browser_download_url": "https://github.com/hobbyquaker/hm2mqtt.js/releases/download/v3.7.0/hm2mqtt-ccu-armv7l-3.7.0.tar.gz"
-            },
-            {
-              "name": "hm2mqtt-ccu-armv7l-3.7.0.tar.gz.sha256",
-              "size": 98,
-              "browser_download_url": "https://github.com/hobbyquaker/hm2mqtt.js/releases/download/v3.7.0/hm2mqtt-ccu-armv7l-3.7.0.tar.gz.sha256"
-            },
-            {
-              "name": "hm2mqtt-ccu-x86_64-3.7.0.tar.gz",
-              "size": 47278214,
-              "browser_download_url": "https://github.com/hobbyquaker/hm2mqtt.js/releases/download/v3.7.0/hm2mqtt-ccu-x86_64-3.7.0.tar.gz"
-            },
-            {
-              "name": "hm2mqtt-ccu-x86_64-3.7.0.tar.gz.sha256",
-              "size": 98,
-              "browser_download_url": "https://github.com/hobbyquaker/hm2mqtt.js/releases/download/v3.7.0/hm2mqtt-ccu-x86_64-3.7.0.tar.gz.sha256"
-            }
-          ]
         }
       ],
       "per_page": 10,
@@ -2071,6 +2111,426 @@
     },
     "hobbyquaker/homematic-manager": {
       "releases": [
+        {
+          "tag_name": "v3.5.1",
+          "name": "v3.5.1",
+          "draft": false,
+          "prerelease": false,
+          "html_url": "https://github.com/hobbyquaker/homematic-manager/releases/tag/v3.5.1",
+          "published_at": "2026-11-20T18:48:05Z",
+          "assets": [
+            {
+              "name": "hmm-ccu-aarch64-3.5.1.tar.gz",
+              "size": 46445687,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.5.1/hmm-ccu-aarch64-3.5.1.tar.gz"
+            },
+            {
+              "name": "hmm-ccu-aarch64-3.5.1.tar.gz.cdx.json",
+              "size": 22505,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.5.1/hmm-ccu-aarch64-3.5.1.tar.gz.cdx.json"
+            },
+            {
+              "name": "hmm-ccu-aarch64-3.5.1.tar.gz.sha256",
+              "size": 95,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.5.1/hmm-ccu-aarch64-3.5.1.tar.gz.sha256"
+            },
+            {
+              "name": "hmm-ccu-armv7l-3.5.1.tar.gz",
+              "size": 26934025,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.5.1/hmm-ccu-armv7l-3.5.1.tar.gz"
+            },
+            {
+              "name": "hmm-ccu-armv7l-3.5.1.tar.gz.cdx.json",
+              "size": 36655,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.5.1/hmm-ccu-armv7l-3.5.1.tar.gz.cdx.json"
+            },
+            {
+              "name": "hmm-ccu-armv7l-3.5.1.tar.gz.sha256",
+              "size": 94,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.5.1/hmm-ccu-armv7l-3.5.1.tar.gz.sha256"
+            },
+            {
+              "name": "hmm-ccu-x86_64-3.5.1.tar.gz",
+              "size": 46759987,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.5.1/hmm-ccu-x86_64-3.5.1.tar.gz"
+            },
+            {
+              "name": "hmm-ccu-x86_64-3.5.1.tar.gz.cdx.json",
+              "size": 22498,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.5.1/hmm-ccu-x86_64-3.5.1.tar.gz.cdx.json"
+            },
+            {
+              "name": "hmm-ccu-x86_64-3.5.1.tar.gz.sha256",
+              "size": 94,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.5.1/hmm-ccu-x86_64-3.5.1.tar.gz.sha256"
+            },
+            {
+              "name": "Homematic-Manager-3.5.1-arm64.AppImage",
+              "size": 129316815,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.5.1/Homematic-Manager-3.5.1-arm64.AppImage"
+            },
+            {
+              "name": "Homematic-Manager-3.5.1-arm64.AppImage.cdx.json",
+              "size": 33883,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.5.1/Homematic-Manager-3.5.1-arm64.AppImage.cdx.json"
+            },
+            {
+              "name": "Homematic-Manager-3.5.1-portable-arm64.exe",
+              "size": 107314552,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.5.1/Homematic-Manager-3.5.1-portable-arm64.exe"
+            },
+            {
+              "name": "Homematic-Manager-3.5.1-portable-arm64.exe.cdx.json",
+              "size": 34148,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.5.1/Homematic-Manager-3.5.1-portable-arm64.exe.cdx.json"
+            },
+            {
+              "name": "Homematic-Manager-3.5.1-portable-x64.exe",
+              "size": 113608921,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.5.1/Homematic-Manager-3.5.1-portable-x64.exe"
+            },
+            {
+              "name": "Homematic-Manager-3.5.1-portable-x64.exe.cdx.json",
+              "size": 34144,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.5.1/Homematic-Manager-3.5.1-portable-x64.exe.cdx.json"
+            },
+            {
+              "name": "Homematic-Manager-3.5.1-portable.exe",
+              "size": 220215348,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.5.1/Homematic-Manager-3.5.1-portable.exe"
+            },
+            {
+              "name": "Homematic-Manager-3.5.1-portable.exe.cdx.json",
+              "size": 34136,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.5.1/Homematic-Manager-3.5.1-portable.exe.cdx.json"
+            },
+            {
+              "name": "Homematic-Manager-3.5.1-universal-mac.zip",
+              "size": 230916664,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.5.1/Homematic-Manager-3.5.1-universal-mac.zip"
+            },
+            {
+              "name": "Homematic-Manager-3.5.1-universal-mac.zip.blockmap",
+              "size": 241021,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.5.1/Homematic-Manager-3.5.1-universal-mac.zip.blockmap"
+            },
+            {
+              "name": "Homematic-Manager-3.5.1-universal-mac.zip.cdx.json",
+              "size": 33631,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.5.1/Homematic-Manager-3.5.1-universal-mac.zip.cdx.json"
+            },
+            {
+              "name": "Homematic-Manager-3.5.1-universal.dmg",
+              "size": 230928756,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.5.1/Homematic-Manager-3.5.1-universal.dmg"
+            },
+            {
+              "name": "Homematic-Manager-3.5.1-universal.dmg.blockmap",
+              "size": 241715,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.5.1/Homematic-Manager-3.5.1-universal.dmg.blockmap"
+            },
+            {
+              "name": "Homematic-Manager-3.5.1-universal.dmg.cdx.json",
+              "size": 33623,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.5.1/Homematic-Manager-3.5.1-universal.dmg.cdx.json"
+            },
+            {
+              "name": "Homematic-Manager-3.5.1-x86_64.AppImage",
+              "size": 127994786,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.5.1/Homematic-Manager-3.5.1-x86_64.AppImage"
+            },
+            {
+              "name": "Homematic-Manager-3.5.1-x86_64.AppImage.cdx.json",
+              "size": 33885,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.5.1/Homematic-Manager-3.5.1-x86_64.AppImage.cdx.json"
+            },
+            {
+              "name": "homematic-manager-3.5.1.tgz",
+              "size": 1777794,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.5.1/homematic-manager-3.5.1.tgz"
+            },
+            {
+              "name": "homematic-manager-3.5.1.tgz.cdx.json",
+              "size": 21600,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.5.1/homematic-manager-3.5.1.tgz.cdx.json"
+            },
+            {
+              "name": "homematic-manager-docker-3.5.1.cdx.json",
+              "size": 412856,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.5.1/homematic-manager-docker-3.5.1.cdx.json"
+            },
+            {
+              "name": "Homematic-Manager-Setup-3.5.1.exe",
+              "size": 220514214,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.5.1/Homematic-Manager-Setup-3.5.1.exe"
+            },
+            {
+              "name": "Homematic-Manager-Setup-3.5.1.exe.blockmap",
+              "size": 227621,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.5.1/Homematic-Manager-Setup-3.5.1.exe.blockmap"
+            },
+            {
+              "name": "Homematic-Manager-Setup-3.5.1.exe.cdx.json",
+              "size": 34130,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.5.1/Homematic-Manager-Setup-3.5.1.exe.cdx.json"
+            },
+            {
+              "name": "homematic-manager_3.5.1_amd64.deb",
+              "size": 101831372,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.5.1/homematic-manager_3.5.1_amd64.deb"
+            },
+            {
+              "name": "homematic-manager_3.5.1_amd64.deb.cdx.json",
+              "size": 33868,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.5.1/homematic-manager_3.5.1_amd64.deb.cdx.json"
+            },
+            {
+              "name": "homematic-manager_3.5.1_arm64.deb",
+              "size": 96968820,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.5.1/homematic-manager_3.5.1_arm64.deb"
+            },
+            {
+              "name": "homematic-manager_3.5.1_arm64.deb.cdx.json",
+              "size": 33867,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.5.1/homematic-manager_3.5.1_arm64.deb.cdx.json"
+            },
+            {
+              "name": "latest-linux-arm64.yml",
+              "size": 561,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.5.1/latest-linux-arm64.yml"
+            },
+            {
+              "name": "latest-linux.yml",
+              "size": 564,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.5.1/latest-linux.yml"
+            },
+            {
+              "name": "latest-mac.yml",
+              "size": 547,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.5.1/latest-mac.yml"
+            },
+            {
+              "name": "latest.yml",
+              "size": 363,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.5.1/latest.yml"
+            },
+            {
+              "name": "sbom.cdx.json",
+              "size": 33287,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.5.1/sbom.cdx.json"
+            }
+          ]
+        },
+        {
+          "tag_name": "v3.5.0",
+          "name": "v3.5.0",
+          "draft": false,
+          "prerelease": false,
+          "html_url": "https://github.com/hobbyquaker/homematic-manager/releases/tag/v3.5.0",
+          "published_at": "2026-11-20T12:57:05Z",
+          "assets": [
+            {
+              "name": "hmm-ccu-aarch64-3.5.0.tar.gz",
+              "size": 46436111,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.5.0/hmm-ccu-aarch64-3.5.0.tar.gz"
+            },
+            {
+              "name": "hmm-ccu-aarch64-3.5.0.tar.gz.cdx.json",
+              "size": 22505,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.5.0/hmm-ccu-aarch64-3.5.0.tar.gz.cdx.json"
+            },
+            {
+              "name": "hmm-ccu-aarch64-3.5.0.tar.gz.sha256",
+              "size": 95,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.5.0/hmm-ccu-aarch64-3.5.0.tar.gz.sha256"
+            },
+            {
+              "name": "hmm-ccu-armv7l-3.5.0.tar.gz",
+              "size": 26930390,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.5.0/hmm-ccu-armv7l-3.5.0.tar.gz"
+            },
+            {
+              "name": "hmm-ccu-armv7l-3.5.0.tar.gz.cdx.json",
+              "size": 36655,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.5.0/hmm-ccu-armv7l-3.5.0.tar.gz.cdx.json"
+            },
+            {
+              "name": "hmm-ccu-armv7l-3.5.0.tar.gz.sha256",
+              "size": 94,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.5.0/hmm-ccu-armv7l-3.5.0.tar.gz.sha256"
+            },
+            {
+              "name": "hmm-ccu-x86_64-3.5.0.tar.gz",
+              "size": 46753229,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.5.0/hmm-ccu-x86_64-3.5.0.tar.gz"
+            },
+            {
+              "name": "hmm-ccu-x86_64-3.5.0.tar.gz.cdx.json",
+              "size": 22498,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.5.0/hmm-ccu-x86_64-3.5.0.tar.gz.cdx.json"
+            },
+            {
+              "name": "hmm-ccu-x86_64-3.5.0.tar.gz.sha256",
+              "size": 94,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.5.0/hmm-ccu-x86_64-3.5.0.tar.gz.sha256"
+            },
+            {
+              "name": "Homematic-Manager-3.5.0-arm64.AppImage",
+              "size": 129308625,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.5.0/Homematic-Manager-3.5.0-arm64.AppImage"
+            },
+            {
+              "name": "Homematic-Manager-3.5.0-arm64.AppImage.cdx.json",
+              "size": 33883,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.5.0/Homematic-Manager-3.5.0-arm64.AppImage.cdx.json"
+            },
+            {
+              "name": "Homematic-Manager-3.5.0-portable-arm64.exe",
+              "size": 107297738,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.5.0/Homematic-Manager-3.5.0-portable-arm64.exe"
+            },
+            {
+              "name": "Homematic-Manager-3.5.0-portable-arm64.exe.cdx.json",
+              "size": 34148,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.5.0/Homematic-Manager-3.5.0-portable-arm64.exe.cdx.json"
+            },
+            {
+              "name": "Homematic-Manager-3.5.0-portable-x64.exe",
+              "size": 113592267,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.5.0/Homematic-Manager-3.5.0-portable-x64.exe"
+            },
+            {
+              "name": "Homematic-Manager-3.5.0-portable-x64.exe.cdx.json",
+              "size": 34144,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.5.0/Homematic-Manager-3.5.0-portable-x64.exe.cdx.json"
+            },
+            {
+              "name": "Homematic-Manager-3.5.0-portable.exe",
+              "size": 220181889,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.5.0/Homematic-Manager-3.5.0-portable.exe"
+            },
+            {
+              "name": "Homematic-Manager-3.5.0-portable.exe.cdx.json",
+              "size": 34136,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.5.0/Homematic-Manager-3.5.0-portable.exe.cdx.json"
+            },
+            {
+              "name": "Homematic-Manager-3.5.0-universal-mac.zip",
+              "size": 230906827,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.5.0/Homematic-Manager-3.5.0-universal-mac.zip"
+            },
+            {
+              "name": "Homematic-Manager-3.5.0-universal-mac.zip.blockmap",
+              "size": 241061,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.5.0/Homematic-Manager-3.5.0-universal-mac.zip.blockmap"
+            },
+            {
+              "name": "Homematic-Manager-3.5.0-universal-mac.zip.cdx.json",
+              "size": 33631,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.5.0/Homematic-Manager-3.5.0-universal-mac.zip.cdx.json"
+            },
+            {
+              "name": "Homematic-Manager-3.5.0-universal.dmg",
+              "size": 230911553,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.5.0/Homematic-Manager-3.5.0-universal.dmg"
+            },
+            {
+              "name": "Homematic-Manager-3.5.0-universal.dmg.blockmap",
+              "size": 242899,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.5.0/Homematic-Manager-3.5.0-universal.dmg.blockmap"
+            },
+            {
+              "name": "Homematic-Manager-3.5.0-universal.dmg.cdx.json",
+              "size": 33623,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.5.0/Homematic-Manager-3.5.0-universal.dmg.cdx.json"
+            },
+            {
+              "name": "Homematic-Manager-3.5.0-x86_64.AppImage",
+              "size": 127986617,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.5.0/Homematic-Manager-3.5.0-x86_64.AppImage"
+            },
+            {
+              "name": "Homematic-Manager-3.5.0-x86_64.AppImage.cdx.json",
+              "size": 33885,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.5.0/Homematic-Manager-3.5.0-x86_64.AppImage.cdx.json"
+            },
+            {
+              "name": "homematic-manager-3.5.0.tgz",
+              "size": 1774367,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.5.0/homematic-manager-3.5.0.tgz"
+            },
+            {
+              "name": "homematic-manager-3.5.0.tgz.cdx.json",
+              "size": 21600,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.5.0/homematic-manager-3.5.0.tgz.cdx.json"
+            },
+            {
+              "name": "homematic-manager-docker-3.5.0.cdx.json",
+              "size": 412856,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.5.0/homematic-manager-docker-3.5.0.cdx.json"
+            },
+            {
+              "name": "Homematic-Manager-Setup-3.5.0.exe",
+              "size": 220480631,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.5.0/Homematic-Manager-Setup-3.5.0.exe"
+            },
+            {
+              "name": "Homematic-Manager-Setup-3.5.0.exe.blockmap",
+              "size": 227603,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.5.0/Homematic-Manager-Setup-3.5.0.exe.blockmap"
+            },
+            {
+              "name": "Homematic-Manager-Setup-3.5.0.exe.cdx.json",
+              "size": 34130,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.5.0/Homematic-Manager-Setup-3.5.0.exe.cdx.json"
+            },
+            {
+              "name": "homematic-manager_3.5.0_amd64.deb",
+              "size": 102032312,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.5.0/homematic-manager_3.5.0_amd64.deb"
+            },
+            {
+              "name": "homematic-manager_3.5.0_amd64.deb.cdx.json",
+              "size": 33868,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.5.0/homematic-manager_3.5.0_amd64.deb.cdx.json"
+            },
+            {
+              "name": "homematic-manager_3.5.0_arm64.deb",
+              "size": 97147968,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.5.0/homematic-manager_3.5.0_arm64.deb"
+            },
+            {
+              "name": "homematic-manager_3.5.0_arm64.deb.cdx.json",
+              "size": 33867,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.5.0/homematic-manager_3.5.0_arm64.deb.cdx.json"
+            },
+            {
+              "name": "latest-linux-arm64.yml",
+              "size": 561,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.5.0/latest-linux-arm64.yml"
+            },
+            {
+              "name": "latest-linux.yml",
+              "size": 564,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.5.0/latest-linux.yml"
+            },
+            {
+              "name": "latest-mac.yml",
+              "size": 547,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.5.0/latest-mac.yml"
+            },
+            {
+              "name": "latest.yml",
+              "size": 363,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.5.0/latest.yml"
+            },
+            {
+              "name": "sbom.cdx.json",
+              "size": 33287,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.5.0/sbom.cdx.json"
+            }
+          ]
+        },
         {
           "tag_name": "v3.4.2",
           "name": "v3.4.2",
@@ -3748,426 +4208,6 @@
               "name": "sbom.cdx.json",
               "size": 33543,
               "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.2.0/sbom.cdx.json"
-            }
-          ]
-        },
-        {
-          "tag_name": "v3.1.5",
-          "name": "v3.1.5",
-          "draft": false,
-          "prerelease": false,
-          "html_url": "https://github.com/hobbyquaker/homematic-manager/releases/tag/v3.1.5",
-          "published_at": "2026-10-14T11:20:38Z",
-          "assets": [
-            {
-              "name": "hmm-ccu-aarch64-3.1.5.tar.gz",
-              "size": 46171433,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.1.5/hmm-ccu-aarch64-3.1.5.tar.gz"
-            },
-            {
-              "name": "hmm-ccu-aarch64-3.1.5.tar.gz.cdx.json",
-              "size": 22505,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.1.5/hmm-ccu-aarch64-3.1.5.tar.gz.cdx.json"
-            },
-            {
-              "name": "hmm-ccu-aarch64-3.1.5.tar.gz.sha256",
-              "size": 95,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.1.5/hmm-ccu-aarch64-3.1.5.tar.gz.sha256"
-            },
-            {
-              "name": "hmm-ccu-armv7l-3.1.5.tar.gz",
-              "size": 28148730,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.1.5/hmm-ccu-armv7l-3.1.5.tar.gz"
-            },
-            {
-              "name": "hmm-ccu-armv7l-3.1.5.tar.gz.cdx.json",
-              "size": 36663,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.1.5/hmm-ccu-armv7l-3.1.5.tar.gz.cdx.json"
-            },
-            {
-              "name": "hmm-ccu-armv7l-3.1.5.tar.gz.sha256",
-              "size": 94,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.1.5/hmm-ccu-armv7l-3.1.5.tar.gz.sha256"
-            },
-            {
-              "name": "hmm-ccu-x86_64-3.1.5.tar.gz",
-              "size": 46487809,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.1.5/hmm-ccu-x86_64-3.1.5.tar.gz"
-            },
-            {
-              "name": "hmm-ccu-x86_64-3.1.5.tar.gz.cdx.json",
-              "size": 22498,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.1.5/hmm-ccu-x86_64-3.1.5.tar.gz.cdx.json"
-            },
-            {
-              "name": "hmm-ccu-x86_64-3.1.5.tar.gz.sha256",
-              "size": 94,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.1.5/hmm-ccu-x86_64-3.1.5.tar.gz.sha256"
-            },
-            {
-              "name": "Homematic-Manager-3.1.5-arm64.AppImage",
-              "size": 129193926,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.1.5/Homematic-Manager-3.1.5-arm64.AppImage"
-            },
-            {
-              "name": "Homematic-Manager-3.1.5-arm64.AppImage.cdx.json",
-              "size": 33883,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.1.5/Homematic-Manager-3.1.5-arm64.AppImage.cdx.json"
-            },
-            {
-              "name": "Homematic-Manager-3.1.5-portable-arm64.exe",
-              "size": 107213508,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.1.5/Homematic-Manager-3.1.5-portable-arm64.exe"
-            },
-            {
-              "name": "Homematic-Manager-3.1.5-portable-arm64.exe.cdx.json",
-              "size": 34148,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.1.5/Homematic-Manager-3.1.5-portable-arm64.exe.cdx.json"
-            },
-            {
-              "name": "Homematic-Manager-3.1.5-portable-x64.exe",
-              "size": 113507987,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.1.5/Homematic-Manager-3.1.5-portable-x64.exe"
-            },
-            {
-              "name": "Homematic-Manager-3.1.5-portable-x64.exe.cdx.json",
-              "size": 34144,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.1.5/Homematic-Manager-3.1.5-portable-x64.exe.cdx.json"
-            },
-            {
-              "name": "Homematic-Manager-3.1.5-portable.exe",
-              "size": 220013380,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.1.5/Homematic-Manager-3.1.5-portable.exe"
-            },
-            {
-              "name": "Homematic-Manager-3.1.5-portable.exe.cdx.json",
-              "size": 34136,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.1.5/Homematic-Manager-3.1.5-portable.exe.cdx.json"
-            },
-            {
-              "name": "Homematic-Manager-3.1.5-universal-mac.zip",
-              "size": 230798430,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.1.5/Homematic-Manager-3.1.5-universal-mac.zip"
-            },
-            {
-              "name": "Homematic-Manager-3.1.5-universal-mac.zip.blockmap",
-              "size": 240974,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.1.5/Homematic-Manager-3.1.5-universal-mac.zip.blockmap"
-            },
-            {
-              "name": "Homematic-Manager-3.1.5-universal-mac.zip.cdx.json",
-              "size": 33631,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.1.5/Homematic-Manager-3.1.5-universal-mac.zip.cdx.json"
-            },
-            {
-              "name": "Homematic-Manager-3.1.5-universal.dmg",
-              "size": 230815818,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.1.5/Homematic-Manager-3.1.5-universal.dmg"
-            },
-            {
-              "name": "Homematic-Manager-3.1.5-universal.dmg.blockmap",
-              "size": 241456,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.1.5/Homematic-Manager-3.1.5-universal.dmg.blockmap"
-            },
-            {
-              "name": "Homematic-Manager-3.1.5-universal.dmg.cdx.json",
-              "size": 33623,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.1.5/Homematic-Manager-3.1.5-universal.dmg.cdx.json"
-            },
-            {
-              "name": "Homematic-Manager-3.1.5-x86_64.AppImage",
-              "size": 127871898,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.1.5/Homematic-Manager-3.1.5-x86_64.AppImage"
-            },
-            {
-              "name": "Homematic-Manager-3.1.5-x86_64.AppImage.cdx.json",
-              "size": 33885,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.1.5/Homematic-Manager-3.1.5-x86_64.AppImage.cdx.json"
-            },
-            {
-              "name": "homematic-manager-3.1.5.tgz",
-              "size": 1716902,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.1.5/homematic-manager-3.1.5.tgz"
-            },
-            {
-              "name": "homematic-manager-3.1.5.tgz.cdx.json",
-              "size": 21600,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.1.5/homematic-manager-3.1.5.tgz.cdx.json"
-            },
-            {
-              "name": "homematic-manager-docker-3.1.5.cdx.json",
-              "size": 410971,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.1.5/homematic-manager-docker-3.1.5.cdx.json"
-            },
-            {
-              "name": "Homematic-Manager-Setup-3.1.5.exe",
-              "size": 220312237,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.1.5/Homematic-Manager-Setup-3.1.5.exe"
-            },
-            {
-              "name": "Homematic-Manager-Setup-3.1.5.exe.blockmap",
-              "size": 227590,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.1.5/Homematic-Manager-Setup-3.1.5.exe.blockmap"
-            },
-            {
-              "name": "Homematic-Manager-Setup-3.1.5.exe.cdx.json",
-              "size": 34130,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.1.5/Homematic-Manager-Setup-3.1.5.exe.cdx.json"
-            },
-            {
-              "name": "homematic-manager_3.1.5_amd64.deb",
-              "size": 101011804,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.1.5/homematic-manager_3.1.5_amd64.deb"
-            },
-            {
-              "name": "homematic-manager_3.1.5_amd64.deb.cdx.json",
-              "size": 33868,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.1.5/homematic-manager_3.1.5_amd64.deb.cdx.json"
-            },
-            {
-              "name": "homematic-manager_3.1.5_arm64.deb",
-              "size": 96176192,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.1.5/homematic-manager_3.1.5_arm64.deb"
-            },
-            {
-              "name": "homematic-manager_3.1.5_arm64.deb.cdx.json",
-              "size": 33867,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.1.5/homematic-manager_3.1.5_arm64.deb.cdx.json"
-            },
-            {
-              "name": "latest-linux-arm64.yml",
-              "size": 561,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.1.5/latest-linux-arm64.yml"
-            },
-            {
-              "name": "latest-linux.yml",
-              "size": 564,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.1.5/latest-linux.yml"
-            },
-            {
-              "name": "latest-mac.yml",
-              "size": 547,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.1.5/latest-mac.yml"
-            },
-            {
-              "name": "latest.yml",
-              "size": 363,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.1.5/latest.yml"
-            },
-            {
-              "name": "sbom.cdx.json",
-              "size": 33543,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.1.5/sbom.cdx.json"
-            }
-          ]
-        },
-        {
-          "tag_name": "v3.1.4",
-          "name": "v3.1.4",
-          "draft": false,
-          "prerelease": false,
-          "html_url": "https://github.com/hobbyquaker/homematic-manager/releases/tag/v3.1.4",
-          "published_at": "2026-10-09T18:22:13Z",
-          "assets": [
-            {
-              "name": "hmm-ccu-aarch64-3.1.4.tar.gz",
-              "size": 46179618,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.1.4/hmm-ccu-aarch64-3.1.4.tar.gz"
-            },
-            {
-              "name": "hmm-ccu-aarch64-3.1.4.tar.gz.cdx.json",
-              "size": 22505,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.1.4/hmm-ccu-aarch64-3.1.4.tar.gz.cdx.json"
-            },
-            {
-              "name": "hmm-ccu-aarch64-3.1.4.tar.gz.sha256",
-              "size": 95,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.1.4/hmm-ccu-aarch64-3.1.4.tar.gz.sha256"
-            },
-            {
-              "name": "hmm-ccu-armv7l-3.1.4.tar.gz",
-              "size": 28155043,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.1.4/hmm-ccu-armv7l-3.1.4.tar.gz"
-            },
-            {
-              "name": "hmm-ccu-armv7l-3.1.4.tar.gz.cdx.json",
-              "size": 36663,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.1.4/hmm-ccu-armv7l-3.1.4.tar.gz.cdx.json"
-            },
-            {
-              "name": "hmm-ccu-armv7l-3.1.4.tar.gz.sha256",
-              "size": 94,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.1.4/hmm-ccu-armv7l-3.1.4.tar.gz.sha256"
-            },
-            {
-              "name": "hmm-ccu-x86_64-3.1.4.tar.gz",
-              "size": 46489896,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.1.4/hmm-ccu-x86_64-3.1.4.tar.gz"
-            },
-            {
-              "name": "hmm-ccu-x86_64-3.1.4.tar.gz.cdx.json",
-              "size": 22498,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.1.4/hmm-ccu-x86_64-3.1.4.tar.gz.cdx.json"
-            },
-            {
-              "name": "hmm-ccu-x86_64-3.1.4.tar.gz.sha256",
-              "size": 94,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.1.4/hmm-ccu-x86_64-3.1.4.tar.gz.sha256"
-            },
-            {
-              "name": "Homematic-Manager-3.1.4-arm64.AppImage",
-              "size": 129193861,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.1.4/Homematic-Manager-3.1.4-arm64.AppImage"
-            },
-            {
-              "name": "Homematic-Manager-3.1.4-arm64.AppImage.cdx.json",
-              "size": 33883,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.1.4/Homematic-Manager-3.1.4-arm64.AppImage.cdx.json"
-            },
-            {
-              "name": "Homematic-Manager-3.1.4-portable-arm64.exe",
-              "size": 107211307,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.1.4/Homematic-Manager-3.1.4-portable-arm64.exe"
-            },
-            {
-              "name": "Homematic-Manager-3.1.4-portable-arm64.exe.cdx.json",
-              "size": 34148,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.1.4/Homematic-Manager-3.1.4-portable-arm64.exe.cdx.json"
-            },
-            {
-              "name": "Homematic-Manager-3.1.4-portable-x64.exe",
-              "size": 113505728,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.1.4/Homematic-Manager-3.1.4-portable-x64.exe"
-            },
-            {
-              "name": "Homematic-Manager-3.1.4-portable-x64.exe.cdx.json",
-              "size": 34144,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.1.4/Homematic-Manager-3.1.4-portable-x64.exe.cdx.json"
-            },
-            {
-              "name": "Homematic-Manager-3.1.4-portable.exe",
-              "size": 220008924,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.1.4/Homematic-Manager-3.1.4-portable.exe"
-            },
-            {
-              "name": "Homematic-Manager-3.1.4-portable.exe.cdx.json",
-              "size": 34136,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.1.4/Homematic-Manager-3.1.4-portable.exe.cdx.json"
-            },
-            {
-              "name": "Homematic-Manager-3.1.4-universal-mac.zip",
-              "size": 230795256,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.1.4/Homematic-Manager-3.1.4-universal-mac.zip"
-            },
-            {
-              "name": "Homematic-Manager-3.1.4-universal-mac.zip.blockmap",
-              "size": 240839,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.1.4/Homematic-Manager-3.1.4-universal-mac.zip.blockmap"
-            },
-            {
-              "name": "Homematic-Manager-3.1.4-universal-mac.zip.cdx.json",
-              "size": 33631,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.1.4/Homematic-Manager-3.1.4-universal-mac.zip.cdx.json"
-            },
-            {
-              "name": "Homematic-Manager-3.1.4-universal.dmg",
-              "size": 230819199,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.1.4/Homematic-Manager-3.1.4-universal.dmg"
-            },
-            {
-              "name": "Homematic-Manager-3.1.4-universal.dmg.blockmap",
-              "size": 242061,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.1.4/Homematic-Manager-3.1.4-universal.dmg.blockmap"
-            },
-            {
-              "name": "Homematic-Manager-3.1.4-universal.dmg.cdx.json",
-              "size": 33623,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.1.4/Homematic-Manager-3.1.4-universal.dmg.cdx.json"
-            },
-            {
-              "name": "Homematic-Manager-3.1.4-x86_64.AppImage",
-              "size": 127871805,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.1.4/Homematic-Manager-3.1.4-x86_64.AppImage"
-            },
-            {
-              "name": "Homematic-Manager-3.1.4-x86_64.AppImage.cdx.json",
-              "size": 33885,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.1.4/Homematic-Manager-3.1.4-x86_64.AppImage.cdx.json"
-            },
-            {
-              "name": "homematic-manager-3.1.4.tgz",
-              "size": 1714020,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.1.4/homematic-manager-3.1.4.tgz"
-            },
-            {
-              "name": "homematic-manager-3.1.4.tgz.cdx.json",
-              "size": 21600,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.1.4/homematic-manager-3.1.4.tgz.cdx.json"
-            },
-            {
-              "name": "homematic-manager-docker-3.1.4.cdx.json",
-              "size": 410971,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.1.4/homematic-manager-docker-3.1.4.cdx.json"
-            },
-            {
-              "name": "Homematic-Manager-Setup-3.1.4.exe",
-              "size": 220307664,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.1.4/Homematic-Manager-Setup-3.1.4.exe"
-            },
-            {
-              "name": "Homematic-Manager-Setup-3.1.4.exe.blockmap",
-              "size": 227348,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.1.4/Homematic-Manager-Setup-3.1.4.exe.blockmap"
-            },
-            {
-              "name": "Homematic-Manager-Setup-3.1.4.exe.cdx.json",
-              "size": 34130,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.1.4/Homematic-Manager-Setup-3.1.4.exe.cdx.json"
-            },
-            {
-              "name": "homematic-manager_3.1.4_amd64.deb",
-              "size": 101009124,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.1.4/homematic-manager_3.1.4_amd64.deb"
-            },
-            {
-              "name": "homematic-manager_3.1.4_amd64.deb.cdx.json",
-              "size": 33868,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.1.4/homematic-manager_3.1.4_amd64.deb.cdx.json"
-            },
-            {
-              "name": "homematic-manager_3.1.4_arm64.deb",
-              "size": 96174060,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.1.4/homematic-manager_3.1.4_arm64.deb"
-            },
-            {
-              "name": "homematic-manager_3.1.4_arm64.deb.cdx.json",
-              "size": 33867,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.1.4/homematic-manager_3.1.4_arm64.deb.cdx.json"
-            },
-            {
-              "name": "latest-linux-arm64.yml",
-              "size": 561,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.1.4/latest-linux-arm64.yml"
-            },
-            {
-              "name": "latest-linux.yml",
-              "size": 564,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.1.4/latest-linux.yml"
-            },
-            {
-              "name": "latest-mac.yml",
-              "size": 547,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.1.4/latest-mac.yml"
-            },
-            {
-              "name": "latest.yml",
-              "size": 363,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.1.4/latest.yml"
-            },
-            {
-              "name": "sbom.cdx.json",
-              "size": 33805,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.1.4/sbom.cdx.json"
             }
           ]
         }
@@ -11040,7 +11080,7 @@
         }
       ],
       "per_page": 100,
-      "stars": 9
+      "stars": 10
     },
     "homematic-community/ccu-addon-mosquitto": {
       "releases": [
@@ -18660,10 +18700,270 @@
         }
       ],
       "per_page": 100,
-      "stars": 9
+      "stars": 10
     },
     "rdmtc/RedMatic": {
       "releases": [
+        {
+          "tag_name": "v9.18.1",
+          "name": "v9.18.1",
+          "draft": false,
+          "prerelease": false,
+          "html_url": "https://github.com/rdmtc/RedMatic/releases/tag/v9.18.1",
+          "published_at": "2026-11-20T19:58:37Z",
+          "assets": [
+            {
+              "name": "redmatic-9.18.1-sbom-nodes.json",
+              "size": 7585,
+              "browser_download_url": "https://github.com/rdmtc/RedMatic/releases/download/v9.18.1/redmatic-9.18.1-sbom-nodes.json"
+            },
+            {
+              "name": "redmatic-9.18.1-sbom-runtime.json",
+              "size": 325981,
+              "browser_download_url": "https://github.com/rdmtc/RedMatic/releases/download/v9.18.1/redmatic-9.18.1-sbom-runtime.json"
+            },
+            {
+              "name": "redmatic-9.18.1-sbom-www.json",
+              "size": 5564,
+              "browser_download_url": "https://github.com/rdmtc/RedMatic/releases/download/v9.18.1/redmatic-9.18.1-sbom-www.json"
+            },
+            {
+              "name": "redmatic-9.18.1.tar.gz",
+              "size": 64433346,
+              "browser_download_url": "https://github.com/rdmtc/RedMatic/releases/download/v9.18.1/redmatic-9.18.1.tar.gz"
+            },
+            {
+              "name": "redmatic-9.18.1.tar.gz.sha256",
+              "size": 89,
+              "browser_download_url": "https://github.com/rdmtc/RedMatic/releases/download/v9.18.1/redmatic-9.18.1.tar.gz.sha256"
+            },
+            {
+              "name": "redmatic-aarch64-9.18.1.tar.gz",
+              "size": 98575955,
+              "browser_download_url": "https://github.com/rdmtc/RedMatic/releases/download/v9.18.1/redmatic-aarch64-9.18.1.tar.gz"
+            },
+            {
+              "name": "redmatic-aarch64-9.18.1.tar.gz.sha256",
+              "size": 97,
+              "browser_download_url": "https://github.com/rdmtc/RedMatic/releases/download/v9.18.1/redmatic-aarch64-9.18.1.tar.gz.sha256"
+            },
+            {
+              "name": "redmatic-armv7l-9.18.1.tar.gz",
+              "size": 64433346,
+              "browser_download_url": "https://github.com/rdmtc/RedMatic/releases/download/v9.18.1/redmatic-armv7l-9.18.1.tar.gz"
+            },
+            {
+              "name": "redmatic-armv7l-9.18.1.tar.gz.sha256",
+              "size": 96,
+              "browser_download_url": "https://github.com/rdmtc/RedMatic/releases/download/v9.18.1/redmatic-armv7l-9.18.1.tar.gz.sha256"
+            },
+            {
+              "name": "redmatic-x86_64-9.18.1.tar.gz",
+              "size": 98574383,
+              "browser_download_url": "https://github.com/rdmtc/RedMatic/releases/download/v9.18.1/redmatic-x86_64-9.18.1.tar.gz"
+            },
+            {
+              "name": "redmatic-x86_64-9.18.1.tar.gz.sha256",
+              "size": 96,
+              "browser_download_url": "https://github.com/rdmtc/RedMatic/releases/download/v9.18.1/redmatic-x86_64-9.18.1.tar.gz.sha256"
+            }
+          ]
+        },
+        {
+          "tag_name": "v9.18.0",
+          "name": "v9.18.0",
+          "draft": false,
+          "prerelease": false,
+          "html_url": "https://github.com/rdmtc/RedMatic/releases/tag/v9.18.0",
+          "published_at": "2026-11-20T18:56:15Z",
+          "assets": [
+            {
+              "name": "redmatic-9.18.0-sbom-nodes.json",
+              "size": 7585,
+              "browser_download_url": "https://github.com/rdmtc/RedMatic/releases/download/v9.18.0/redmatic-9.18.0-sbom-nodes.json"
+            },
+            {
+              "name": "redmatic-9.18.0-sbom-runtime.json",
+              "size": 325981,
+              "browser_download_url": "https://github.com/rdmtc/RedMatic/releases/download/v9.18.0/redmatic-9.18.0-sbom-runtime.json"
+            },
+            {
+              "name": "redmatic-9.18.0-sbom-www.json",
+              "size": 5564,
+              "browser_download_url": "https://github.com/rdmtc/RedMatic/releases/download/v9.18.0/redmatic-9.18.0-sbom-www.json"
+            },
+            {
+              "name": "redmatic-9.18.0.tar.gz",
+              "size": 64392934,
+              "browser_download_url": "https://github.com/rdmtc/RedMatic/releases/download/v9.18.0/redmatic-9.18.0.tar.gz"
+            },
+            {
+              "name": "redmatic-9.18.0.tar.gz.sha256",
+              "size": 89,
+              "browser_download_url": "https://github.com/rdmtc/RedMatic/releases/download/v9.18.0/redmatic-9.18.0.tar.gz.sha256"
+            },
+            {
+              "name": "redmatic-aarch64-9.18.0.tar.gz",
+              "size": 98569331,
+              "browser_download_url": "https://github.com/rdmtc/RedMatic/releases/download/v9.18.0/redmatic-aarch64-9.18.0.tar.gz"
+            },
+            {
+              "name": "redmatic-aarch64-9.18.0.tar.gz.sha256",
+              "size": 97,
+              "browser_download_url": "https://github.com/rdmtc/RedMatic/releases/download/v9.18.0/redmatic-aarch64-9.18.0.tar.gz.sha256"
+            },
+            {
+              "name": "redmatic-armv7l-9.18.0.tar.gz",
+              "size": 64392934,
+              "browser_download_url": "https://github.com/rdmtc/RedMatic/releases/download/v9.18.0/redmatic-armv7l-9.18.0.tar.gz"
+            },
+            {
+              "name": "redmatic-armv7l-9.18.0.tar.gz.sha256",
+              "size": 96,
+              "browser_download_url": "https://github.com/rdmtc/RedMatic/releases/download/v9.18.0/redmatic-armv7l-9.18.0.tar.gz.sha256"
+            },
+            {
+              "name": "redmatic-x86_64-9.18.0.tar.gz",
+              "size": 98564255,
+              "browser_download_url": "https://github.com/rdmtc/RedMatic/releases/download/v9.18.0/redmatic-x86_64-9.18.0.tar.gz"
+            },
+            {
+              "name": "redmatic-x86_64-9.18.0.tar.gz.sha256",
+              "size": 96,
+              "browser_download_url": "https://github.com/rdmtc/RedMatic/releases/download/v9.18.0/redmatic-x86_64-9.18.0.tar.gz.sha256"
+            }
+          ]
+        },
+        {
+          "tag_name": "v9.17.6",
+          "name": "v9.17.6",
+          "draft": false,
+          "prerelease": false,
+          "html_url": "https://github.com/rdmtc/RedMatic/releases/tag/v9.17.6",
+          "published_at": "2026-11-20T17:31:11Z",
+          "assets": [
+            {
+              "name": "redmatic-9.17.6-sbom-nodes.json",
+              "size": 7585,
+              "browser_download_url": "https://github.com/rdmtc/RedMatic/releases/download/v9.17.6/redmatic-9.17.6-sbom-nodes.json"
+            },
+            {
+              "name": "redmatic-9.17.6-sbom-runtime.json",
+              "size": 325981,
+              "browser_download_url": "https://github.com/rdmtc/RedMatic/releases/download/v9.17.6/redmatic-9.17.6-sbom-runtime.json"
+            },
+            {
+              "name": "redmatic-9.17.6-sbom-www.json",
+              "size": 5564,
+              "browser_download_url": "https://github.com/rdmtc/RedMatic/releases/download/v9.17.6/redmatic-9.17.6-sbom-www.json"
+            },
+            {
+              "name": "redmatic-9.17.6.tar.gz",
+              "size": 64426985,
+              "browser_download_url": "https://github.com/rdmtc/RedMatic/releases/download/v9.17.6/redmatic-9.17.6.tar.gz"
+            },
+            {
+              "name": "redmatic-9.17.6.tar.gz.sha256",
+              "size": 89,
+              "browser_download_url": "https://github.com/rdmtc/RedMatic/releases/download/v9.17.6/redmatic-9.17.6.tar.gz.sha256"
+            },
+            {
+              "name": "redmatic-aarch64-9.17.6.tar.gz",
+              "size": 98575728,
+              "browser_download_url": "https://github.com/rdmtc/RedMatic/releases/download/v9.17.6/redmatic-aarch64-9.17.6.tar.gz"
+            },
+            {
+              "name": "redmatic-aarch64-9.17.6.tar.gz.sha256",
+              "size": 97,
+              "browser_download_url": "https://github.com/rdmtc/RedMatic/releases/download/v9.17.6/redmatic-aarch64-9.17.6.tar.gz.sha256"
+            },
+            {
+              "name": "redmatic-armv7l-9.17.6.tar.gz",
+              "size": 64426985,
+              "browser_download_url": "https://github.com/rdmtc/RedMatic/releases/download/v9.17.6/redmatic-armv7l-9.17.6.tar.gz"
+            },
+            {
+              "name": "redmatic-armv7l-9.17.6.tar.gz.sha256",
+              "size": 96,
+              "browser_download_url": "https://github.com/rdmtc/RedMatic/releases/download/v9.17.6/redmatic-armv7l-9.17.6.tar.gz.sha256"
+            },
+            {
+              "name": "redmatic-x86_64-9.17.6.tar.gz",
+              "size": 98554806,
+              "browser_download_url": "https://github.com/rdmtc/RedMatic/releases/download/v9.17.6/redmatic-x86_64-9.17.6.tar.gz"
+            },
+            {
+              "name": "redmatic-x86_64-9.17.6.tar.gz.sha256",
+              "size": 96,
+              "browser_download_url": "https://github.com/rdmtc/RedMatic/releases/download/v9.17.6/redmatic-x86_64-9.17.6.tar.gz.sha256"
+            }
+          ]
+        },
+        {
+          "tag_name": "v9.17.5",
+          "name": "v9.17.5",
+          "draft": false,
+          "prerelease": false,
+          "html_url": "https://github.com/rdmtc/RedMatic/releases/tag/v9.17.5",
+          "published_at": "2026-11-20T12:37:48Z",
+          "assets": [
+            {
+              "name": "redmatic-9.17.5-sbom-nodes.json",
+              "size": 7585,
+              "browser_download_url": "https://github.com/rdmtc/RedMatic/releases/download/v9.17.5/redmatic-9.17.5-sbom-nodes.json"
+            },
+            {
+              "name": "redmatic-9.17.5-sbom-runtime.json",
+              "size": 325981,
+              "browser_download_url": "https://github.com/rdmtc/RedMatic/releases/download/v9.17.5/redmatic-9.17.5-sbom-runtime.json"
+            },
+            {
+              "name": "redmatic-9.17.5-sbom-www.json",
+              "size": 5564,
+              "browser_download_url": "https://github.com/rdmtc/RedMatic/releases/download/v9.17.5/redmatic-9.17.5-sbom-www.json"
+            },
+            {
+              "name": "redmatic-9.17.5.tar.gz",
+              "size": 64402830,
+              "browser_download_url": "https://github.com/rdmtc/RedMatic/releases/download/v9.17.5/redmatic-9.17.5.tar.gz"
+            },
+            {
+              "name": "redmatic-9.17.5.tar.gz.sha256",
+              "size": 89,
+              "browser_download_url": "https://github.com/rdmtc/RedMatic/releases/download/v9.17.5/redmatic-9.17.5.tar.gz.sha256"
+            },
+            {
+              "name": "redmatic-aarch64-9.17.5.tar.gz",
+              "size": 98558621,
+              "browser_download_url": "https://github.com/rdmtc/RedMatic/releases/download/v9.17.5/redmatic-aarch64-9.17.5.tar.gz"
+            },
+            {
+              "name": "redmatic-aarch64-9.17.5.tar.gz.sha256",
+              "size": 97,
+              "browser_download_url": "https://github.com/rdmtc/RedMatic/releases/download/v9.17.5/redmatic-aarch64-9.17.5.tar.gz.sha256"
+            },
+            {
+              "name": "redmatic-armv7l-9.17.5.tar.gz",
+              "size": 64402830,
+              "browser_download_url": "https://github.com/rdmtc/RedMatic/releases/download/v9.17.5/redmatic-armv7l-9.17.5.tar.gz"
+            },
+            {
+              "name": "redmatic-armv7l-9.17.5.tar.gz.sha256",
+              "size": 96,
+              "browser_download_url": "https://github.com/rdmtc/RedMatic/releases/download/v9.17.5/redmatic-armv7l-9.17.5.tar.gz.sha256"
+            },
+            {
+              "name": "redmatic-x86_64-9.17.5.tar.gz",
+              "size": 98545472,
+              "browser_download_url": "https://github.com/rdmtc/RedMatic/releases/download/v9.17.5/redmatic-x86_64-9.17.5.tar.gz"
+            },
+            {
+              "name": "redmatic-x86_64-9.17.5.tar.gz.sha256",
+              "size": 96,
+              "browser_download_url": "https://github.com/rdmtc/RedMatic/releases/download/v9.17.5/redmatic-x86_64-9.17.5.tar.gz.sha256"
+            }
+          ]
+        },
         {
           "tag_name": "v9.17.4",
           "name": "v9.17.4",
@@ -19053,266 +19353,6 @@
               "browser_download_url": "https://github.com/rdmtc/RedMatic/releases/download/v9.16.1/redmatic-x86_64-9.16.1.tar.gz.sha256"
             }
           ]
-        },
-        {
-          "tag_name": "v9.16.0",
-          "name": "v9.16.0",
-          "draft": false,
-          "prerelease": false,
-          "html_url": "https://github.com/rdmtc/RedMatic/releases/tag/v9.16.0",
-          "published_at": "2026-10-29T20:07:55Z",
-          "assets": [
-            {
-              "name": "redmatic-9.16.0-sbom-nodes.json",
-              "size": 7580,
-              "browser_download_url": "https://github.com/rdmtc/RedMatic/releases/download/v9.16.0/redmatic-9.16.0-sbom-nodes.json"
-            },
-            {
-              "name": "redmatic-9.16.0-sbom-runtime.json",
-              "size": 315385,
-              "browser_download_url": "https://github.com/rdmtc/RedMatic/releases/download/v9.16.0/redmatic-9.16.0-sbom-runtime.json"
-            },
-            {
-              "name": "redmatic-9.16.0-sbom-www.json",
-              "size": 5564,
-              "browser_download_url": "https://github.com/rdmtc/RedMatic/releases/download/v9.16.0/redmatic-9.16.0-sbom-www.json"
-            },
-            {
-              "name": "redmatic-9.16.0.tar.gz",
-              "size": 61128908,
-              "browser_download_url": "https://github.com/rdmtc/RedMatic/releases/download/v9.16.0/redmatic-9.16.0.tar.gz"
-            },
-            {
-              "name": "redmatic-9.16.0.tar.gz.sha256",
-              "size": 89,
-              "browser_download_url": "https://github.com/rdmtc/RedMatic/releases/download/v9.16.0/redmatic-9.16.0.tar.gz.sha256"
-            },
-            {
-              "name": "redmatic-aarch64-9.16.0.tar.gz",
-              "size": 95269723,
-              "browser_download_url": "https://github.com/rdmtc/RedMatic/releases/download/v9.16.0/redmatic-aarch64-9.16.0.tar.gz"
-            },
-            {
-              "name": "redmatic-aarch64-9.16.0.tar.gz.sha256",
-              "size": 97,
-              "browser_download_url": "https://github.com/rdmtc/RedMatic/releases/download/v9.16.0/redmatic-aarch64-9.16.0.tar.gz.sha256"
-            },
-            {
-              "name": "redmatic-armv7l-9.16.0.tar.gz",
-              "size": 61128908,
-              "browser_download_url": "https://github.com/rdmtc/RedMatic/releases/download/v9.16.0/redmatic-armv7l-9.16.0.tar.gz"
-            },
-            {
-              "name": "redmatic-armv7l-9.16.0.tar.gz.sha256",
-              "size": 96,
-              "browser_download_url": "https://github.com/rdmtc/RedMatic/releases/download/v9.16.0/redmatic-armv7l-9.16.0.tar.gz.sha256"
-            },
-            {
-              "name": "redmatic-x86_64-9.16.0.tar.gz",
-              "size": 95268843,
-              "browser_download_url": "https://github.com/rdmtc/RedMatic/releases/download/v9.16.0/redmatic-x86_64-9.16.0.tar.gz"
-            },
-            {
-              "name": "redmatic-x86_64-9.16.0.tar.gz.sha256",
-              "size": 96,
-              "browser_download_url": "https://github.com/rdmtc/RedMatic/releases/download/v9.16.0/redmatic-x86_64-9.16.0.tar.gz.sha256"
-            }
-          ]
-        },
-        {
-          "tag_name": "v9.15.4",
-          "name": "v9.15.4",
-          "draft": false,
-          "prerelease": false,
-          "html_url": "https://github.com/rdmtc/RedMatic/releases/tag/v9.15.4",
-          "published_at": "2026-10-29T11:00:04Z",
-          "assets": [
-            {
-              "name": "redmatic-9.15.4-sbom-nodes.json",
-              "size": 7580,
-              "browser_download_url": "https://github.com/rdmtc/RedMatic/releases/download/v9.15.4/redmatic-9.15.4-sbom-nodes.json"
-            },
-            {
-              "name": "redmatic-9.15.4-sbom-runtime.json",
-              "size": 315385,
-              "browser_download_url": "https://github.com/rdmtc/RedMatic/releases/download/v9.15.4/redmatic-9.15.4-sbom-runtime.json"
-            },
-            {
-              "name": "redmatic-9.15.4-sbom-www.json",
-              "size": 5564,
-              "browser_download_url": "https://github.com/rdmtc/RedMatic/releases/download/v9.15.4/redmatic-9.15.4-sbom-www.json"
-            },
-            {
-              "name": "redmatic-9.15.4.tar.gz",
-              "size": 61129561,
-              "browser_download_url": "https://github.com/rdmtc/RedMatic/releases/download/v9.15.4/redmatic-9.15.4.tar.gz"
-            },
-            {
-              "name": "redmatic-9.15.4.tar.gz.sha256",
-              "size": 89,
-              "browser_download_url": "https://github.com/rdmtc/RedMatic/releases/download/v9.15.4/redmatic-9.15.4.tar.gz.sha256"
-            },
-            {
-              "name": "redmatic-aarch64-9.15.4.tar.gz",
-              "size": 95268746,
-              "browser_download_url": "https://github.com/rdmtc/RedMatic/releases/download/v9.15.4/redmatic-aarch64-9.15.4.tar.gz"
-            },
-            {
-              "name": "redmatic-aarch64-9.15.4.tar.gz.sha256",
-              "size": 97,
-              "browser_download_url": "https://github.com/rdmtc/RedMatic/releases/download/v9.15.4/redmatic-aarch64-9.15.4.tar.gz.sha256"
-            },
-            {
-              "name": "redmatic-armv7l-9.15.4.tar.gz",
-              "size": 61129561,
-              "browser_download_url": "https://github.com/rdmtc/RedMatic/releases/download/v9.15.4/redmatic-armv7l-9.15.4.tar.gz"
-            },
-            {
-              "name": "redmatic-armv7l-9.15.4.tar.gz.sha256",
-              "size": 96,
-              "browser_download_url": "https://github.com/rdmtc/RedMatic/releases/download/v9.15.4/redmatic-armv7l-9.15.4.tar.gz.sha256"
-            },
-            {
-              "name": "redmatic-x86_64-9.15.4.tar.gz",
-              "size": 95265526,
-              "browser_download_url": "https://github.com/rdmtc/RedMatic/releases/download/v9.15.4/redmatic-x86_64-9.15.4.tar.gz"
-            },
-            {
-              "name": "redmatic-x86_64-9.15.4.tar.gz.sha256",
-              "size": 96,
-              "browser_download_url": "https://github.com/rdmtc/RedMatic/releases/download/v9.15.4/redmatic-x86_64-9.15.4.tar.gz.sha256"
-            }
-          ]
-        },
-        {
-          "tag_name": "v9.15.3",
-          "name": "v9.15.3",
-          "draft": false,
-          "prerelease": false,
-          "html_url": "https://github.com/rdmtc/RedMatic/releases/tag/v9.15.3",
-          "published_at": "2026-10-29T00:00:10Z",
-          "assets": [
-            {
-              "name": "redmatic-9.15.3-sbom-nodes.json",
-              "size": 7580,
-              "browser_download_url": "https://github.com/rdmtc/RedMatic/releases/download/v9.15.3/redmatic-9.15.3-sbom-nodes.json"
-            },
-            {
-              "name": "redmatic-9.15.3-sbom-runtime.json",
-              "size": 315385,
-              "browser_download_url": "https://github.com/rdmtc/RedMatic/releases/download/v9.15.3/redmatic-9.15.3-sbom-runtime.json"
-            },
-            {
-              "name": "redmatic-9.15.3-sbom-www.json",
-              "size": 5564,
-              "browser_download_url": "https://github.com/rdmtc/RedMatic/releases/download/v9.15.3/redmatic-9.15.3-sbom-www.json"
-            },
-            {
-              "name": "redmatic-9.15.3.tar.gz",
-              "size": 61129283,
-              "browser_download_url": "https://github.com/rdmtc/RedMatic/releases/download/v9.15.3/redmatic-9.15.3.tar.gz"
-            },
-            {
-              "name": "redmatic-9.15.3.tar.gz.sha256",
-              "size": 89,
-              "browser_download_url": "https://github.com/rdmtc/RedMatic/releases/download/v9.15.3/redmatic-9.15.3.tar.gz.sha256"
-            },
-            {
-              "name": "redmatic-aarch64-9.15.3.tar.gz",
-              "size": 95267723,
-              "browser_download_url": "https://github.com/rdmtc/RedMatic/releases/download/v9.15.3/redmatic-aarch64-9.15.3.tar.gz"
-            },
-            {
-              "name": "redmatic-aarch64-9.15.3.tar.gz.sha256",
-              "size": 97,
-              "browser_download_url": "https://github.com/rdmtc/RedMatic/releases/download/v9.15.3/redmatic-aarch64-9.15.3.tar.gz.sha256"
-            },
-            {
-              "name": "redmatic-armv7l-9.15.3.tar.gz",
-              "size": 61129283,
-              "browser_download_url": "https://github.com/rdmtc/RedMatic/releases/download/v9.15.3/redmatic-armv7l-9.15.3.tar.gz"
-            },
-            {
-              "name": "redmatic-armv7l-9.15.3.tar.gz.sha256",
-              "size": 96,
-              "browser_download_url": "https://github.com/rdmtc/RedMatic/releases/download/v9.15.3/redmatic-armv7l-9.15.3.tar.gz.sha256"
-            },
-            {
-              "name": "redmatic-x86_64-9.15.3.tar.gz",
-              "size": 95251719,
-              "browser_download_url": "https://github.com/rdmtc/RedMatic/releases/download/v9.15.3/redmatic-x86_64-9.15.3.tar.gz"
-            },
-            {
-              "name": "redmatic-x86_64-9.15.3.tar.gz.sha256",
-              "size": 96,
-              "browser_download_url": "https://github.com/rdmtc/RedMatic/releases/download/v9.15.3/redmatic-x86_64-9.15.3.tar.gz.sha256"
-            }
-          ]
-        },
-        {
-          "tag_name": "v9.15.2",
-          "name": "v9.15.2",
-          "draft": false,
-          "prerelease": false,
-          "html_url": "https://github.com/rdmtc/RedMatic/releases/tag/v9.15.2",
-          "published_at": "2026-10-28T20:04:52Z",
-          "assets": [
-            {
-              "name": "redmatic-9.15.2-sbom-nodes.json",
-              "size": 7580,
-              "browser_download_url": "https://github.com/rdmtc/RedMatic/releases/download/v9.15.2/redmatic-9.15.2-sbom-nodes.json"
-            },
-            {
-              "name": "redmatic-9.15.2-sbom-runtime.json",
-              "size": 315385,
-              "browser_download_url": "https://github.com/rdmtc/RedMatic/releases/download/v9.15.2/redmatic-9.15.2-sbom-runtime.json"
-            },
-            {
-              "name": "redmatic-9.15.2-sbom-www.json",
-              "size": 5564,
-              "browser_download_url": "https://github.com/rdmtc/RedMatic/releases/download/v9.15.2/redmatic-9.15.2-sbom-www.json"
-            },
-            {
-              "name": "redmatic-9.15.2.tar.gz",
-              "size": 61126383,
-              "browser_download_url": "https://github.com/rdmtc/RedMatic/releases/download/v9.15.2/redmatic-9.15.2.tar.gz"
-            },
-            {
-              "name": "redmatic-9.15.2.tar.gz.sha256",
-              "size": 89,
-              "browser_download_url": "https://github.com/rdmtc/RedMatic/releases/download/v9.15.2/redmatic-9.15.2.tar.gz.sha256"
-            },
-            {
-              "name": "redmatic-aarch64-9.15.2.tar.gz",
-              "size": 95260685,
-              "browser_download_url": "https://github.com/rdmtc/RedMatic/releases/download/v9.15.2/redmatic-aarch64-9.15.2.tar.gz"
-            },
-            {
-              "name": "redmatic-aarch64-9.15.2.tar.gz.sha256",
-              "size": 97,
-              "browser_download_url": "https://github.com/rdmtc/RedMatic/releases/download/v9.15.2/redmatic-aarch64-9.15.2.tar.gz.sha256"
-            },
-            {
-              "name": "redmatic-armv7l-9.15.2.tar.gz",
-              "size": 61126383,
-              "browser_download_url": "https://github.com/rdmtc/RedMatic/releases/download/v9.15.2/redmatic-armv7l-9.15.2.tar.gz"
-            },
-            {
-              "name": "redmatic-armv7l-9.15.2.tar.gz.sha256",
-              "size": 96,
-              "browser_download_url": "https://github.com/rdmtc/RedMatic/releases/download/v9.15.2/redmatic-armv7l-9.15.2.tar.gz.sha256"
-            },
-            {
-              "name": "redmatic-x86_64-9.15.2.tar.gz",
-              "size": 95251715,
-              "browser_download_url": "https://github.com/rdmtc/RedMatic/releases/download/v9.15.2/redmatic-x86_64-9.15.2.tar.gz"
-            },
-            {
-              "name": "redmatic-x86_64-9.15.2.tar.gz.sha256",
-              "size": 96,
-              "browser_download_url": "https://github.com/rdmtc/RedMatic/releases/download/v9.15.2/redmatic-x86_64-9.15.2.tar.gz.sha256"
-            }
-          ]
         }
       ],
       "per_page": 10,
@@ -19324,7 +19364,7 @@
       "git": "https://github.com/hobbyquaker/homematic-manager",
       "manifest": "apps/ccu-addon/files/openccu-lite.json",
       "id": "hmm",
-      "tag": "v3.4.2",
+      "tag": "v3.5.1",
       "release_repo": "hobbyquaker/homematic-manager",
       "images": {
         "icon": "ok"
@@ -19334,7 +19374,7 @@
       "git": "https://github.com/rdmtc/RedMatic",
       "manifest": "addon_files/openccu-lite.json",
       "id": "redmatic",
-      "tag": "v9.17.4",
+      "tag": "v9.18.1",
       "release_repo": "rdmtc/RedMatic",
       "images": {
         "icon": "ok",
@@ -19357,7 +19397,7 @@
       "git": "https://github.com/hobbyquaker/hm2mqtt.js",
       "manifest": "addon/files/openccu-lite.json",
       "id": "hm2mqtt",
-      "tag": "v3.10.1",
+      "tag": "v3.10.2",
       "release_repo": "hobbyquaker/hm2mqtt.js",
       "images": {
         "icon": "ok",
@@ -19380,7 +19420,7 @@
       "git": "https://github.com/hobbyquaker/ccu-addon-battery",
       "manifest": "addon/openccu-lite.json",
       "id": "battery",
-      "tag": "v1.2.0",
+      "tag": "v1.3.0",
       "release_repo": "hobbyquaker/ccu-addon-battery",
       "images": {
         "icon": "ok",
@@ -19484,7 +19524,7 @@
       "git": "https://github.com/SukramJ/openccu-loom",
       "manifest": "packaging/ccu-addon/ccu/openccu-lite.json",
       "id": "openccu-loom",
-      "tag": "v0.105.0",
+      "tag": "v0.106.0",
       "release_repo": "SukramJ/openccu-loom",
       "images": {
         "icon": "ok",
@@ -19495,7 +19535,7 @@
       "git": "https://github.com/firsttris/ccu-addon-mui",
       "manifest": "addon_installer/openccu-lite.json",
       "id": "mui",
-      "tag": "v1.0.33",
+      "tag": "v1.0.34",
       "release_repo": "firsttris/ccu-addon-mui",
       "images": {
         "icon": "ok"
