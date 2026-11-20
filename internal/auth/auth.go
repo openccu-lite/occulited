@@ -355,7 +355,15 @@ type Options struct {
 	// Changed is told, off the store's lock, whenever users.json was written or found changed
 	// by another writer (task 193: the favorites nodes follow the accounts). May be nil.
 	Changed func()
+	// UsageEvery is how often the stored tokens' last-use times and addresses reach users.json
+	// (occulited B-154; default DefaultUsageEvery): a token's use is kept in memory, written with
+	// the next save of anything else, by Sweep once it is this old, and at Close.
+	UsageEvery time.Duration
 }
+
+// DefaultUsageEvery is Options.UsageEvery's default: a program polling with a token costs one
+// write of users.json an hour at most, and a crash loses at most an hour of last-use times.
+const DefaultUsageEvery = time.Hour
 
 func (o *Options) defaults() {
 	if o.IdleTimeout == 0 {
@@ -372,6 +380,9 @@ func (o *Options) defaults() {
 	}
 	if o.LockFor == 0 {
 		o.LockFor = 15 * time.Minute
+	}
+	if o.UsageEvery == 0 {
+		o.UsageEvery = DefaultUsageEvery
 	}
 	if o.Now == nil {
 		o.Now = time.Now
@@ -408,6 +419,19 @@ type Store struct {
 	// pending are the logins and ceremonies between their two halves (webauthn.go), by id;
 	// memory only, PendingTTL each
 	pending map[string]pendingLogin
+	// usage is the stored tokens' use since the last save, by name (occulited B-154): a request
+	// with a token never writes users.json - a program polling with one rewrote it every minute,
+	// steady writes to an SD card. Listings show it; every save folds it in (applyUsage).
+	usage map[string]tokenUse
+	// usageSaved is when users.json last took the usage in (or the store opened)
+	usageSaved time.Time
+}
+
+// tokenUse is one stored token's latest use that users.json does not hold yet.
+type tokenUse struct {
+	created time.Time // the token's: a token removed and made again under the name does not inherit it
+	at      time.Time
+	address string // a paired program's address, "" when not to be recorded
 }
 
 // ticket is a one-time credential a session issued for one URL path: a download link that must
@@ -448,7 +472,8 @@ func TicketLifetime(path string) time.Duration {
 // sessions (Options.SessionFile) and rebuilds the gate's mirror from them.
 func Open(dir string, opt Options) (*Store, error) {
 	opt.defaults()
-	s := &Store{path: filepath.Join(dir, "users.json"), opt: opt, users: map[string]*User{}, ephemeral: map[string]*Token{}, sessions: map[string]*live{}, aliases: map[string]string{}, tickets: map[string]ticket{}, failures: map[string][]time.Time{}, locked: map[string]time.Time{}}
+	s := &Store{path: filepath.Join(dir, "users.json"), opt: opt, users: map[string]*User{}, ephemeral: map[string]*Token{}, sessions: map[string]*live{}, aliases: map[string]string{}, tickets: map[string]ticket{}, failures: map[string][]time.Time{}, locked: map[string]time.Time{},
+		usage: map[string]tokenUse{}, usageSaved: opt.Now()}
 	if err := s.reload(); err != nil {
 		return nil, err
 	}
@@ -628,6 +653,9 @@ func (s *Store) saveDurable(durable bool) error {
 	} else if err != nil && !errors.Is(err, os.ErrNotExist) {
 		return err
 	}
+	// after the merge: a use alone never makes a token "changed by this store", so it cannot
+	// outvote what another writer changed on it
+	s.applyUsage()
 	users := make([]*User, 0, len(s.users))
 	for _, u := range s.users {
 		users = append(users, u)
@@ -640,11 +668,55 @@ func (s *Store) saveDurable(durable bool) error {
 		return err
 	}
 	s.synced(st)
+	s.usage, s.usageSaved = map[string]tokenUse{}, s.opt.Now()
 	s.syncGateTokens()
 	if s.opt.Changed != nil {
 		go s.opt.Changed() // off the lock: the listener reads the accounts back
 	}
 	return nil
+}
+
+// applyUsage writes the use kept in memory into the stored tokens (occulited B-154). A use of a
+// token that is gone, or was made again under its name, is dropped.
+func (s *Store) applyUsage() {
+	for _, t := range s.tokens {
+		if u, ok := s.usage[t.Name]; ok && u.created.Equal(t.Created) {
+			t.LastUsed, t.Client = withUse(t.LastUsed, t.Client, u)
+		}
+	}
+}
+
+// withUse is a token's last-use time and client record with the use u in it; the client record
+// is copied when it changes, so a listing's copy never shares it with the store.
+func withUse(last *time.Time, client *TokenClient, u tokenUse) (*time.Time, *TokenClient) {
+	if last == nil || u.at.After(*last) {
+		at := u.at
+		last = &at
+	}
+	if client != nil && u.address != "" && client.LastAddress != u.address {
+		c := *client
+		c.LastAddress = u.address
+		client = &c
+	}
+	return last, client
+}
+
+// saveUsage writes users.json when it misses a token's use (occulited B-154); durable as for save.
+func (s *Store) saveUsage(durable bool) {
+	if len(s.usage) == 0 {
+		return
+	}
+	if err := s.saveDurable(durable); err != nil {
+		slog.Warn("users: cannot write the tokens' last-use times", "path", s.path, "err", err)
+	}
+}
+
+// FlushUsage writes the tokens' use kept in memory to users.json now, when there is any.
+func (s *Store) FlushUsage() {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	_ = s.reload()
+	s.saveUsage(true)
 }
 
 // merge folds users.json as another writer left it (doc) into memory, record by record: what
@@ -1866,14 +1938,21 @@ func (s *Store) Sweep() {
 	if n > 0 {
 		s.saveSessions(true)
 	}
+	// occulited B-154: the tokens' use, once UsageEvery after the last save; without the fsync,
+	// as on the request path before (B-146) - the lock is held while it writes
+	if now.Sub(s.usageSaved) >= s.opt.UsageEvery {
+		s.saveUsage(false)
+	}
 	s.syncGateTokens() // an expired token, or a rotation's previous secret past its minute, leaves the gate
 }
 
-// Close writes the last-seen times the session store does not have yet; call it at a clean
-// shutdown.
+// Close writes the last-seen times the session store does not have yet and the tokens' use
+// users.json does not have yet; call it at a clean shutdown.
 func (s *Store) Close() {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	_ = s.reload()
+	s.saveUsage(true)
 	for _, x := range s.sessions {
 		if x.method != methodAnonymous && !x.lastSeen.Equal(x.saved) {
 			s.saveSessions(false)
@@ -2552,6 +2631,7 @@ func (s *Store) DeleteToken(name string) error {
 	for i, t := range s.tokens {
 		if t.Name == name {
 			s.tokens = append(s.tokens[:i], s.tokens[i+1:]...)
+			delete(s.usage, name)
 			return s.save()
 		}
 	}
@@ -2567,6 +2647,9 @@ func (s *Store) Tokens() []Token {
 	for _, t := range s.tokens {
 		c := *t
 		c.Hash, c.PrevHash, c.PrevUntil = "", "", nil
+		if u, ok := s.usage[t.Name]; ok && u.created.Equal(t.Created) {
+			c.LastUsed, c.Client = withUse(c.LastUsed, c.Client, u)
+		}
 		out = append(out, c)
 	}
 	sort.Slice(out, func(i, j int) bool { return out[i].Name < out[j].Name })
@@ -2624,16 +2707,16 @@ func (s *Store) validateTokenLocked(secret, remote string) *Session {
 	}
 	for _, t := range s.tokens {
 		if sess := found(t); sess != nil {
-			// task 219: a paired program's list line says where it was last seen from
-			moved := t.Client != nil && remote != "" && t.Client.LastAddress != remote
-			if moved {
-				t.Client.LastAddress = remote
+			// occulited B-154: kept in memory, users.json takes it with the next save, Sweep's
+			// once an hour or Close's - never on the request path. Task 219: a paired program's
+			// list line says where it was last seen from.
+			u := tokenUse{created: t.Created, at: now}
+			if t.Client != nil && remote != "" && remote != remoteAnyRange {
+				u.address = remote
+			} else if prev, ok := s.usage[t.Name]; ok && prev.created.Equal(t.Created) {
+				u.address = prev.address // a use without an address keeps the one seen before
 			}
-			if moved || t.LastUsed == nil || now.Sub(*t.LastUsed) > time.Minute {
-				t.LastUsed = &now
-				// occulited B-146: on the request path, under the lock - no fsync (saveDurable)
-				_ = s.saveDurable(false)
-			}
+			s.usage[t.Name] = u
 			return sess
 		}
 	}
