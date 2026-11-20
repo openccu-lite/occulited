@@ -44,3 +44,34 @@ func TestJournalPageBeforeIsOldestFirst(t *testing.T) {
 		t.Errorf("%+v", lines)
 	}
 }
+
+// occulited task 158: systemd 258's journalctl answers -g with -n newest first; a text-filtered
+// read comes out oldest first like every other, and one already in order stays as it is.
+func TestJournalGrepIsOldestFirst(t *testing.T) {
+	newest := `{"__CURSOR":"s=1;i=3","__REALTIME_TIMESTAMP":"1757350803000000","MESSAGE":"included","PRIORITY":"6"}
+{"__CURSOR":"s=1;i=2","__REALTIME_TIMESTAMP":"1757350802000000","MESSAGE":"asked","PRIORITY":"6"}
+`
+	oldest := `{"__CURSOR":"s=1;i=2","__REALTIME_TIMESTAMP":"1757350802000000","MESSAGE":"asked","PRIORITY":"6"}
+{"__CURSOR":"s=1;i=3","__REALTIME_TIMESTAMP":"1757350803000000","MESSAGE":"included","PRIORITY":"6"}
+`
+	for _, tc := range []struct {
+		name, out string
+		q         LogQuery
+		want      string
+	}{
+		{"grep, newest first", newest, LogQuery{Limit: 500, Contains: "asked|included"}, "asked included"},
+		{"grep, oldest first", oldest, LogQuery{Limit: 500, Contains: "asked|included"}, "asked included"},
+		// without a text filter journalctl's order is kept
+		{"no grep", newest, LogQuery{Limit: 500}, "included asked"},
+	} {
+		j := JournalLog{Run: func(context.Context, string, ...string) ([]byte, error) { return []byte(tc.out), nil }}
+		lines, err := j.Read(tc.q)
+		var got []string
+		for _, l := range lines {
+			got = append(got, l.Message)
+		}
+		if err != nil || strings.Join(got, " ") != tc.want {
+			t.Errorf("%s: %v %v, want %s", tc.name, err, got, tc.want)
+		}
+	}
+}

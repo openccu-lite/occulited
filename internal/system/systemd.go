@@ -954,8 +954,24 @@ func (j JournalLog) Read(q LogQuery) ([]LogLine, error) {
 	}
 	if q.Before != "" {
 		slices.Reverse(lines) // read newest first from the cursor; the answer is oldest first
+	} else if q.Contains != "" && !q.Head && newestFirst(lines) {
+		// systemd 258's journalctl answers -g with -n with the newest N matches walked backward,
+		// newest first, where the same read without -g is oldest first (seen on the image's
+		// 258.12, occulited task 158: a pairing's "Device included" came before its request)
+		slices.Reverse(lines)
 	}
 	return lines, nil
+}
+
+// newestFirst says whether a read came back newest first: its first line is later than its
+// last. Lines without a time say nothing.
+func newestFirst(lines []LogLine) bool {
+	if len(lines) < 2 {
+		return false
+	}
+	first, err1 := time.Parse(time.RFC3339Nano, lines[0].Timestamp)
+	last, err2 := time.Parse(time.RFC3339Nano, lines[len(lines)-1].Timestamp)
+	return err1 == nil && err2 == nil && first.After(last)
 }
 
 // noMatchExit: journalctl's own text filter (-g, LogQuery.Contains) exits 1 when its expression
