@@ -76,9 +76,14 @@ func TestOpenAPIFromHandlers(t *testing.T) {
 		{Method: "GET", Path: "/api/x/v1/sse", Scopes: []string{"x:read"}, Doc: Doc{Summary: "sse", Stream: true}},
 		{Method: "GET", Path: "/api/x/v1/multi", Scopes: []string{"x:read"}, Handler: handler("multi"), Doc: Doc{Summary: "multi"}},
 		{Method: "GET", Path: "/api/x/v1/viewed", Scopes: []string{"x:read"}, Handler: handler("viewed"), Doc: Doc{Summary: "viewed"}},
+		{Method: "GET", Path: "/api/x/v1/revalidated", Scopes: []string{"x:read"}, Handler: handler("revalidated"), Doc: Doc{Summary: "revalidated"}},
 		{Method: "GET", Path: "/health", Doc: Doc{Summary: "health", RespSchema: Schema{"type": "object"}}},
 	}
 	doc := fixtureDoc(t, routes)
+	// occulited task 162: writeJSONRevalidated's answer is documented like writeJSON's
+	if got := js(at(t, doc, "paths", "/api/x/v1/revalidated", "get", "responses", "200", "content", "application/json", "schema")); got != `{"$ref":"#/components/schemas/Base"}` {
+		t.Errorf("revalidated answer: %s", got)
+	}
 	if at(t, doc, "openapi") != "3.1.1" {
 		t.Error("not 3.1")
 	}

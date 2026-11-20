@@ -56,6 +56,10 @@ func (f *fakeHelper) NetMountRemove(_ context.Context, id string) error {
 	f.calls = append(f.calls, "remove "+id)
 	return nil
 }
+func (f *fakeHelper) BackupTag(_ context.Context, dir string) error {
+	f.calls = append(f.calls, "tag "+dir)
+	return nil
+}
 func (f *fakeHelper) WriteTest(_ context.Context, dir string) (priv.WriteTestResult, error) {
 	f.calls = append(f.calls, "test "+dir)
 	return f.test, nil

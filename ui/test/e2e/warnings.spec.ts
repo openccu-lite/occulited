@@ -235,6 +235,49 @@ test('in German the declined pairing is translated', async ({page, baseURL}, inf
     await expect(notice.getByRole('link', {name: 'Geräteschlüssel', exact: true})).toBeVisible();
 });
 
+// occulited task 158 (the maintainer, 2026-11-20): no reachability check before a pairing; a pairing
+// that fails says why. Each reason its sentence, its button where it is handled, and the panel there
+// carrying the edge; a device the key server refused has nothing on this system to go to.
+const PAIRED = '3014F711A0001F0000000B05';
+for (const c of [
+    {reason: 'key-server-unreachable', text: `The device ${PAIRED} asked to join, but the system could not reach eQ-3's key server (secgtw.homematic.com, port 8443).`, link: 'Network', url: /\/system\/network/, panel: 'name-resolution'},
+    {reason: 'key-server-unreachable:503', text: "answered with HTTP status 503 instead of the device's key", link: 'Network', url: /\/system\/network/, panel: 'name-resolution'},
+    {reason: 'no-key', text: 'the system has no key for it, and in local key mode', link: 'Device keys', url: /\/system\/keys/, panel: 'device-keys'},
+    {reason: 'key-invalid', text: `The key stored for the device ${PAIRED} is no valid device key (wrong length).`, link: 'Device keys', url: /\/system\/keys/, panel: 'device-keys'},
+    {reason: 'unsupported-device', text: "the system's HmIP software does not know its device type yet", link: 'Updates', url: /\/system\/updates/, panel: 'system-update'},
+]) {
+    test(`a failed pairing says why: ${c.reason}`, async ({page, baseURL}, info) => {
+        await plant(page, baseURL!, info, {'stub-pairing-failed': c.reason});
+        await page.goto('/');
+        const notice = page.locator('[data-warnings] [data-notice="hmip-pairing-failed"]');
+        await expect(notice).toHaveAttribute('data-severity', 'warning');
+        await expect(notice.locator('.ol-notice-text')).toContainText(c.text);
+        await notice.getByRole('link', {name: c.link, exact: true}).click();
+        await expect(page).toHaveURL(c.url);
+        await expect(page.locator(`[data-panel="${c.panel}"][data-warn-for~="hmip-pairing-failed"]`)).toHaveAttribute('data-warn-edge', 'warn');
+    });
+}
+
+test('a device the key server refused: the sentence, no button, and no panel elsewhere takes the edge', async ({page, baseURL}, info) => {
+    await plant(page, baseURL!, info, {'stub-pairing-failed': 'key-server-refused'});
+    await page.goto('/');
+    const notice = page.locator('[data-warnings] [data-notice="hmip-pairing-failed"]');
+    await expect(notice.locator('.ol-notice-text')).toContainText(`eQ-3's key server did not accept the device ${PAIRED}. Usually it is still paired with another central unit`);
+    await expect(notice.getByRole('link', {name: /Device keys|Network|Updates|Open page/})).toHaveCount(0);
+    await page.goto('/system/keys');
+    await expect(page.locator('[data-panel="device-keys"]')).toBeVisible();
+    await expect(page.locator('[data-panel="device-keys"]')).not.toHaveAttribute('data-warn-edge', /./);
+});
+
+test('in German a failed pairing is translated', async ({page, baseURL}, info) => {
+    await page.addInitScript(() => localStorage.setItem('ol.language', 'de'));
+    await plant(page, baseURL!, info, {'stub-pairing-failed': 'key-server-unreachable'});
+    await page.goto('/');
+    const notice = page.locator('[data-notice="hmip-pairing-failed"]');
+    await expect(notice.locator('.ol-notice-text')).toContainText(`Das Gerät ${PAIRED} wollte sich anmelden, aber das System hat den Schlüsselserver von eQ-3 nicht erreicht`);
+    await expect(notice.getByRole('link', {name: 'Netzwerk', exact: true})).toBeVisible();
+});
+
 // occulited task 14: `occulited admin reset-auth` on the console leaves a notice for a week -
 // which account, when, and what to do when nobody with root did it; the button goes to Users
 test('a console reset of an account is a notice on the Status page, in English and German', async ({page, baseURL}, info) => {

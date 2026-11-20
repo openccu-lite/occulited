@@ -17,6 +17,7 @@ import (
 
 	"github.com/hobbyquaker/occulited/internal/backupcrypt"
 	"github.com/hobbyquaker/occulited/internal/netmount"
+	"github.com/hobbyquaker/occulited/internal/priv"
 	"github.com/hobbyquaker/occulited/internal/shares"
 )
 
@@ -83,8 +84,11 @@ type Pipeline struct {
 	Create func(ctx context.Context, path string) error
 	// UID and GID are occulite's: the staged files, run.json and last.json become theirs.
 	UID, GID int
-	Now      func() time.Time
-	Log      *slog.Logger
+	// Chown gives a path to UID and GID; nil = os.Lchown when this process is root, nothing
+	// otherwise (the tests record it).
+	Chown func(path string, uid, gid int) error
+	Now   func() time.Time
+	Log   *slog.Logger
 	// ListLocal and OpenLocal read a directory or share target's backups for an addon target that
 	// uploads from it (occulited task 150); nil = the files as this process reads them.
 	ListLocal func(ctx context.Context, t Target) ([]BackupFile, error)
@@ -136,19 +140,113 @@ func (p *Pipeline) Select(instance string) ([]Target, error) {
 }
 
 func (p *Pipeline) own(path string) {
+	if p.Chown != nil {
+		_ = p.Chown(path, p.UID, p.GID)
+		return
+	}
 	if os.Geteuid() == 0 {
-		_ = os.Chown(path, p.UID, p.GID)
+		_ = os.Lchown(path, p.UID, p.GID)
+	}
+}
+
+// ownedDir makes a directory occulite's with mode 0700: created when it is missing, given back
+// when root made it before (occulited B-152). Never through a link.
+func (p *Pipeline) ownedDir(dir string) error {
+	if err := os.Mkdir(dir, 0o700); err != nil && !errors.Is(err, os.ErrExist) {
+		return err
+	}
+	fi, err := os.Lstat(dir)
+	if err != nil {
+		return err
+	}
+	if !fi.IsDir() {
+		return fmt.Errorf("%s is not a directory", dir)
+	}
+	p.own(dir)
+	return os.Chmod(dir, 0o700)
+}
+
+// secretDir makes backup-targets/<id> for a result the root half writes: every level occulite's,
+// so the daemon (occulite) reads last.json. occulited B-152: os.MkdirAll left a first run's
+// backup-targets/ root:root 0700 and only the target's folder was chowned.
+func (p *Pipeline) secretDir(id string) (string, error) {
+	if _, err := os.Stat(p.Store.Dir); err != nil {
+		return "", err
+	}
+	base := filepath.Join(p.Store.Dir, SecretsDir)
+	if err := p.ownedDir(base); err != nil {
+		return "", err
+	}
+	dir := p.Store.SecretDir(id)
+	if err := p.ownedDir(dir); err != nil {
+		return "", err
+	}
+	return dir, nil
+}
+
+// repairSecrets gives back a backup-targets/ that an earlier root half left root's, with the
+// targets' folders in it (occulited B-152: systems whose first run made it). The root half does
+// it at the start of every run - it is root anyway, and the daemon would need a new privileged
+// operation on its own state directory for it. Not recursive: the files in a folder are written
+// by occulite or given to it where root writes them.
+func (p *Pipeline) repairSecrets() {
+	base := filepath.Join(p.Store.Dir, SecretsDir)
+	fi, err := os.Lstat(base)
+	if err != nil || !fi.IsDir() {
+		return
+	}
+	_ = p.ownedDir(base)
+	entries, err := os.ReadDir(base)
+	if err != nil {
+		return
+	}
+	for _, e := range entries {
+		if e.IsDir() {
+			_ = p.ownedDir(filepath.Join(base, e.Name()))
+		}
+	}
+}
+
+// tagDirectory writes .nobackup into a directory target's folder when the folder is there
+// (occulited B-153): createBackup.sh archives /usr/local with --exclude-tag=.nobackup, so a folder
+// on the userfs keeps the earlier backups out of the next one. Every directory target, on the
+// userfs or not - the tag changes nothing on a stick. Never into a missing folder (the probe makes
+// a ready target's, and tags it then) nor under /media without its stick (task 161).
+func (p *Pipeline) tagDirectory(t Target) {
+	if t.Kind != KindDirectory || t.Dir() == "" {
+		return
+	}
+	if missing, _ := noMedium(t); missing {
+		return
+	}
+	if fi, err := os.Stat(t.Dir()); err != nil || !fi.IsDir() {
+		return
+	}
+	if err := priv.TagNoBackup(t.Dir()); err != nil {
+		p.log().Warn("backup: the directory target's folder is not tagged .nobackup: the next backup takes in the earlier ones", "target", t.ID, "dir", t.Dir(), "err", err)
+	}
+}
+
+// tagDirectories tags every directory target's folder at the start of a run, enabled or not: the
+// root half repairs targets saved before the tag existed, and a switched-off target's backups on
+// the userfs are no more welcome in the archive than an active one's.
+func (p *Pipeline) tagDirectories() {
+	list, err := p.Store.List()
+	if err != nil {
+		return
+	}
+	for _, t := range list {
+		p.tagDirectory(t)
 	}
 }
 
 // writeResult writes a target's last.json, occulite's.
 func (p *Pipeline) writeResult(t Target, r Result) {
-	dir := p.Store.SecretDir(t.ID)
-	if err := os.MkdirAll(dir, 0o700); err != nil {
+	dir, err := p.secretDir(t.ID)
+	if err != nil {
 		p.log().Warn("backup: result not written", "target", t.ID, "err", err)
 		return
 	}
-	p.own(dir)
 	if err := WriteResult(dir, r); err != nil {
 		p.log().Warn("backup: result not written", "target", t.ID, "err", err)
 		return
@@ -255,6 +353,8 @@ func wantsAge(t Target, enabled bool) bool { return t.Encrypt && enabled }
 // directory or mount target failed; the deliver unit runs either way.
 func (p *Pipeline) CreateRun(ctx context.Context, instance string) error {
 	log := p.log()
+	p.repairSecrets()
+	p.tagDirectories()
 	if instance == "nightly" && !p.Store.Nightly() {
 		log.Info("backup: the nightly backup is switched off")
 		return nil
@@ -318,6 +418,8 @@ func (p *Pipeline) CreateRun(ctx context.Context, instance string) error {
 				log.Warn("backup: skipped, the target cannot take a file", "target", t.ID, "kind", t.Kind, "state", r.State, "step", r.Step, "err", r.Error)
 				continue
 			}
+			// B-153: before createBackup.sh - a folder the probe has just made is tagged now
+			p.tagDirectory(t)
 			// B-247: on the system's own user partition, room for a system update first
 			removed, r, ok := precheckRoom(t, p.Staging, at, instance)
 			if len(removed) > 0 {

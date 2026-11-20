@@ -8,14 +8,14 @@ test('a subscriber list opens and closes in every component panel', async ({page
     await page.goto('/');
     const subs = page.locator('.ol-components .ol-if-subs');
     const lists = page.locator('.ol-components .ol-if-clients');
-    // the stub's two interface cards with subscribers: BidCos-RF and HmIP-RF
-    await expect(subs).toHaveCount(2);
+    // the stub's three interface cards with subscribers: BidCos-RF, HmIP-RF and VirtualDevices (occulited task 157)
+    await expect(subs).toHaveCount(3);
     await expect(lists).toHaveCount(0);
     const card = (n: string) => page.locator(`.ol-components [data-component="${n}"]`);
     const before = await card('HmIP-RF').locator('.ol-if-subs').boundingBox();
     await card('BidCos-RF').locator('.ol-if-subs').click();
-    await expect(lists).toHaveCount(2);
-    for (const n of ['BidCos-RF', 'HmIP-RF']) {
+    await expect(lists).toHaveCount(3);
+    for (const n of ['BidCos-RF', 'HmIP-RF', 'VirtualDevices']) {
         await expect(card(n).locator('.ol-if-subs')).toHaveAttribute('aria-expanded', 'true');
         await expect(card(n).locator('.ol-if-clients li').first()).toBeVisible();
     }
@@ -24,7 +24,7 @@ test('a subscriber list opens and closes in every component panel', async ({page
     expect([after!.width, after!.height]).toEqual([before!.width, before!.height]);
     // remembered: a reload shows them open
     await page.reload();
-    await expect(lists).toHaveCount(2);
+    await expect(lists).toHaveCount(3);
     // closing one closes all
     await card('HmIP-RF').locator('.ol-if-subs').click();
     await expect(lists).toHaveCount(0);

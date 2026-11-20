@@ -33,6 +33,10 @@ func (h *targetsHelper) NetMountRemove(_ context.Context, id string) error {
 	h.calls = append(h.calls, "remove "+id)
 	return nil
 }
+func (h *targetsHelper) BackupTag(_ context.Context, dir string) error {
+	h.calls = append(h.calls, "tag "+dir)
+	return nil
+}
 func (h *targetsHelper) WriteTest(_ context.Context, dir string) (priv.WriteTestResult, error) {
 	h.calls = append(h.calls, "test "+dir)
 	return priv.WriteTestResult{OK: true, Step: "done", FSType: "vfat", FreeBytes: 1 << 30, TotalBytes: 2 << 30}, nil
@@ -91,6 +95,17 @@ func TestBackupTargetsRoutes(t *testing.T) {
 	nfsID := out["target"].(map[string]any)["id"].(string)
 	if strings.Contains(strings.Join(h.calls, "|"), "mount ") {
 		t.Fatalf("a share target renders no units: %q", h.calls)
+	}
+	// B-153: the directory target's folder is tagged .nobackup through the helper when it is saved;
+	// the SFTP and share targets are not tagged
+	tags := []string{}
+	for _, c := range h.calls {
+		if strings.HasPrefix(c, "tag ") {
+			tags = append(tags, c)
+		}
+	}
+	if len(tags) != 1 || tags[0] != "tag "+filepath.Join(string(g.root), "/media/usb1/backup") {
+		t.Fatalf("tags %q", tags)
 	}
 	// the list: three targets, the kinds and the nightly switch
 	st, out = g.do(t, "GET", "/backup/targets", "")

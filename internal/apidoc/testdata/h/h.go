@@ -200,3 +200,15 @@ func (a *API) Handlers() map[string]http.HandlerFunc {
 		"download": a.download, "redirect": a.redirect, "factory": a.factory("x"), "computed": a.computed, "multi": a.multi, "viewed": a.viewed,
 	}
 }
+
+// writeJSONRevalidated is occulited's ETag writer (occulited task 162): the answer is its last
+// argument, the code the one before.
+func writeJSONRevalidated(w http.ResponseWriter, r *http.Request, status int, v any) {
+	_ = r
+	writeJSON(w, status, v)
+}
+
+// revalidated answers through the ETag writer.
+func (a *API) revalidated(w http.ResponseWriter, r *http.Request) {
+	writeJSONRevalidated(w, r, 200, Base{})
+}

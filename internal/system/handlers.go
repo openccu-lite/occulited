@@ -181,6 +181,39 @@ func (r Root) SubscriberSummary(name string) (SubscriberSummary, bool) {
 	return out, true
 }
 
+// VirtualDevicesVia names the interfaces the VirtualDevices process - hmipserver's groups face -
+// holds an event subscription on (occulited task 157, the Status page's subtitle "via BidCos-RF,
+// HmIP-RF"): every interface of InterfacesList.xml whose handlers file has an entry with a callback
+// on this system at the port of the VirtualDevices URL (http://127.0.0.1:39292/bidcos beside
+// xmlrpc://127.0.0.1:39292/groups), or under the id hmipserver registers with, "<interface>_java".
+// The handlers files are what the daemons keep themselves: a registration hmipserver never made
+// is not listed. In InterfacesList.xml's order; nil without a VirtualDevices entry.
+func (r Root) VirtualDevicesVia() []string {
+	list := parseInterfacesList(readFile(r.join("/etc/config/InterfacesList.xml")))
+	port, have := 0, false
+	for _, i := range list {
+		if i.Name == "VirtualDevices" {
+			port, have = urlPort(i.URL), true
+		}
+	}
+	if !have {
+		return nil
+	}
+	out := []string{}
+	for _, i := range list {
+		if i.Name == "VirtualDevices" {
+			continue
+		}
+		for _, s := range r.InterfaceSubscribers(i.Name) {
+			if s.Local && ((port > 0 && urlPort(s.URL) == port) || s.ID == i.Name+"_java") {
+				out = append(out, i.Name)
+				break
+			}
+		}
+	}
+	return out
+}
+
 // HoldsRegistration says whether the daemon of interface name has taken the registration id ->
 // callback: its handlers file lists exactly that entry, and was written at or after since (less a
 // second, for a clock that stamps coarsely). openccu-lite B-270: hmipserver writes the entry when

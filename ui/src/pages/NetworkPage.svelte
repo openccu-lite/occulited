@@ -716,7 +716,8 @@
          one grid -->
     <h2>{t('System')}</h2>
     <div class="ol-ifaces ol-syspanels">
-        <section class="ol-card" data-panel="name-resolution">
+        <!-- occulited task 158: a pairing that did not reach eQ-3's key server leads here -->
+        <section class="ol-card {warnEdge(['hmip-pairing-failed'], 'key-server-unreachable')}" data-panel="name-resolution" {...warnFor(['hmip-pairing-failed'], 'key-server-unreachable')}>
             <div class="ol-card-head">
                 <span class="ol-card-icon"><Icon name="tag" size={14} /></span>
                 <div class="ol-card-titles"><h3 class="ol-card-title">{t('Name resolution')}{#if editable}<Help>{t('The name this system answers to, and the servers it asks. A hostname change is saved directly; a DNS change goes through the same confirmation as an address change.')}</Help>{/if}</h3></div>

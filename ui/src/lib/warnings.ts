@@ -84,7 +84,7 @@ export interface Warning {
     id: string;
     variant: string;
     severity: Severity;
-    params?: {addon?: string; title?: Record<string, string>; text?: Record<string, string>; posted?: string; expires?: string; addons?: WarnAddon[]; updates?: WarnUpdate[]; account?: string; at?: string; path?: string; days?: number; verdict?: string; reasons?: StorageReason[]; devices?: WarnDevice[]; mode?: string; reason?: string; adapter?: string; cause?: string; line?: string; families?: string[]; unreachable?: number; total?: number; port?: number; addresses?: string; sgtin?: string; address?: string; name?: string; detail?: string; label?: string; dir?: string; target?: string; share?: string; reconnecting?: boolean; interface?: string; kind?: string; since?: string; checked?: boolean; listeners?: StallListener[]; folder?: string; device?: string; running?: string; latest?: string; staged?: boolean; newest?: string; node?: string; drops_off?: boolean; hosts?: string[]; issuer?: string; store?: string; candidate?: boolean; from?: string; module?: string; version?: string; channel?: string; url?: string; minimum?: string; count?: number; bytes?: number; units?: WarnLoopUnit[]; fails?: number; failures?: number; restarts?: number; result?: string; first?: string; last?: string; written?: number; calc?: number; current?: number; offset?: number; wraps_at?: string; clock_state?: string; behind?: boolean; source?: string; duty_cycle?: number; carrier_sense?: number; transfer?: boolean; purpose?: string; host?: string; subject?: string; fingerprint?: string; spki?: string; accounts?: {user: string; at: string}[]; way?: string; by?: string; targets?: string; first_boot_journal?: string; first_boot_journal_size?: number; parents?: WarnParent[]; celsius?: number; warn_c?: number; max_c?: number; disks?: WarnHotDisk[]};
+    params?: {addon?: string; title?: Record<string, string>; text?: Record<string, string>; posted?: string; expires?: string; addons?: WarnAddon[]; updates?: WarnUpdate[]; account?: string; at?: string; path?: string; days?: number; verdict?: string; reasons?: StorageReason[]; devices?: WarnDevice[]; mode?: string; reason?: string; adapter?: string; cause?: string; line?: string; families?: string[]; unreachable?: number; total?: number; port?: number; addresses?: string; sgtin?: string; address?: string; name?: string; detail?: string; label?: string; dir?: string; target?: string; share?: string; reconnecting?: boolean; interface?: string; kind?: string; since?: string; checked?: boolean; listeners?: StallListener[]; folder?: string; device?: string; running?: string; latest?: string; staged?: boolean; newest?: string; node?: string; drops_off?: boolean; hosts?: string[]; issuer?: string; store?: string; candidate?: boolean; from?: string; module?: string; version?: string; channel?: string; url?: string; minimum?: string; count?: number; bytes?: number; units?: WarnLoopUnit[]; fails?: number; failures?: number; restarts?: number; result?: string; first?: string; last?: string; written?: number; calc?: number; current?: number; offset?: number; wraps_at?: string; clock_state?: string; behind?: boolean; source?: string; duty_cycle?: number; carrier_sense?: number; transfer?: boolean; purpose?: string; host?: string; subject?: string; fingerprint?: string; spki?: string; accounts?: {user: string; at: string}[]; way?: string; by?: string; targets?: string; first_boot_journal?: string; first_boot_journal_size?: number; parents?: WarnParent[]; celsius?: number; warn_c?: number; max_c?: number; disks?: WarnHotDisk[]; http_status?: number};
     href?: string;
     /** this administrator's own silence (D-64) */
     silenced?: Silence;
@@ -371,6 +371,32 @@ export function warningText(w: Warning, words: Words): string {
             // task 201: the device's key in the system's key list is not the device's, so hmipserver
             // declines its pairing and the device never appears
             return t("Pairing {sgtin} was declined: the device's key given to the system (stored here, or entered for the pairing) does not match the device. Scan or type the key from its sticker again, apply it, and put the device into pairing mode once more; if it no longer tries, reset it to its factory settings first.", {sgtin: p.sgtin ?? ''});
+        case 'hmip-pairing-failed': {
+            // occulited task 158: an HmIP pairing failed for a reason hmipserver wrote down (params.reason,
+            // the sentences of GET /radio/hmip/pairing; a Go test holds the two to each other)
+            const sgtin = p.sgtin ?? '';
+            switch (p.reason) {
+                case 'key-invalid':
+                    return t("The key stored for the device {sgtin} is no valid device key (wrong length). Remove it on the Keys page, scan or type the key from the device's sticker again, apply it, and pair the device once more.", {sgtin});
+                case 'unsupported-device':
+                    return t("The device {sgtin} asked to join, but the system's HmIP software does not know its device type yet, so it cannot be paired. A system update with a newer HmIP software brings it.", {sgtin});
+                case 'no-key':
+                    return t("The device {sgtin} asked to join, but the system has no key for it, and in local key mode eQ-3's key server is never asked. Pair it with its key (SGTIN and KEY from its sticker), or store the key on the Keys page first.", {sgtin});
+                case 'key-server-refused':
+                    return t("eQ-3's key server did not accept the device {sgtin}. Usually it is still paired with another central unit (a CCU or the Homematic IP app): remove it there, reset it to its factory settings, and pair it again.", {sgtin});
+                case 'key-server-unreachable':
+                    if (p.http_status) return t("The device {sgtin} asked to join, but eQ-3's key server (secgtw.homematic.com, port 8443) answered with HTTP status {status} instead of the device's key. Check the internet connection, a proxy and the firewall, then pair it again; the key server may also be down for a while.", {sgtin, status: String(p.http_status)});
+                    return t("The device {sgtin} asked to join, but the system could not reach eQ-3's key server (secgtw.homematic.com, port 8443). Check the internet connection, the DNS settings and the firewall, then pair it again.", {sgtin});
+                case 'key-mismatch':
+                    return t("The device {sgtin} answered, but the key given to the system for it (entered for the pairing, or stored on the Keys page) does not match it. Check the key (QR code or KEY on its sticker) and pair it again; if it no longer tries, reset it to its factory settings first.", {sgtin});
+                case 'other-device':
+                    return t("The device {sgtin} asked to join, but the pairing was open for another SGTIN. Compare the SGTIN entered for the pairing with the device's sticker and start the pairing again.", {sgtin});
+                case 'no-install-mode':
+                    return t("The device {sgtin} asked to join while no pairing was open. Start the pairing first, then put the device into pairing mode.", {sgtin});
+                default:
+                    return t("The device {sgtin} asked to join, but the pairing did not complete. Keep it close to the system, put it into pairing mode again and pair it once more; if that fails as well, reset it to its factory settings first.", {sgtin});
+            }
+        }
         case 'hmip-security-counter': {
             // openccu-lite task 299 (eq-3/occu#134): the HmIP security counter near, past or below its wrap
             const sgtin = p.sgtin ?? '';
@@ -519,8 +545,16 @@ const LINK_LABELS: Record<string, string> = {
 /** the button to where the matter is handled (task 53): the page's name, or what it does there */
 export function warningLink(w: Warning, t: Translate): {href: string; label: string} | null {
     if (!w.href) return null;
+    // occulited task 158: a failed pairing leads where its reason is handled
+    if (w.id === 'hmip-pairing-failed') return {href: w.href, label: t(PAIRING_LINK_LABELS[w.href] ?? 'Open page')};
     return {href: w.href, label: t(LINK_LABELS[w.id] ?? 'Open page')};
 }
+
+const PAIRING_LINK_LABELS: Record<string, string> = {
+    '/system/keys#device-keys': 'Device keys',
+    '/system/network': 'Network',
+    '/system/updates#system-update': 'Updates',
+};
 
 /** the warnings on show, and the ones this administrator silenced, each in the order they came */
 export function splitSilenced(list: Warning[]): {shown: Warning[]; silenced: Warning[]} {

@@ -81,3 +81,47 @@ describe('the stored session id (occulited task 127)', () => {
         expect(events).toEqual([]);
     });
 });
+
+describe('a tagged GET revalidates its held answer itself (occulited task 162)', () => {
+    beforeEach(() => {
+        vi.stubGlobal('sessionStorage', new MemStorage());
+        vi.stubGlobal('window', {dispatchEvent: () => true});
+    });
+    afterEach(() => {
+        vi.unstubAllGlobals();
+        vi.restoreAllMocks();
+    });
+
+    it('sends the ETag it holds, takes a 304 as the held answer and a 200 as the new one', async () => {
+        const {api} = await import('./api');
+        const sent: {inm?: string; cache?: string}[] = [];
+        const answers: Response[] = [
+            new Response(JSON.stringify({samples: [1]}), {status: 200, headers: {ETag: '"a"'}}),
+            new Response(null, {status: 304, headers: {ETag: '"a"'}}),
+            new Response(JSON.stringify({samples: [1, 2]}), {status: 200, headers: {ETag: '"b"'}}),
+            new Response(JSON.stringify({error: 'unsupported', message: 'no'}), {status: 501}),
+            new Response(JSON.stringify({samples: [3]}), {status: 200}),
+        ];
+        vi.stubGlobal('fetch', async (_: string, init: {headers: Record<string, string>; cache?: string}) => {
+            sent.push({inm: init.headers['If-None-Match'], cache: init.cache});
+            return answers.shift()!;
+        });
+        const path = '/api/system/v1/status/history';
+        expect(await api.getTagged(path)).toEqual({samples: [1]});
+        expect(await api.getTagged(path)).toEqual({samples: [1]});
+        expect(await api.getTagged(path)).toEqual({samples: [1, 2]});
+        await expect(api.getTagged(path)).rejects.toThrow('no');
+        // an error leaves the held answer: its tag goes out again; an untagged 200 drops it
+        expect(await api.getTagged(path)).toEqual({samples: [3]});
+        expect(sent).toEqual([
+            {inm: undefined, cache: 'no-store'},
+            {inm: '"a"', cache: 'no-store'},
+            {inm: '"a"', cache: 'no-store'},
+            {inm: '"b"', cache: 'no-store'},
+            {inm: '"b"', cache: 'no-store'},
+        ]);
+        answers.push(new Response(JSON.stringify({samples: [4]}), {status: 200}));
+        await api.getTagged(path);
+        expect(sent.at(-1)).toEqual({inm: undefined, cache: 'no-store'});
+    });
+});

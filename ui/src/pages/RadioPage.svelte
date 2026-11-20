@@ -1,6 +1,7 @@
 <script lang="ts">
     import {onMount} from 'svelte';
-    import {pageLife} from '../lib/pagelife.svelte';
+    import {pageLife, tabVisible} from '../lib/pagelife.svelte';
+    import {healthPath, mergeHealth} from '../lib/healthdelta';
     import {api, type Radio, type RadioModule, type USBDevice, type RadioFirmware, type FeedStatus, type DeviceDescriptions} from '../lib/api';
     import {auth} from '../lib/auth.svelte';
     import {link} from '../lib/router.svelte';
@@ -24,7 +25,8 @@
     // of the module's own device; "device" without a value is a module that has not reported it yet
     interface RadioIf { interface: string; address: string; type: string; description?: string; connected: boolean; default: boolean; firmware?: string; duty_cycle: number; carrier_sense?: number; carrier_sense_source?: 'interface' | 'device' }
     // task 94: `units` are the radio stack's units - a process card says "starting" for one systemd is still starting
-    interface Health { polled: string; interfaces: RadioIf[]; errors: Record<string, string>; history: Record<string, HealthSample[]>; busy: boolean; busy_interface: string; units?: InterfaceUnit[]; feed?: FeedStatus; subscribers?: Record<string, SubSummary> }
+    // occulited task 162: the history arrives in deltas after the first answer (lib/healthdelta.ts)
+    interface Health { history_cursor?: string; history_delta?: boolean; history_rows?: number; polled: string; interfaces: RadioIf[]; errors: Record<string, string>; history: Record<string, HealthSample[]>; busy: boolean; busy_interface: string; units?: InterfaceUnit[]; feed?: FeedStatus; subscribers?: Record<string, SubSummary> }
     // the gateways' keys are the Keys page's; the list itself is System → LAN devices' (task 222)
     interface Extra { security_key_set: boolean; security_key_known: boolean }
     const life = pageLife();
@@ -160,7 +162,7 @@
     let error = $state('');
     async function loadHealth() {
         try {
-            health = await api.get<Health>('/api/system/v1/radio/health');
+            health = mergeHealth(health, await api.get<Health>(healthPath(health)));
         } catch {
             health = null;
         }
@@ -176,7 +178,7 @@
         let timer: ReturnType<typeof setTimeout> | undefined;
         let mounted = true;
         const tick = async () => {
-            if (life.active) await loadHealth(); // task 177: a kept page polls only while it shows
+            if (life.active && tabVisible()) await loadHealth(); // task 177: a kept page polls only while it shows (task 162: and its tab)
             if (mounted) timer = setTimeout(tick, anyStarting(health?.units) ? 5000 : 30000);
         };
         void tick();

@@ -546,3 +546,98 @@ func TestPollPrunesOnlyWithATrustedClock(t *testing.T) {
 		}
 	}
 }
+
+// occulited task 162: a page that holds the history asks with the last answer's cursor and gets
+// only what was appended since, per series; anything but an append, a stale cursor or none at all
+// gets the whole history again.
+func TestStatusAfter(t *testing.T) {
+	t0 := time.Date(2026, 11, 20, 12, 0, 0, 0, time.UTC)
+	s := &Sampler{Rows: 3}
+	s.mu.Lock()
+	for i := range 4 {
+		s.appendLocked("HmIP-RF/a", Sample{Time: t0.Add(time.Duration(i) * time.Minute), DutyCycle: i})
+	}
+	s.appendLocked("BidCos-RF/b", Sample{Time: t0, DutyCycle: 9})
+	s.appendRateLocked("HmIP-RF", Rate{Time: t0, In: 1})
+	s.mu.Unlock()
+
+	full, c1, delta := s.StatusAfter("")
+	if delta || len(full.History["HmIP-RF/a"]) != 3 || len(full.History["BidCos-RF/b"]) != 1 || len(full.Rates["HmIP-RF"]) != 1 {
+		t.Fatalf("no cursor: delta %v, %+v", delta, full)
+	}
+	if s.RowsPerSeries() != 3 {
+		t.Fatalf("rows %d", s.RowsPerSeries())
+	}
+
+	// nothing new: every series left out, still a delta
+	st, c2, delta := s.StatusAfter(c1)
+	if !delta || len(st.History) != 0 || len(st.Rates) != 0 || c2 != c1 {
+		t.Fatalf("unchanged: delta %v, %q vs %q, %+v", delta, c2, c1, st)
+	}
+
+	// one new duty-cycle sample and one rate: only those - also past the ring's wrap
+	s.mu.Lock()
+	s.appendLocked("HmIP-RF/a", Sample{Time: t0.Add(4 * time.Minute), DutyCycle: 4})
+	s.appendRateLocked("HmIP-RF", Rate{Time: t0.Add(time.Minute), In: 2})
+	s.mu.Unlock()
+	st, c3, delta := s.StatusAfter(c2)
+	if !delta || c3 == c2 {
+		t.Fatalf("after an append: delta %v, cursor %q", delta, c3)
+	}
+	if h := st.History["HmIP-RF/a"]; len(h) != 1 || h[0].DutyCycle != 4 {
+		t.Fatalf("history delta %+v", st.History)
+	}
+	if _, ok := st.History["BidCos-RF/b"]; ok {
+		t.Fatal("a series without new samples is in the delta")
+	}
+	if r := st.Rates["HmIP-RF"]; len(r) != 1 || r[0].In != 2 {
+		t.Fatalf("rates delta %+v", st.Rates)
+	}
+	// an older cursor of the same epoch: everything since, cut to the ring
+	s.mu.Lock()
+	for i := 5; i < 9; i++ {
+		s.appendLocked("HmIP-RF/a", Sample{Time: t0.Add(time.Duration(i) * time.Minute), DutyCycle: i})
+	}
+	s.mu.Unlock()
+	if st, _, delta := s.StatusAfter(c1); !delta || len(st.History["HmIP-RF/a"]) != 3 || st.History["HmIP-RF/a"][2].DutyCycle != 8 {
+		t.Fatalf("old cursor: delta %v, %+v", delta, st.History)
+	}
+
+	// a prune starts a new epoch: the old cursor gets the whole history
+	s.mu.Lock()
+	s.appendLocked("BidCos-RF/b", Sample{Time: t0.Add(24 * time.Hour), DutyCycle: 1})
+	s.pruneFutureLocked(t0.Add(time.Hour))
+	s.mu.Unlock()
+	st, c4, delta := s.StatusAfter(c3)
+	if delta || len(st.History["HmIP-RF/a"]) != 3 || len(st.History["BidCos-RF/b"]) != 1 {
+		t.Fatalf("after a prune: delta %v, %+v", delta, st.History)
+	}
+	// and the new epoch's cursor works as before
+	s.mu.Lock()
+	s.appendLocked("BidCos-RF/b", Sample{Time: t0.Add(10 * time.Minute), DutyCycle: 2})
+	s.mu.Unlock()
+	if st, _, delta := s.StatusAfter(c4); !delta || len(st.History) != 1 || len(st.History["BidCos-RF/b"]) != 1 {
+		t.Fatalf("new epoch: delta %v, %+v", delta, st.History)
+	}
+
+	// a restore too
+	_, c5, _ := s.StatusAfter("")
+	s.Restore(map[string][]store.Row{"HmIP-RF/a": {encodeSample(Sample{Time: t0.Add(-time.Hour)})}})
+	if _, _, delta := s.StatusAfter(c5); delta {
+		t.Fatal("a cursor from before a restore got a delta")
+	}
+
+	// garbage, another sampler's (a restart of occulited) and a cursor from the future: whole
+	other := &Sampler{}
+	other.mu.Lock()
+	other.appendLocked("x", Sample{Time: t0})
+	other.mu.Unlock()
+	_, foreign, _ := other.StatusAfter("")
+	_, cur, _ := s.StatusAfter("")
+	epoch, seq, _ := parseCursor(cur)
+	for _, c := range []string{"x", "1", "a.b", "1.x", foreign, fmt.Sprintf("%d.%d", epoch, seq+5)} {
+		if _, _, delta := s.StatusAfter(c); delta {
+			t.Errorf("cursor %q got a delta", c)
+		}
+	}
+}

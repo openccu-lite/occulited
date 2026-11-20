@@ -79,7 +79,11 @@ async function request<T>(method: string, path: string, body?: unknown, extra?: 
         body: body === undefined ? undefined : JSON.stringify(body),
         ...(cache ? {cache} : {}),
     });
-    const text = await res.text();
+    return answer<T>(res, await res.text(), sid);
+}
+
+/** the answer of a JSON request: its body, or the ApiError it is */
+function answer<T>(res: Response, text: string, sid: string): T {
     let data: unknown = undefined;
     try {
         data = text ? JSON.parse(text) : undefined;
@@ -94,6 +98,30 @@ async function request<T>(method: string, path: string, body?: unknown, extra?: 
         throw new ApiError(res.status, e.error ?? 'http', e.message ?? `${res.status} ${res.statusText}`, e.detail);
     }
     return data as T;
+}
+
+// occulited task 162: the answers of getTagged by path, with the ETag they came with
+const tagged = new Map<string, {etag: string; data: unknown}>();
+
+/**
+ * occulited task 162: a GET of a route that tags its answer (GET /status/history, GET /catalog)
+ * which sends the held answer's ETag itself and takes a 304 as that answer unchanged. Not left to
+ * the browser's cache: Chrome keeps nothing over a certificate it does not trust - the self-signed
+ * one most systems have - and asked again in full every time.
+ */
+async function requestTagged<T>(path: string): Promise<T> {
+    const held = tagged.get(path);
+    const headers: Record<string, string> = {...REQUEST_HEADER};
+    const sid = storedSid();
+    if (sid) headers['Authorization'] = `Bearer ${sid}`;
+    if (held) headers['If-None-Match'] = held.etag;
+    const res = await fetch(path, {headers, cache: 'no-store'});
+    if (res.status === 304 && held) return held.data as T;
+    const data = answer<T>(res, await res.text(), sid);
+    const etag = res.headers.get('ETag');
+    if (etag && data !== undefined) tagged.set(path, {etag, data});
+    else tagged.delete(path);
+    return data;
 }
 
 // task 38: a multipart body (files chosen on the page) - the browser sets the boundary
@@ -139,6 +167,8 @@ async function requestText(path: string): Promise<string> {
 
 export const api = {
     get: <T>(path: string) => request<T>('GET', path),
+    /** occulited task 162: a GET that revalidates the held answer with its ETag (requestTagged) */
+    getTagged: <T>(path: string) => requestTagged<T>(path),
     /** task 154: a GET with headers of its own (the key sheet's confirmation) that never goes into
      *  the browser's HTTP cache - upstream's lighttpd answers every path with a cacheable header */
     getWith: <T>(path: string, headers: Record<string, string>) => request<T>('GET', path, undefined, headers, 'no-store'),

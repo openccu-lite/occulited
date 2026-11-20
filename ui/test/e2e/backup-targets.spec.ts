@@ -201,6 +201,19 @@ test('the directory target by location, and a target without its stick', async (
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 });
 
+// occulited B-153: the system storage stays allowed, with a hint that it shares the system's medium
+test('the directory target on the system storage: a hint, not a refusal', async ({page}) => {
+    await page.goto('/system/backup');
+    await card(page, 'directory').locator('[data-action="edit"]').click();
+    const form = page.locator('[data-form="directory"]');
+    await expect(form.locator('[data-notice="userfs-hint"]')).toHaveCount(0);
+    await form.locator('[data-location-button]').click();
+    await form.locator('[data-location-list] [data-location="userfs"]').click();
+    await expect(form.locator('[data-notice="userfs-hint"]')).toContainText('same SD card or disk as the system');
+    await expect(form.locator('[data-notice="userfs-hint"]')).toContainText('A USB stick or a network share is safer.');
+    await expect(form.locator('[data-action="save"]')).toBeEnabled();
+});
+
 // task 228: a share target - the share picked by its name (a read-only one cannot be), the folder
 // this system's own (the host name by default)
 test('add a share target: the share by its name and a folder', async ({page}) => {

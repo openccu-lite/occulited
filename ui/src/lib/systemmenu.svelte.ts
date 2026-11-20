@@ -12,7 +12,7 @@
 import {api} from './api';
 import {addonsDot, pageDots, type Severity} from './systemmenu';
 import type {Warning, WarningsView} from './warnings';
-import {edgeOf, type Edge} from './warnedge';
+import {edgeOf, worse, type Edge} from './warnedge';
 
 export const systemMenu = $state({
     open: false,
@@ -71,6 +71,23 @@ export async function refreshDots(): Promise<void> {
     } catch {
         /* the dots stay as they were; the next read may work */
     }
+}
+
+/** a panel that stands for warnings, each narrowed to its key or not (occulited task 158) */
+export interface WarnPart {
+    ids: readonly string[];
+    key?: string;
+}
+
+/** the worst edge of the parts: one panel, several warnings that lead to it */
+export function warnEdgeOf(parts: readonly WarnPart[]): Edge {
+    return parts.reduce<Edge>((e, p) => worse(e, warnEdge(p.ids, p.key)), '');
+}
+
+/** warnFor for a panel of several parts: every id named, the worst edge */
+export function warnForOf(parts: readonly WarnPart[]): Record<string, string | undefined> {
+    const ids = [...new Set(parts.flatMap((p) => p.ids))];
+    return {'data-warn-for': ids.join(' '), 'data-warn-edge': warnEdgeOf(parts) || undefined};
 }
 
 /** the attributes that name a panel's warnings and its edge, for the tests and the eye: spread them */

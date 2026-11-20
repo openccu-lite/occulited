@@ -24,6 +24,7 @@
     import {formatBytes} from '../lib/netpanels';
     import {suggestLabel, labelError, type FS} from '../lib/usbformat';
     import StorageShares from '../lib/StorageShares.svelte';
+    import StorageWrites from '../lib/StorageWrites.svelte';
 
     interface Partition { name: string; fstype?: string; label?: string; label_id?: string; mount?: string; read_only?: boolean; size_bytes: number; total_bytes?: number; free_bytes?: number }
     interface Use { kind: 'journal' | 'backup' | 'store'; name?: string; id?: string }
@@ -224,6 +225,8 @@
         </div>
     {/if}
     <StorageShares active={() => life.active} />
+    <!-- occulited task 159: what is written to the disks, and by which service -->
+    <StorageWrites active={() => life.active} />
 {/if}
 
 

@@ -221,6 +221,52 @@ func TestHoldsRegistration(t *testing.T) {
 	}
 }
 
+// occulited task 157: the interfaces VirtualDevices holds an event subscription on - hmipserver's
+// callback at the groups face's port, or its "<interface>_java" id; another client, a callback on
+// the network and an interface without a handlers file are not it.
+func TestVirtualDevicesVia(t *testing.T) {
+	list := `<interfaces><ipc><name>BidCos-RF</name><url>xmlrpc_bin://127.0.0.1:32001</url></ipc>` +
+		`<ipc><name>VirtualDevices</name><url>xmlrpc://127.0.0.1:39292/groups</url></ipc>` +
+		`<ipc><name>HmIP-RF</name><url>xmlrpc://127.0.0.1:32010</url></ipc>` +
+		`<ipc><name>BidCos-Wired</name><url>xmlrpc_bin://127.0.0.1:32000</url></ipc>` +
+		`<ipc><name>CUxD</name><url>xmlrpc_bin://127.0.0.1:8701</url></ipc></interfaces>`
+	tests := []struct {
+		name  string
+		files map[string]string
+		want  string
+	}{
+		{"all three", map[string]string{
+			"var/RFD.handlers":           "http://127.0.0.1:39292/bidcos\tBidCos-RF_java\nhttp://127.0.0.1:8184/cb/BidCos-RF\tocculited_BidCos-RF\n",
+			"var/HS485D.handlers":        "http://127.0.0.1:39292/bidcos\tBidCos-Wired_java\n",
+			"var/LegacyService.handlers": "#c\nHmIP-RF_java=http\\://127.0.0.1\\:39292/bidcos\n",
+		}, "[BidCos-RF HmIP-RF BidCos-Wired]"},
+		{"by the id at another port", map[string]string{
+			"var/RFD.handlers": "http://127.0.0.1:9292/bidcos\tBidCos-RF_java\n",
+		}, "[BidCos-RF]"},
+		{"only other clients", map[string]string{
+			"var/RFD.handlers":           "http://127.0.0.1:8184/cb/BidCos-RF\tocculited_BidCos-RF\nhttp://192.0.2.7:39292/bidcos\tlan_client\n",
+			"var/LegacyService.handlers": "occulited_HmIP-RF=http\\://127.0.0.1\\:8184/cb/HmIP-RF\n",
+		}, "[]"},
+		{"no handlers files", map[string]string{}, "[]"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tt.files["etc/config/InterfacesList.xml"] = list
+			if got := fmt.Sprint(rootWith(t, tt.files).VirtualDevicesVia()); got != tt.want {
+				t.Errorf("got %s, want %s", got, tt.want)
+			}
+		})
+	}
+	// no VirtualDevices in the list: nothing to name
+	r := rootWith(t, map[string]string{
+		"etc/config/InterfacesList.xml": `<interfaces><ipc><name>BidCos-RF</name><url>xmlrpc_bin://127.0.0.1:32001</url></ipc></interfaces>`,
+		"var/RFD.handlers":              "http://127.0.0.1:39292/bidcos\tBidCos-RF_java\n",
+	})
+	if got := r.VirtualDevicesVia(); got != nil {
+		t.Errorf("without VirtualDevices: %v", got)
+	}
+}
+
 // B-228: the interface processes' ports - the list's, and the classic ones with their backends.
 func TestInterfacePorts(t *testing.T) {
 	r := rootWith(t, map[string]string{

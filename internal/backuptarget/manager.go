@@ -29,6 +29,8 @@ type Helper interface {
 	NetUnmount(ctx context.Context, id string) error
 	NetMountRemove(ctx context.Context, id string) error
 	WriteTest(ctx context.Context, dir string) (priv.WriteTestResult, error)
+	// BackupTag writes .nobackup into a directory target's folder as root (occulited B-153).
+	BackupTag(ctx context.Context, dir string) error
 	Run(ctx context.Context, name string, args []string, stdin []byte) (priv.Result, error)
 	// ShareList and ShareOpen read a share's folder and a backup file there as root (B-217).
 	ShareList(ctx context.Context, dir string) (priv.ShareListResult, error)
@@ -496,6 +498,25 @@ func (m *Manager) testLocal(ctx context.Context, t Target) TestResult {
 		}
 	}
 	return r
+}
+
+// Tag writes .nobackup into a directory target's folder through the helper when the target is
+// saved (occulited B-153): createBackup.sh's tar then leaves the folder's backups out of the next
+// one - on the userfs every backup took in all the earlier ones. The root half of every run writes
+// it again (Pipeline.tagDirectory), so a failure here is not the save's. Not for a stick that is not
+// plugged in: the folder would be made on /media's tmpfs (task 161).
+func (m *Manager) Tag(ctx context.Context, t Target) error {
+	if t.Kind != KindDirectory {
+		return nil
+	}
+	dir := t.Dir()
+	if dir == "" || !strings.HasPrefix(dir+"/", "/media/") && !strings.HasPrefix(dir+"/", location.UserfsPath("backup")+"/") {
+		return nil
+	}
+	if missing, _ := noMediumAt(t); missing && (m.Root == "" || m.Root == "/") {
+		return nil
+	}
+	return m.Helper().BackupTag(ctx, m.join(dir))
 }
 
 func stateFromTest(w priv.WriteTestResult) string {

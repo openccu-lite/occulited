@@ -160,16 +160,18 @@ func (a *Analyzer) walk(h *Handler, fn *types.Func, seen map[*types.Func]bool, d
 		}
 		callee := calleeOf(info, c)
 		switch {
-		case callee != nil && callee.Name() == "writeJSON" && len(c.Args) == 3:
+		case callee != nil && (callee.Name() == "writeJSON" && len(c.Args) == 3 || callee.Name() == "writeJSONRevalidated" && len(c.Args) == 4):
+			// writeJSON(w, code, v), writeJSONRevalidated(w, r, code, v) (occulited task 162)
+			code, v := c.Args[len(c.Args)-2], c.Args[len(c.Args)-1]
 			status := 200
-			if tv := info.Types[c.Args[1]]; tv.Value != nil {
-				v, _ := constant.Int64Val(tv.Value)
-				status = int(v)
-			} else if isAPIError(info.TypeOf(c.Args[2])) {
+			if tv := info.Types[code]; tv.Value != nil {
+				n, _ := constant.Int64Val(tv.Value)
+				status = int(n)
+			} else if isAPIError(info.TypeOf(v)) {
 				return true // writeJSON(w, code, apiError{...}) with a computed code
 			}
 			if status >= 200 && status < 300 {
-				h.Responses[status] = append(h.Responses[status], a.body(info, d.decl, c.Args[2]))
+				h.Responses[status] = append(h.Responses[status], a.body(info, d.decl, v))
 			}
 		case callee != nil && callee.Name() == "readJSON" && len(c.Args) >= 2:
 			if t := deref(info.TypeOf(c.Args[len(c.Args)-1])); !isInterface(t) {

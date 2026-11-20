@@ -1,7 +1,8 @@
 <script lang="ts">
     import {dateTime, dateOnly} from '../lib/datefmt';
     import {onMount} from 'svelte';
-    import {pageLife} from '../lib/pagelife.svelte';
+    import {onTabVisible, pageLife, tabVisible} from '../lib/pagelife.svelte';
+    import {healthPath, mergeHealth} from '../lib/healthdelta';
     import {api, type Status, type CertStatus, type CertInfo, type HTTPSView, type StorageReason, type StorageReport} from '../lib/api';
     import {shortVersion} from '../lib/version';
     import {formatBytes} from '../lib/netpanels';
@@ -42,7 +43,11 @@
     // occulited B-45: `stream` - a client subscribed through lite-rpc's event stream (a token's, an account's)
     // task 94: `units` are the radio stack's units, so a starting interface says so instead of "not answering";
     // occulited task 13: `rates` the events per minute of each interface process (task 17), `subscribers` its callbacks and lite-rpc streams (B-45)
-    interface Health { interfaces: RadioIf[]; answering?: string[]; busy: boolean; errors: Record<string, string>; history?: Record<string, HealthSample[]>; units?: InterfaceUnit[]; rates?: Record<string, RateSample[]>; subscribers?: Record<string, SubSummary> }
+    // occulited task 157: `feed` for VirtualDevices' state (occulited's own registration there - the sampler never asks it),
+    // `virtual_devices_via` the interfaces it holds an event subscription on, `wired_gateways` BidCos-Wired's LAN gateways
+    interface WiredGateway { name?: string; serial: string; address?: string }
+    // occulited task 162: the history arrives in deltas after the first answer (lib/healthdelta.ts)
+    interface Health { history_cursor?: string; history_delta?: boolean; history_rows?: number; interfaces: RadioIf[]; answering?: string[]; busy: boolean; errors: Record<string, string>; history?: Record<string, HealthSample[]>; units?: InterfaceUnit[]; rates?: Record<string, RateSample[]>; subscribers?: Record<string, SubSummary>; feed?: {interfaces?: {name: string; state: string}[]}; virtual_devices_via?: string[]; wired_gateways?: WiredGateway[] }
     interface FwState { enabled: boolean; devices: {interface: string; update_available: boolean}[]; last_error?: string }
     let status = $state<Status | null>(null);
     let health = $state<Health | null>(null);
@@ -64,7 +69,7 @@
     });
     // the interfaces of a starting unit the sampler has not seen at all - neither answered nor failed
     // (a unit queued behind the detection, a poll that has not happened): a starting card each.
-    // VirtualDevices is never sampled, so it has no card of its own here.
+    // VirtualDevices is never sampled: its card is the feed's (occulited task 157), starting there.
     const unseenStarting = $derived.by(() => {
         if (!health) return [];
         const seen = new Set([...health.interfaces.map((i) => i.interface), ...(health.answering ?? []), ...Object.keys(health.errors)]);
@@ -221,7 +226,11 @@
     // instead of the cards arriving one by one; the catalogue's badge (which may go to the internet)
     // and the certificate come after
     let firstDone = $state(false);
-    async function load() {
+    // occulited task 162: the ten-second poll reads what moves - the status, the radio (its history
+    // as a delta), the connections, the system history (a 304 while no sample was added), the device
+    // firmware; the addons, their updates and the catalogue behind the badge, the certificate and
+    // HTTPS come with the page, when it comes back and once a minute (`slow`)
+    async function load(slow = true) {
         type Installed = {id: string; name: string; rega_dependent?: boolean; binary_incompatible?: boolean; enabled: boolean};
         const [, , , , , installed] = await Promise.all([
             (async () => {
@@ -233,11 +242,12 @@
                 }
             })(),
             // the secondary cards degrade quietly: a box without the sampler or the fetcher still has a status page
-            (async () => { try { health = await api.get<Health>('/api/system/v1/radio/health'); healthAt = Date.now(); } catch { health = null; } })(),
+            (async () => { try { health = mergeHealth(health, await api.get<Health>(healthPath(health))); healthAt = Date.now(); } catch { health = null; } })(),
             (async () => { try { conn = await api.get<ConnView>('/api/system/v1/radio/connections'); } catch { conn = null; } })(),
-            (async () => { try { sysHist = (await api.get<{samples: SystemSample[]}>('/api/system/v1/status/history')).samples; } catch { sysHist = null; } })(),
+            (async () => { try { sysHist = (await api.getTagged<{samples: SystemSample[]}>('/api/system/v1/status/history')).samples; } catch { sysHist = null; } })(),
             (async () => { try { fw = await api.get<FwState>('/api/system/v1/firmware'); } catch { fw = null; } })(),
             (async (): Promise<Installed[] | null> => {
+                if (!slow) return null;
                 try {
                     const list = (await api.get<{addons: Installed[]}>('/api/system/v1/addons')).addons;
                     addonCount = list.length;
@@ -249,6 +259,7 @@
             })(),
         ]);
         firstDone = true;
+        if (!slow) return;
         // task 56: the badge on the Addons card counts what the Installed addons page offers to
         // update - the catalogue's `update_available` and the addons' own daily `Update:` checks -
         // and an addon that is in both is one update. Either source may be missing on a box.
@@ -256,7 +267,7 @@
         let catalogue: {id: string; name?: {de?: string; en?: string}; update_available?: boolean}[] = [];
         try { checks = (await api.get<{results?: typeof checks}>('/api/system/v1/addons/updates')).results ?? []; } catch { /* no checker */ }
         // D-119: an entry whose manifest is not fetched yet has no id and names nothing
-        try { catalogue = ((await api.get<{catalog?: {addons?: typeof catalogue}}>('/api/system/v1/catalog')).catalog?.addons ?? []).filter((e) => !!e.id); } catch { /* no catalogue */ }
+        try { catalogue = ((await api.getTagged<{catalog?: {addons?: typeof catalogue}}>('/api/system/v1/catalog')).catalog?.addons ?? []).filter((e) => !!e.id); } catch { /* no catalogue */ }
         addonUpdates = pendingUpdates(catalogue, checks);
         if (installed) {
             // B-69: a warning names an addon as a person knows it - the name it declares (the API
@@ -276,20 +287,31 @@
         void loadStorage();
         void loadWarnings();
         void loadMute();
-        // task 177: kept while another page shows - no polls then, a refresh when it comes back
-        const id = setInterval(() => life.active && load(), 10000);
-        const storageId = setInterval(() => life.active && loadStorage(), 60000);
+        // task 177: kept while another page shows - no polls then, a refresh when it comes back;
+        // occulited task 162: the same while the browser tab is hidden
+        const polling = () => life.active && tabVisible();
+        let ticks = 0;
+        const id = setInterval(() => {
+            if (!polling()) return;
+            ticks = (ticks + 1) % 6;
+            void load(ticks === 0);
+        }, 10000);
+        const storageId = setInterval(() => polling() && loadStorage(), 60000);
         const warnId = setInterval(() => {
-            if (!life.active) return;
+            if (!polling()) return;
             void loadWarnings();
             void loadMute();
         }, 30000);
-        const stopReturn = life.onReturn(() => {
+        const refresh = () => {
+            ticks = 0;
             void load();
             void loadWarnings();
             void loadMute();
-        });
+        };
+        const stopReturn = life.onReturn(refresh);
+        const stopVisible = onTabVisible(() => life.active && refresh());
         return () => {
+            stopVisible();
             stopReturn();
             clearInterval(id);
             clearInterval(storageId);
@@ -403,6 +425,15 @@
         const up = c.entries.filter((e) => e.connected).length;
         return up === c.entries.length ? t('up') : up === 0 ? t('down') : t('{n} of {m} up', {n: up, m: c.entries.length});
     };
+    // occulited task 157 (the maintainer: "bidcos-wired does not show the lan gateway, add that"): the
+    // HMW-LGW-O-DR-GS of hs485d.conf as BidCos-Wired's subtitle, one line each - the way to it, as
+    // rfd's HM-LGW says "HM-LGW · LAN"; the serials are the detail line, as the RF cards' addresses
+    const wiredGateways = (name: string) => (name === 'BidCos-Wired' || name === 'HM-Wired' ? (health?.wired_gateways ?? []) : []);
+    const wiredText = (g: WiredGateway) => ['HMW-LGW', g.address || 'LAN'].join(' · ');
+    // VirtualDevices (the maintainer: "virtualdevices should show as subtitle the interfaces it has an
+    // event subscription on"): its state from occulited's own registration there, the feed's
+    const vdFeed = $derived(health?.feed?.interfaces?.find((i) => i.name === 'VirtualDevices'));
+    const vdVia = $derived(health?.virtual_devices_via ?? []);
     const fmtRate = (v: number) => formatRate(v, i18n.language);
     // occulited task 37: the load and the memory over time; the load is read against the CPU count
     const loadHist = $derived(loadSeries(sysHist ?? undefined));
@@ -833,16 +864,56 @@
                 </div>
             {/each}
             <!-- an interface process without a radio list (hs485d, CUxD): it answered, so it is up -->
+            {#snippet wiredSub(name: string)}
+                {@const gws = wiredGateways(name)}
+                {#if gws.length}
+                    <div class="ol-card-sub ol-if-module" data-wired-gateways={gws.length}>{#each gws as g (g.serial)}<a href="/system/lan-devices" use:link title={[g.name, g.serial, g.address].filter(Boolean).join(' · ')}>{wiredText(g)}</a>{/each}</div>
+                {/if}
+            {/snippet}
+            {#snippet wiredDetail(name: string)}
+                {@const gws = wiredGateways(name)}
+                {#if gws.length}<div class="ol-card-detail hmm-mono">{gws.map((g) => g.serial).join(' · ')}</div>{/if}
+            {/snippet}
             {#each health.answering ?? [] as name (name)}
                 <div class="ol-card" data-component={name}>
                     <div class="ol-card-head">
                         <span class="ol-card-icon"><Icon name="radio" size={14} /></span>
-                        <div class="ol-card-titles">{@render ifTitle(name)}</div>
+                        <div class="ol-card-titles">{@render ifTitle(name)}{@render wiredSub(name)}</div>
                     </div>
                     <div class="ol-card-body"><span class="ol-dot ok"></span>{t('up')}</div>
+                    {@render wiredDetail(name)}
                     {@render traffic(name)}
                 </div>
             {/each}
+            <!-- occulited task 157: VirtualDevices, hmipserver's groups face - the sampler does not ask it,
+                 so its state is occulited's own registration there; the subtitle names the interfaces
+                 it takes events from -->
+            {#if vdFeed}
+                {@const u = unitOf(health.units, 'VirtualDevices')}
+                {#if u?.starting}
+                    {@render startingCard('VirtualDevices', u)}
+                {:else}
+                    <div class="ol-card" class:err={vdFeed.state === 'down'} data-component="VirtualDevices" data-state={vdFeed.state}>
+                        <div class="ol-card-head">
+                            <span class="ol-card-icon"><Icon name={vdFeed.state === 'down' ? 'alert' : 'radio'} size={14} /></span>
+                            <div class="ol-card-titles">
+                                {@render ifTitle('VirtualDevices')}
+                                {#if vdVia.length}
+                                    <div class="ol-card-sub ol-if-module" data-via={vdVia.join(',')}><a href="/system/interfaces#subscribers" use:link title={t('VirtualDevices is subscribed to the events of these interfaces.')}>{t('via {list}', {list: vdVia.join(', ')})}</a></div>
+                                {/if}
+                            </div>
+                        </div>
+                        {#if vdFeed.state === 'down'}
+                            <div class="ol-card-body"><span class="ol-dot err"></span>{t('not answering')}</div>
+                        {:else if vdFeed.state === 'silent'}
+                            <div class="ol-card-body" title={t('Nothing arrived from it for 5 minutes; the system has asked it for a sign of life.')}><span class="ol-dot warn"></span>{t('silent')}</div>
+                        {:else}
+                            <div class="ol-card-body"><span class="ol-dot ok"></span>{t('up')}</div>
+                        {/if}
+                        {@render traffic('VirtualDevices')}
+                    </div>
+                {/if}
+            {/if}
             {#each Object.entries(health.errors) as [name, err] (name)}
                 {@const u = unitOf(health.units, name)}
                 {#if u?.starting}
@@ -851,7 +922,7 @@
                     <div class="ol-card err" data-component={name}>
                         <div class="ol-card-head">
                             <span class="ol-card-icon"><Icon name="alert" size={14} /></span>
-                            <div class="ol-card-titles">{@render ifTitle(name)}</div>
+                            <div class="ol-card-titles">{@render ifTitle(name)}{@render wiredSub(name)}</div>
                         </div>
                         <div class="ol-card-body"><span class="ol-dot err"></span>{t('not answering')}</div>
                         <div class="ol-card-detail">{err}</div>

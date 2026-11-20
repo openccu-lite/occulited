@@ -319,6 +319,8 @@ const routes = {
             ]},
             VirtualDevices: {total: 1, internal: 1, external: 0, clients: [{id: 'occulited_VirtualDevices', url: 'http://127.0.0.1:8184/cb/VirtualDevices', internal: true, own: true}]},
         },
+        // occulited task 157: the interfaces VirtualDevices takes events from (BidCos-RF_java above)
+        virtual_devices_via: ['BidCos-RF'],
         errors: {},
         // tasks 53/54: an hour and a half of polls a minute apart up to now, as the sampler keeps
         // them, and both stacks down for two polls (a restart of the radio stack) - the graph
@@ -2357,6 +2359,15 @@ function activeWarnings(jar, warn, st) {
         const sgtin = jar['stub-declined'];
         list.push({id: 'hmip-key-declined', variant: `${sgtin}@2026-09-22T19:30:00Z`, severity: 'warning', href: '/system/keys#device-keys', params: {sgtin, address: sgtin.slice(10), at: '2026-09-22T19:30:00Z'}});
     }
+    // occulited task 158: an HmIP pairing failed for a reason (stub-pairing-failed=<reason>[:<http status>])
+    if (jar['stub-pairing-failed']) {
+        const [reason, status] = jar['stub-pairing-failed'].split(':');
+        const sgtin = '3014F711A0001F0000000B05';
+        const href = {'no-key': '/system/keys#device-keys', 'key-invalid': '/system/keys#device-keys', 'key-server-unreachable': '/system/network', 'unsupported-device': '/system/updates#system-update'}[reason];
+        const params = {sgtin, address: sgtin.slice(10), at: '2026-11-20T10:00:01Z', reason};
+        if (status) params.http_status = Number(status);
+        list.push({id: 'hmip-pairing-failed', variant: `${sgtin}@${reason}@2026-11-20T10:00:01Z`, severity: 'warning', ...(href ? {href} : {}), params});
+    }
     // occulited task 14: `occulited admin reset-auth` reset an account on the console
     // (stub-console-reset=<user>)
     if (jar['stub-console-reset']) {
@@ -2565,6 +2576,59 @@ function storageUSBRoute(req, u, res, jar) {
         d.partitions = [{name: d.name + '1', fstype: b.fs, label: b.label, label_id: b.label, mount: '/media/usb2', size_bytes: d.size_bytes - 1048576, total_bytes: d.size_bytes - 2097152, free_bytes: d.size_bytes - 3145728}];
         d.uses = [];
         return sendJSON(res, {...view(), formatted: d.name});
+    });
+    return true;
+}
+
+// occulited task 159: the disk writes, per browser (stub-writes). The default: the card and a stick
+// with their totals, the recording off. "on": recorded since two hours, RedMatic the top writer;
+// "hint": the card written to fast; "unsupported": a kernel without the io controller. The switch
+// (PUT …/recording) turns the browser's variant on and off.
+const WRITES = new Map();
+function storageWritesRoute(req, u, res, jar) {
+    const id = jar['stub-writes'] ?? '';
+    if (!WRITES.has(id)) WRITES.set(id, {enabled: id.startsWith('on') || id.startsWith('hint-on')});
+    const st = WRITES.get(id);
+    const supported = !id.startsWith('unsupported');
+    const recording = () => ({supported, enabled: st.enabled, active: st.enabled, ...(st.enabled ? {since: new Date(Date.now() - 7200e3).toISOString()} : {})});
+    const MB = 1e6;
+    const win = (seconds, bytes) => ({seconds, written_bytes: bytes});
+    const hint = id.startsWith('hint');
+    const unit = (name, all, hour, day, extra = {}) => ({unit: name, kind: 'unit', running: true, read_bytes: 4096, written_bytes: all, hour: win(3600, hour), day: win(7200, day),
+        disks: [{disk: 'mmcblk0', read_bytes: 4096, written_bytes: all, hour: win(3600, hour), day: win(7200, day)}], ...extra});
+    const units = () => [
+        unit('addon-redmatic.service', 61.5 * MB, 20.25 * MB, 40.5 * MB, {disks: [
+            {disk: 'mmcblk0', read_bytes: 4096, written_bytes: 60 * MB, hour: win(3600, 20 * MB), day: win(7200, 39 * MB)},
+            {disk: 'sda', read_bytes: 0, written_bytes: 1.5 * MB, hour: win(3600, 0.25 * MB), day: win(7200, 1.5 * MB)}]}),
+        unit('kernel', 9 * MB, 3 * MB, 6 * MB, {kind: 'kernel'}),
+        unit('hmipserver.service', 7 * MB, 0, 5 * MB),
+        unit('ended', 2.5 * MB, 0, 2.5 * MB, {kind: 'ended', running: false}),
+        unit('local-backup.service', 1.2 * MB, 0, 1.2 * MB, {running: false}),
+        unit('rfd.service', 0, 0, 0, {disks: []}),
+        unit('lighttpd.service', 0, 0, 0, {disks: []}),
+    ];
+    const view = () => ({
+        at: new Date().toISOString(), uptime_s: 12 * 86400 + 4 * 3600, interval_s: 10, recording: recording(),
+        disks: [
+            {name: 'mmcblk0', kind: 'sd', vendor: 'SanDisk', model: 'SC32G', read_bytes: 900 * MB, written_bytes: 7530 * MB, hour: win(3600, hint ? 80 * MB : 4 * MB), day: win(hint ? 86400 : 7200, hint ? 624 * MB : 9 * MB),
+                partitions: [{name: 'mmcblk0p1', read_bytes: 20 * MB, written_bytes: 0, mount: '/boot', role: 'boot'}, {name: 'mmcblk0p2', read_bytes: 700 * MB, written_bytes: 0, mount: '/', role: 'root'}, {name: 'mmcblk0p3', read_bytes: 180 * MB, written_bytes: 7530 * MB, mount: '/usr/local', role: 'userfs'}],
+                ...(hint ? {hint: {bytes_per_hour: 26 * MB, seconds: 86400, limit_bytes_per_hour: 16 * 2 ** 20, top_units: st.enabled ? ['addon-redmatic.service', 'kernel'] : []}} : {})},
+            {name: 'sda', kind: 'usb', vendor: 'SanDisk', model: 'Ultra Fit', read_bytes: 12 * MB, written_bytes: 1740 * MB, hour: win(3600, 0.5 * MB), day: win(7200, 3 * MB),
+                partitions: [{name: 'sda1', read_bytes: 12 * MB, written_bytes: 1740 * MB, mount: '/media/usb1', role: 'other'}]},
+        ],
+        units: st.enabled ? units() : [],
+    });
+    let body = '';
+    req.on('data', (c) => (body += c));
+    req.on('end', () => {
+        if (u.pathname === '/api/system/v1/storage/writes' && req.method === 'GET') return sendJSON(res, view());
+        if (u.pathname !== '/api/system/v1/storage/writes/recording') return sendJSON(res, {error: 'not_found', message: 'no such route'}, 404);
+        if (req.method === 'GET') return sendJSON(res, recording());
+        const b = body ? JSON.parse(body) : {};
+        if (typeof b.enabled !== 'boolean') return sendJSON(res, {error: 'invalid-body', message: 'enabled is required'}, 422);
+        if (b.enabled && !supported) return sendJSON(res, {error: 'unsupported', message: "this system's kernel does not offer the io controller"}, 409);
+        st.enabled = b.enabled;
+        return sendJSON(res, recording());
     });
     return true;
 }
@@ -2969,6 +3033,8 @@ function variant(req, u, res) {
     if (ledRoute(req, u, res, jar)) return true;
     // openccu-lite task 228: the Storage page's USB sticks, per browser (stub-usb; stub-usb=none: none)
     if (u.pathname.startsWith('/api/system/v1/storage/usb')) return storageUSBRoute(req, u, res, jar);
+    // occulited task 159: the disk writes and the recording switch, per browser (stub-writes)
+    if (u.pathname.startsWith('/api/system/v1/storage/writes')) return storageWritesRoute(req, u, res, jar);
     // openccu-lite task 228, phase 2: the network shares, per browser (stub-shares)
     if (u.pathname.startsWith('/api/system/v1/storage/shares')) return storageSharesRoute(req, u, res, jar);
     // occulited B-141: what a backup upload may take - plenty (the restore-space spec mocks the tight cases)

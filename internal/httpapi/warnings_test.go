@@ -740,11 +740,11 @@ func TestHmIPKeyDeclinedWarning(t *testing.T) {
 
 	// nothing in the log: no warning, and the read is the cheap one - this boot, the unit, and
 	// journalctl's own grep on the fixed part of the line
-	if w, ok := a.hmipKeyDeclinedWarning(context.Background()); !ok || len(w) != 0 {
+	if w, ok := a.hmipPairingWarnings(context.Background()); !ok || len(w) != 0 {
 		t.Fatalf("quiet: %+v %v", w, ok)
 	}
 	args := strings.Join(gotArgs, " ")
-	for _, want := range []string{"-u hmipserver.service", "--boot=0", "-g " + radio.InclusionDeclinedMatch} {
+	for _, want := range []string{"-u hmipserver.service", "--boot=0", "-g " + radio.InclusionLinesPattern} {
 		if !strings.Contains(args, want) {
 			t.Errorf("journalctl args %q miss %q", args, want)
 		}
@@ -752,7 +752,7 @@ func TestHmIPKeyDeclinedWarning(t *testing.T) {
 
 	// a decline, and no device listing available: the warning names the device and its address
 	out = entry(1_700_000_000_000_000, decline(sgtin))
-	w, ok := a.hmipKeyDeclinedWarning(context.Background())
+	w, ok := a.hmipPairingWarnings(context.Background())
 	if !ok || len(w) != 1 {
 		t.Fatalf("declined: %+v %v", w, ok)
 	}
@@ -771,7 +771,7 @@ func TestHmIPKeyDeclinedWarning(t *testing.T) {
 	// silence of the first does not swallow it
 	first := w[0].Variant
 	out += entry(1_700_000_060_000_000, decline(sgtin))
-	w, _ = a.hmipKeyDeclinedWarning(context.Background())
+	w, _ = a.hmipPairingWarnings(context.Background())
 	if len(w) != 1 || w[0].Variant == first {
 		t.Errorf("second decline: %+v (was %q)", w, first)
 	}
@@ -779,26 +779,26 @@ func TestHmIPKeyDeclinedWarning(t *testing.T) {
 	// two devices, one warning each, in the order they were declined
 	const other = "3014F711A000040000000A01"
 	out = entry(1_700_000_000_000_000, decline(sgtin)) + entry(1_700_000_010_000_000, decline(other))
-	w, _ = a.hmipKeyDeclinedWarning(context.Background())
+	w, _ = a.hmipPairingWarnings(context.Background())
 	if len(w) != 2 || w[0].Params["sgtin"] != sgtin || w[1].Params["sgtin"] != other {
 		t.Fatalf("two devices: %+v", w)
 	}
 
 	// a line about the same map that is not a decline raises nothing
 	out = entry(1_700_000_000_000_000, "AP 30: Add local key of device "+sgtin+" for inclusion from map to whitelist")
-	if w, ok := a.hmipKeyDeclinedWarning(context.Background()); !ok || len(w) != 0 {
+	if w, ok := a.hmipPairingWarnings(context.Background()); !ok || len(w) != 0 {
 		t.Errorf("not a decline: %+v %v", w, ok)
 	}
 
 	// journalctl failed: unknown, so the silences are kept (ok false)
 	out, runErr = "", errors.New("no journal")
-	if w, ok := a.hmipKeyDeclinedWarning(context.Background()); ok || len(w) != 0 {
+	if w, ok := a.hmipPairingWarnings(context.Background()); ok || len(w) != 0 {
 		t.Errorf("failed read: %+v %v", w, ok)
 	}
 	runErr = nil
 
 	// without a journal (a busybox box) the source is simply quiet
-	if w, ok := (&SystemAPI{}).hmipKeyDeclinedWarning(context.Background()); !ok || len(w) != 0 {
+	if w, ok := (&SystemAPI{}).hmipPairingWarnings(context.Background()); !ok || len(w) != 0 {
 		t.Errorf("no journal: %+v %v", w, ok)
 	}
 }
@@ -840,12 +840,12 @@ func TestHmIPKeyDeclinedGoesWhenTheDeviceIsIn(t *testing.T) {
 			return interfaces.FromList([]struct{ Name, URL string }{{"HmIP-RF", "xmlrpc://" + strings.TrimPrefix(hmip.URL, "http://")}})[0], true
 		}},
 	}
-	if w, ok := a.hmipKeyDeclinedWarning(context.Background()); !ok || len(w) != 0 {
+	if w, ok := a.hmipPairingWarnings(context.Background()); !ok || len(w) != 0 {
 		t.Fatalf("the device is paired, the warning must be gone: %+v %v", w, ok)
 	}
 	// hmipserver silent: unknown, so nothing is shown and the silences are kept
 	reachable = false
-	if w, ok := a.hmipKeyDeclinedWarning(context.Background()); ok || len(w) != 0 {
+	if w, ok := a.hmipPairingWarnings(context.Background()); ok || len(w) != 0 {
 		t.Fatalf("hmipserver silent: %+v %v", w, ok)
 	}
 }

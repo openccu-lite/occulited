@@ -20,6 +20,7 @@ import (
 	"github.com/hobbyquaker/occulited/internal/health"
 	"github.com/hobbyquaker/occulited/internal/httpwait"
 	"github.com/hobbyquaker/occulited/internal/interfaces"
+	"github.com/hobbyquaker/occulited/internal/iowatch"
 	"github.com/hobbyquaker/occulited/internal/led"
 	"github.com/hobbyquaker/occulited/internal/literpc"
 	"github.com/hobbyquaker/occulited/internal/logctl"
@@ -362,6 +363,11 @@ type SystemAPI struct {
 	// Clock answers the boot's clock gate for GET /status (task 94); nil = no clock in the status.
 	Clock *system.ClockCheck
 
+	// IOWatch counts the disks' and the services' writes (occulited task 159); nil = GET
+	// /storage/writes answers no disks. IOAccounting is the switch of the per-service recording;
+	// nil where there is no systemd.
+	IOWatch      *iowatch.Sampler
+	IOAccounting *system.IOAccounting
 	// Storage is the storage health panel (task 69); nil = GET /storage answers 501.
 	Storage *system.Storage
 	// Thermal is the temperature panel (occulited task 148), GET /status's `thermal`; nil = none.
@@ -528,9 +534,10 @@ func (a *SystemAPI) Register(mux *http.ServeMux) {
 	route(mux, auth.ScopeSystemRead, "GET "+p+"/service-messages/stream", a.serviceMessagesStream)
 	route(mux, auth.ScopeSystemRead, "GET "+p+"/usb", a.usb)
 	route(mux, auth.ScopeSystemRead, "GET "+p+"/usb/storage", a.usbStorage)
-	a.registerStorageUSB(mux, p) // storageusb.go, task 228
-	a.registerShares(mux, p)     // storageshares.go, task 228 phase 2
-	a.registerLocations(mux, p)  // storagelocations.go, task 228 phases 3-4
+	a.registerStorageUSB(mux, p)    // storageusb.go, task 228
+	a.registerStorageWrites(mux, p) // storagewrites.go, occulited task 159
+	a.registerShares(mux, p)        // storageshares.go, task 228 phase 2
+	a.registerLocations(mux, p)     // storagelocations.go, task 228 phases 3-4
 	route(mux, auth.ScopeSystemRead, "GET "+p+"/storage", a.storage)
 	route(mux, auth.ScopePower, "GET "+p+"/radio/firmware", a.radioFirmware)
 	route(mux, auth.ScopePower, "POST "+p+"/radio/firmware/upload", a.radioFirmwareUpload)
@@ -558,6 +565,7 @@ func (a *SystemAPI) Register(mux *http.ServeMux) {
 	route(mux, auth.ScopeRadioKeys, "POST "+p+"/radio/hmip/device-keys/apply", a.deviceKeysApply)
 	route(mux, auth.ScopeRadioKeys, "GET "+p+"/radio/hmip/device-keys/export", a.deviceKeysExport)
 	route(mux, auth.ScopeSystemRead, "GET "+p+"/radio/hmip/access-points", a.accessPoints) // openccu-lite task 217
+	route(mux, auth.ScopeSystemRead, "GET "+p+"/radio/hmip/pairing", a.hmipPairing)        // occulited task 158
 	route(mux, auth.ScopeSystemRead, "GET "+p+"/radio/lan-devices", a.lanDevices)          // openccu-lite task 220
 	route(mux, auth.ScopeSystemRead, "POST "+p+"/radio/lan-devices/search", a.lanSearch)   // task 237: only this sends
 	route(mux, auth.ScopeSystemWrite, "POST "+p+"/radio/lan-devices/{serial}/network", a.lanNetwork)
@@ -685,12 +693,13 @@ func (a *SystemAPI) status(w http.ResponseWriter, r *http.Request) {
 }
 
 // statusHistory is the system's load and memory history (occulited task 37), sampled once a minute.
-func (a *SystemAPI) statusHistory(w http.ResponseWriter, _ *http.Request) {
+func (a *SystemAPI) statusHistory(w http.ResponseWriter, r *http.Request) {
 	if a.SysHist == nil {
 		writeJSON(w, http.StatusNotImplemented, apiError{Error: "unsupported", Message: "no system history"})
 		return
 	}
-	writeJSON(w, 200, a.SysHist.History())
+	// occulited task 162: a sample a minute, the Status page asks every 10 s - five of six are a 304
+	writeJSONRevalidated(w, r, 200, a.SysHist.History())
 }
 
 func (a *SystemAPI) radio(w http.ResponseWriter, r *http.Request) {
@@ -2234,7 +2243,8 @@ func (a *SystemAPI) catalogIndex(w http.ResponseWriter, r *http.Request) {
 			it.Images = catalogImageURLs(it.ID, it.ImageHashes) // openccu-lite task 100
 		}
 	}
-	writeJSON(w, 200, map[string]any{"catalog": view, "installed": installed, "arch": ArchName(), "daily": a.CatalogDaily == nil || a.CatalogDaily()})
+	// occulited task 162: the Status page asks for the update badge; the answer changes with a check
+	writeJSONRevalidated(w, r, 200, map[string]any{"catalog": view, "installed": installed, "arch": ArchName(), "daily": a.CatalogDaily == nil || a.CatalogDaily()})
 }
 
 // catalogSettings switches the daily check of the catalogue's releases and the installed addons'
@@ -2720,7 +2730,9 @@ func (a *SystemAPI) radioHealth(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusNotImplemented, apiError{Error: "unsupported", Message: "no radio sampler"})
 		return
 	}
-	st := a.Health.Status()
+	// occulited task 162: ?after=<history_cursor of the last answer> - the history and the rates
+	// carry only what was appended since (history_delta), not the 8 hours a page already holds
+	st, cursor, delta := a.Health.StatusAfter(r.URL.Query().Get("after"))
 	busy, which := a.Health.Busy(80)
 	body := map[string]any{"busy": busy, "busy_interface": which}
 	// task 94: the radio stack's units, so a page says "starting" for an interface process systemd
@@ -2754,6 +2766,7 @@ func (a *SystemAPI) radioHealth(w http.ResponseWriter, r *http.Request) {
 	plan, havePlan := a.radioPlan()
 	markThresholds(st.Interfaces, TransferEntries(plan, havePlan, st.Interfaces, a.transferringInterfaces()))
 	body["polled"], body["interfaces"], body["errors"], body["history"] = st.Polled, st.Interfaces, st.Errors, st.History
+	body["history_cursor"], body["history_delta"], body["history_rows"] = cursor, delta, a.Health.RowsPerSeries()
 	body["answering"] = st.Answering // up, without a radio list: BidCos-Wired's hs485d, CUxD
 	// occulited task 13: the telegram rates per interface process, and who is subscribed to each
 	body["rates"] = st.Rates
@@ -2795,7 +2808,32 @@ func (a *SystemAPI) radioHealth(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	body["subscribers"] = subs
+	// occulited task 157: the Status page's VirtualDevices card names the interfaces it holds an
+	// event subscription on (where InterfacesList.xml has it), and BidCos-Wired's card its LAN
+	// gateways (where the answer knows BidCos-Wired)
+	if via := a.Root.VirtualDevicesVia(); via != nil {
+		body["virtual_devices_via"] = via
+	}
+	if names["BidCos-Wired"] || names["HM-Wired"] {
+		body["wired_gateways"] = wiredGateways(a.Root.ReadLANGateways(system.GatewayWired))
+	}
 	writeJSON(w, 200, body)
+}
+
+// WiredGateway is one HMW-LGW-O-DR-GS-EU of hs485d.conf as GET /radio/health names it (occulited
+// task 157): no key, nothing of the section but what the Status page shows.
+type WiredGateway struct {
+	Name    string `json:"name,omitempty"`
+	Serial  string `json:"serial"`
+	Address string `json:"address,omitempty"`
+}
+
+func wiredGateways(gws []system.LANGateway) []WiredGateway {
+	out := []WiredGateway{}
+	for _, g := range gws {
+		out = append(out, WiredGateway{Name: g.Name, Serial: g.Serial, Address: g.Address})
+	}
+	return out
 }
 
 func (a *SystemAPI) ssh(w http.ResponseWriter, _ *http.Request) {

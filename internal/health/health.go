@@ -15,6 +15,7 @@ import (
 	"log/slog"
 	"math"
 	"sort"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -80,6 +81,15 @@ type Sampler struct {
 	Feed   func() []rpcsub.IfaceStatus
 	rates  map[string][]Rate // key: the interface name
 	counts map[string]countMark
+
+	// occulited task 162: what a page that polls the history already has. Every append takes the
+	// next seq, kept beside the sample in gens (key: the series' key as in appended, the rates'
+	// with ratePrefix); a prune or a restore - anything but an append - starts a new epoch, after
+	// which a client's cursor of the old one gets the whole history again (StatusAfter). The first
+	// epoch is the start time, so a cursor from before a restart of occulited never matches.
+	seq   uint64
+	epoch uint64
+	gens  map[string][]uint64
 }
 
 // Rate is one poll's event rate of an interface process (occulited task 13): In the calls with a
@@ -369,6 +379,7 @@ func (s *Sampler) appendRateLocked(name string, r Rate) {
 	}
 	s.rates[name] = h
 	s.appended[ratePrefix+name]++
+	s.genLocked(ratePrefix+name, len(h))
 }
 
 // pruneFutureLocked drops the samples stamped after now from every series (occulited B-75) and has
@@ -392,6 +403,7 @@ func (s *Sampler) pruneFutureLocked(now time.Time) {
 		}
 	}
 	if dropped > 0 {
+		s.resetGensLocked()
 		slog.Info("radio history: samples stamped after the current time dropped", "dropped", dropped)
 	}
 }
@@ -422,12 +434,20 @@ func (s *Sampler) initLocked() {
 	if s.replace == nil {
 		s.replace = map[string]uint64{}
 	}
+	if s.gens == nil {
+		s.gens = map[string][]uint64{}
+		s.epoch = uint64(time.Now().UnixNano())
+	}
 }
 
 // Status returns the current state and history (copies).
 func (s *Sampler) Status() Status {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	return s.statusLocked()
+}
+
+func (s *Sampler) statusLocked() Status {
 	st := Status{Polled: s.polled, Interfaces: append([]interfaces.RadioInterface{}, s.current...), Answering: append([]string{}, s.answering...), Errors: map[string]string{}, History: map[string][]Sample{}, Rates: map[string][]Rate{}}
 	for k, v := range s.errs {
 		st.Errors[k] = v
@@ -442,6 +462,73 @@ func (s *Sampler) Status() Status {
 		st.Interfaces = []interfaces.RadioInterface{}
 	}
 	return st
+}
+
+// RowsPerSeries is the length of every series' ring: a client that keeps the history and appends a delta
+// (StatusAfter) cuts each series to it.
+func (s *Sampler) RowsPerSeries() int { return s.rows() }
+
+// StatusAfter is Status for a client that already holds the history up to cursor (occulited task
+// 162): History and Rates then carry only the samples appended since, per series, and the series
+// without new samples are left out; delta says so. An empty, unknown or stale cursor (another
+// epoch: a prune, a restore, a restart of occulited) gets the whole history, delta false. next is
+// the cursor of this answer.
+func (s *Sampler) StatusAfter(cursor string) (st Status, next string, delta bool) {
+	s.mu.Lock()
+	s.initLocked()
+	epoch, seq, ok := parseCursor(cursor)
+	delta = ok && epoch == s.epoch && seq <= s.seq
+	next = strconv.FormatUint(s.epoch, 10) + "." + strconv.FormatUint(s.seq, 10)
+	if !delta {
+		st = s.statusLocked()
+		s.mu.Unlock()
+		return st, next, false
+	}
+	st = Status{Polled: s.polled, Interfaces: append([]interfaces.RadioInterface{}, s.current...), Answering: append([]string{}, s.answering...), Errors: map[string]string{}, History: map[string][]Sample{}, Rates: map[string][]Rate{}}
+	for k, v := range s.errs {
+		st.Errors[k] = v
+	}
+	for k, v := range s.history {
+		if n := s.newerLocked(k, len(v), seq); n > 0 {
+			st.History[k] = append([]Sample{}, v[len(v)-n:]...)
+		}
+	}
+	for k, v := range s.rates {
+		if n := s.newerLocked(ratePrefix+k, len(v), seq); n > 0 {
+			st.Rates[k] = append([]Rate{}, v[len(v)-n:]...)
+		}
+	}
+	if st.Interfaces == nil {
+		st.Interfaces = []interfaces.RadioInterface{}
+	}
+	s.mu.Unlock()
+	return st, next, true
+}
+
+// newerLocked is how many of the last samples of a series of n were appended after seq. The
+// gens rise along the ring, so it counts from the end.
+func (s *Sampler) newerLocked(key string, n int, seq uint64) int {
+	g := s.gens[key]
+	if len(g) != n {
+		return n // cannot happen; the whole series is never wrong
+	}
+	i := len(g)
+	for i > 0 && g[i-1] > seq {
+		i--
+	}
+	return len(g) - i
+}
+
+// parseCursor reads StatusAfter's "<epoch>.<seq>".
+func parseCursor(c string) (epoch, seq uint64, ok bool) {
+	e, q, found := strings.Cut(c, ".")
+	if !found {
+		return 0, 0, false
+	}
+	var err1, err2 error
+	epoch, err1 = strconv.ParseUint(e, 10, 64)
+	seq, err2 = strconv.ParseUint(q, 10, 64)
+	return epoch, seq, err1 == nil && err2 == nil
 }
 
 // Busy reports whether any interface is above the threshold (for "do not start a firmware
@@ -473,6 +560,32 @@ func (s *Sampler) appendLocked(key string, sm Sample) {
 	}
 	s.history[key] = h
 	s.appended[key]++
+	s.genLocked(key, len(h))
+}
+
+// genLocked records the next seq for the sample just appended to a series of n samples, the ring
+// of gens cut like the series'.
+func (s *Sampler) genLocked(key string, n int) {
+	s.seq++
+	g := append(s.gens[key], s.seq)
+	if len(g) > n {
+		g = append([]uint64(nil), g[len(g)-n:]...)
+	}
+	s.gens[key] = g
+}
+
+// resetGensLocked starts a new epoch (occulited task 162): the series changed otherwise than by
+// an append, so no cursor's delta would be right. The gens become zeros - older than any cursor of
+// the new epoch.
+func (s *Sampler) resetGensLocked() {
+	s.epoch++
+	s.gens = map[string][]uint64{}
+	for key, h := range s.history {
+		s.gens[key] = make([]uint64, len(h))
+	}
+	for name, h := range s.rates {
+		s.gens[ratePrefix+name] = make([]uint64, len(h))
+	}
 }
 
 // The sampler is the store's Keeper for the health history (task 214).
@@ -510,6 +623,9 @@ func (s *Sampler) Restore(series map[string][]store.Row) {
 		// that follows an open
 		s.appended[key] += uint64(fromFile)
 		s.synced[key] = s.appended[key] - uint64(inMem)
+	}
+	if len(series) > 0 {
+		s.resetGensLocked()
 	}
 }
 

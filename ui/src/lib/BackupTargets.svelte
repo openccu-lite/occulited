@@ -572,6 +572,10 @@
             {#if draft.kind === 'directory'}
                 <!-- task 228: the location picker - a USB stick by its label (in any port), or the system's own storage -->
                 <LocationPicker use="backup" kinds={['usb', 'userfs']} bind:location={draft.loc} bind:folder={draft.folder} label={t('Where')} />
+                {#if draft.loc === 'userfs' || (!draft.loc && (draft.path + '/').startsWith('/usr/local/backup/'))}
+                    <!-- occulited B-153: allowed, but no help when the system's own medium fails -->
+                    <p class="ol-muted" data-notice="userfs-hint">{t('A folder on the system storage is on the same SD card or disk as the system: when that medium fails, the backups there are lost with it. A USB stick or a network share is safer.')}</p>
+                {/if}
                 {#if !draft.loc && draft.path}
                     <p class="ol-muted" data-legacy-path>{t('Chosen before as the path {path}. Pick the stick above, so the backups find it by its label in any USB port.', {path: draft.path})}</p>
                 {/if}

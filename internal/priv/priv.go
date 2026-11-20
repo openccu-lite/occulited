@@ -89,6 +89,9 @@ type Ops interface {
 	// WriteTest creates, writes, syncs, reads back and deletes a 1 MiB file in dir as root - what
 	// a backup to that directory does - and answers the step it reached (task 86).
 	WriteTest(ctx context.Context, dir string) (WriteTestResult, error)
+	// BackupTag writes an empty .nobackup into a directory target's folder as root, the folder
+	// made when it is missing (occulited B-153: createBackup.sh's tar leaves its contents out).
+	BackupTag(ctx context.Context, dir string) error
 	// Chmod sets a file's mode (an addon's rc.d script: executable = enabled).
 	Chmod(path string, mode os.FileMode) error
 	// ReadFile reads a root-only file the daemon must see (the ReGa database at first boot).
@@ -223,6 +226,10 @@ type Ops interface {
 	// Throttled reads the Raspberry Pi firmware's throttling word (occulited task 148,
 	// throttled.go): exactly `vcgencmd get_throttled`. A non-zero exit is Result.Exit.
 	Throttled(ctx context.Context) (Result, error)
+	// SetIOAccounting writes or removes systemd's manager drop-in that has every unit's disk
+	// reads and writes counted (occulited task 159, ioaccounting.go): DefaultIOAccounting=yes in
+	// /run/systemd/system.conf.d. The request is the switch; the caller reloads systemd.
+	SetIOAccounting(ctx context.Context, on bool) error
 	// SetIPv6Conf writes one of an interface's IPv6 sysctls (occulited B-139, ipv6conf.go): a
 	// named interface - never all, default or lo -, one of IPv6ConfKeys, the value 0 to 2.
 	SetIPv6Conf(ctx context.Context, iface, key string, v int) error

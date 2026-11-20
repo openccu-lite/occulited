@@ -66,6 +66,7 @@ import (
 	"github.com/hobbyquaker/occulited/internal/hmgroups"
 	"github.com/hobbyquaker/occulited/internal/httpapi"
 	"github.com/hobbyquaker/occulited/internal/interfaces"
+	"github.com/hobbyquaker/occulited/internal/iowatch"
 	"github.com/hobbyquaker/occulited/internal/meta"
 	"github.com/hobbyquaker/occulited/internal/pairing"
 	"github.com/hobbyquaker/occulited/internal/paramsets"
@@ -458,6 +459,8 @@ func run(opts daemonOptions) error {
 	// task 187: without systemd (a workstation, the development mode) no service is listed or
 	// controlled and addons are not installed or removed; systemd replaces all of it below
 	var services httpapi.ServiceManager = system.NoInit{}
+	// occulited task 159: the switch "record disk writes per service"; nil without systemd
+	var ioAccounting *system.IOAccounting
 	// task 186: the journal is the log (D-30); /var/log/messages of the busybox init is not read
 	var logReader system.LogReader = system.JournalLog{Root: root}
 	var journal *system.JournalLog
@@ -484,6 +487,21 @@ func run(opts daemonOptions) error {
 		// so what the user switched off is stored on the userfs and applied again here, before
 		// anything else looks at the unit list
 		replayUnitSwitch(sd, log)
+		// occulited task 159: the manager drop-in of the per-service write recording, the same way -
+		// written again after a boot, left alone at any other start
+		ioAccounting = &system.IOAccounting{File: filepath.Join(cfg.StateDir, "io-accounting"), Reload: sd.DaemonReload}
+		if *rootDir != "/" {
+			ioAccounting.Set = func(_ context.Context, on bool) error { log.Info("dry run", "io-accounting", on); return nil }
+			ioAccounting.DropIn = filepath.Join(cfg.StateDir, "io-accounting.applied")
+		} else {
+			ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+			if changed, err := ioAccounting.Replay(ctx); err != nil {
+				log.Warn("services: the recording of disk writes per service could not be applied", "err", err)
+			} else if changed {
+				log.Info("services: the recording of disk writes per service was applied", "enabled", ioAccounting.Enabled())
+			}
+			cancel()
+		}
 		sa = system.NewSystemdAddons(root, sd) // scripts in a scope, units take over (D-36)
 		sa.Scripts.UpdateToken = scripts.UpdateToken
 		// B-119: the nav and the update checker read addons through scripts (below), and an addon's
@@ -642,6 +660,13 @@ func run(opts daemonOptions) error {
 		return syshist.Reading{Load: load, Mem: mem, SoC: soc, HasSoC: hasSoC}, ok
 	}, Polled: dataStoreMgr.Kick, Trusted: clockTrusted}
 	dataStoreMgr.Register(sysHist)
+	// occulited task 159: what is written to the disks and by which service, read every ten
+	// seconds from /proc and the cgroup tree and kept in memory (and in /run across a restart)
+	ioWatch := &iowatch.Sampler{Root: string(root), Enabled: ioAccounting.Enabled}
+	if *sessionDir != "" {
+		// occulite/state is the unit's RuntimeDirectory; without it (an older unit) nothing is kept
+		ioWatch.StateFile = filepath.Join(filepath.Dir(filepath.Clean(*sessionDir)), "state", "io-writes.json")
+	}
 	// task 194: the state store - the last value, ts, lc and confirmed of every datapoint of the
 	// chosen set, in the same file (bucket state); a value change is committed at once in
 	// persistent mode, the timestamp-only refreshes at the interval
@@ -1052,7 +1077,7 @@ func run(opts daemonOptions) error {
 	}, HmIPServerDiagrams: func() bool { return cfg.HmIPServer.Diagrams }, OnHmIPServerDiagrams: func(on bool) error {
 		cfg.HmIPServer.Diagrams = on // task 33: read by the radio steps at hmipserver's next start
 		return config.Save(*cfgPath, cfg)
-	}, WebBase: "http://" + cfg.Listen, MetaRecovered: loaded.RecoveredFromBackup, NetTx: netTx, IPv6: ipv6Tx, Run: run, RunStdin: runStdin, Firewall: fwm, Health: sampler, SysHist: sysHist, Updates: updates, FirstBoot: firstBoot, ChangeKey: changeKey, SetLogLevel: setLogLevel, InitInterface: initInterface, AddonCtl: addonCtl, InstallToken: installToken, Feed: feed, Cert: certSvc, RadioFirmware: radioFW, RadioConnections: radioConn, RadioBusy: radioBusy, HmIPLocalKey: localKey, HmIPDeviceKeys: deviceKeys, ImportRecord: importRecord, NamesImport: metaAPI.ImportNamesFromSBK, ConfirmTicket: users.RedeemConfirmed, FirewallRules: fwRules, HTTPS: httpsCfg, ClassicRPC: &system.ClassicRPCConfig{Root: root, Run: run, Systemd: root.HasSystemd()}, WiFi: wifiService(root, root.HasSystemd()), Power: &system.Power{Root: root, Systemd: root.HasSystemd(), Run: run}, RadioInterfaces: radioIfs, Storage: storage, Thermal: thermal, Clock: clock, BootTiming: bootTiming, Version: version, Commit: commit, BackupHooks: backupHooks}
+	}, WebBase: "http://" + cfg.Listen, MetaRecovered: loaded.RecoveredFromBackup, NetTx: netTx, IPv6: ipv6Tx, Run: run, RunStdin: runStdin, Firewall: fwm, Health: sampler, SysHist: sysHist, IOWatch: ioWatch, IOAccounting: ioAccounting, Updates: updates, FirstBoot: firstBoot, ChangeKey: changeKey, SetLogLevel: setLogLevel, InitInterface: initInterface, AddonCtl: addonCtl, InstallToken: installToken, Feed: feed, Cert: certSvc, RadioFirmware: radioFW, RadioConnections: radioConn, RadioBusy: radioBusy, HmIPLocalKey: localKey, HmIPDeviceKeys: deviceKeys, ImportRecord: importRecord, NamesImport: metaAPI.ImportNamesFromSBK, ConfirmTicket: users.RedeemConfirmed, FirewallRules: fwRules, HTTPS: httpsCfg, ClassicRPC: &system.ClassicRPCConfig{Root: root, Run: run, Systemd: root.HasSystemd()}, WiFi: wifiService(root, root.HasSystemd()), Power: &system.Power{Root: root, Systemd: root.HasSystemd(), Run: run}, RadioInterfaces: radioIfs, Storage: storage, Thermal: thermal, Clock: clock, BootTiming: bootTiming, Version: version, Commit: commit, BackupHooks: backupHooks}
 	// openccu-lite task 232: the server a purpose's pins are taken from - the OIDC issuer as the
 	// configuration file has it now, the ACME directory the settings point at
 	sysAPI.PinTarget = func(purpose string) string {
@@ -1326,6 +1351,7 @@ func run(opts daemonOptions) error {
 	if *rootDir == "/" {
 		go sampler.Run(samplerCtx)
 		go sysHist.Run(samplerCtx)
+		go ioWatch.Run(samplerCtx)
 		go updates.Run(samplerCtx)
 		go func() { // task 75: the subscriber - registered at the daemons until the shutdown
 			defer close(rpcDone)

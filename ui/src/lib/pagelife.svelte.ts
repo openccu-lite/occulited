@@ -48,3 +48,19 @@ export function providePageLife(l: PageLife): void {
 export function pageLife(): PageLife {
     return getContext<PageLife | undefined>(KEY) ?? ALWAYS;
 }
+
+/** occulited task 162: whether the browser shows the tab at all - a page's polls skip in a hidden
+ *  tab (another tab in front, the window minimised) as they do on a hidden page */
+export function tabVisible(): boolean {
+    return typeof document === 'undefined' || document.visibilityState !== 'hidden';
+}
+
+/** runs f each time the tab is shown again after it was hidden; the returned function stops it */
+export function onTabVisible(f: () => void): () => void {
+    if (typeof document === 'undefined') return () => {};
+    const h = () => {
+        if (document.visibilityState === 'visible') f();
+    };
+    document.addEventListener('visibilitychange', h);
+    return () => document.removeEventListener('visibilitychange', h);
+}

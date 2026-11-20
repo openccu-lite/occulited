@@ -2,11 +2,13 @@ package httpapi
 
 import (
 	"context"
+	"fmt"
 	"net"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -230,5 +232,78 @@ func TestRadioHealthRatesAndSubscribers(t *testing.T) {
 	// CUxD answered nothing and has no handlers file: no count
 	if _, ok := subs["CUxD"]; ok {
 		t.Errorf("CUxD has a subscriber count: %v", subs)
+	}
+}
+
+// occulited task 157: GET /radio/health names the interfaces VirtualDevices holds an event
+// subscription on, and BidCos-Wired's LAN gateways from hs485d.conf - without their keys
+func TestRadioHealthVirtualDevicesAndWiredGateways(t *testing.T) {
+	r := fakeRoot(t)
+	w := func(p, c string) {
+		full := filepath.Join(string(r), p)
+		if err := os.MkdirAll(filepath.Dir(full), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(full, []byte(c), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	w("etc/config/InterfacesList.xml", `<interfaces><ipc><name>BidCos-RF</name><url>xmlrpc_bin://127.0.0.1:32001</url></ipc>`+
+		`<ipc><name>VirtualDevices</name><url>xmlrpc://127.0.0.1:39292/groups</url></ipc>`+
+		`<ipc><name>HmIP-RF</name><url>xmlrpc://127.0.0.1:32010</url></ipc>`+
+		`<ipc><name>BidCos-Wired</name><url>xmlrpc_bin://127.0.0.1:32000</url></ipc></interfaces>`)
+	w("var/RFD.handlers", "http://127.0.0.1:8184/cb/BidCos-RF\tocculited_BidCos-RF\n")
+	w("var/HS485D.handlers", "http://127.0.0.1:39292/bidcos\tBidCos-Wired_java\n")
+	w("var/LegacyService.handlers", "HmIP-RF_java=http\\://127.0.0.1\\:39292/bidcos\n")
+	w("etc/config/hs485d.conf", "Listen Port = 32000\n\n[Interface 0]\nType = HMWLGW\nName = HMW-LGW\nSerial Number = LEQ0000001\nEncryption Key = secret157\nIP Address = 192.0.2.57\n\n"+
+		"[Interface 1]\nType = HMWLGW\nSerial Number = LEQ0000002\nEncryption Key = other\n")
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	closed := ln.Addr().String()
+	_ = ln.Close()
+	// hs485d does not answer here: BidCos-Wired is in errors, so the answer knows it
+	s := &health.Sampler{Timeout: 2 * time.Second, Interfaces: func() []interfaces.Interface {
+		return interfaces.FromList([]struct{ Name, URL string }{{"BidCos-Wired", "xmlrpc_bin://" + closed}})
+	}}
+	s.Poll(context.Background())
+	mux := http.NewServeMux()
+	(&SystemAPI{Root: r, Services: scriptBox{system.AddonScripts{Root: r}}, Health: s}).Register(mux)
+	srv := httptest.NewServer(mux)
+	t.Cleanup(srv.Close)
+	st, out, raw := do(t, srv, "GET", "/api/system/v1/radio/health", "", nil)
+	if st != 200 {
+		t.Fatalf("%d %v", st, out)
+	}
+	if got := fmt.Sprint(out["virtual_devices_via"]); got != "[HmIP-RF BidCos-Wired]" {
+		t.Errorf("virtual_devices_via %s", got)
+	}
+	gws, _ := out["wired_gateways"].([]any)
+	if len(gws) != 2 {
+		t.Fatalf("wired_gateways %v", out["wired_gateways"])
+	}
+	g0, g1 := gws[0].(map[string]any), gws[1].(map[string]any)
+	if g0["serial"] != "LEQ0000001" || g0["address"] != "192.0.2.57" || g0["name"] != "HMW-LGW" || g1["serial"] != "LEQ0000002" || g1["address"] != nil {
+		t.Errorf("wired_gateways %v", gws)
+	}
+	if strings.Contains(raw, "secret157") || strings.Contains(raw, "Encryption") {
+		t.Errorf("a gateway's key in the answer: %s", raw)
+	}
+
+	// without a VirtualDevices entry and without BidCos-Wired: neither key
+	w("etc/config/InterfacesList.xml", `<interfaces><ipc><name>BidCos-RF</name><url>xmlrpc_bin://127.0.0.1:32001</url></ipc></interfaces>`)
+	s2 := &health.Sampler{Timeout: time.Second, Interfaces: func() []interfaces.Interface { return nil }}
+	s2.Poll(context.Background())
+	mux2 := http.NewServeMux()
+	(&SystemAPI{Root: r, Services: scriptBox{system.AddonScripts{Root: r}}, Health: s2}).Register(mux2)
+	srv2 := httptest.NewServer(mux2)
+	t.Cleanup(srv2.Close)
+	_, out2, _ := do(t, srv2, "GET", "/api/system/v1/radio/health", "", nil)
+	if _, ok := out2["virtual_devices_via"]; ok {
+		t.Errorf("virtual_devices_via without VirtualDevices: %v", out2["virtual_devices_via"])
+	}
+	if _, ok := out2["wired_gateways"]; ok {
+		t.Errorf("wired_gateways without BidCos-Wired: %v", out2["wired_gateways"])
 	}
 }

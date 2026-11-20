@@ -20,7 +20,7 @@
     import {newerFirmware} from '../lib/fwversion';
     import {agoParts, bundleVersion, cannotUpdate, deviceActivity, etaParts, etaRange, filterOthers, filterRows, hmipFirmwareRows, isLive, summary, switchable, type FwActivity, type FwBundle, type FwDevice, type FwResult, type FwRow, type FwStatus} from '../lib/devicefirmware';
     import WarnEdge from '../lib/WarnEdge.svelte';
-    import {warnEdge, warnFor} from '../lib/systemmenu.svelte';
+    import {warnEdge, warnEdgeOf, warnFor, warnForOf} from '../lib/systemmenu.svelte';
     import {ask} from '../lib/dialog.svelte';
 
     // version_from_name and date_from_name: what the update file's name carries, sent only when the
@@ -285,6 +285,8 @@
     // into view, once per arrival (a poll, a reload or a return to the page does not open a row
     // closed by hand again; coming back through the link does)
     const READY_WARNING = ['device-update-ready'];
+    // occulited task 158: a device the system's HmIP software does not know waits for a system update
+    const SYSTEM_UPDATE_WARNINGS = [{ids: ['system-update-available']}, {ids: ['hmip-pairing-failed'], key: 'unsupported-device'}];
     let linkedFor: string | null = null;
     $effect(() => {
         const s = life.search;
@@ -493,7 +495,7 @@
 <!-- occulited B-68: the system update is an administrator's alone; for anyone else no empty panel -->
 {#if admin}
     <!-- occulited task 123: the available update's warning edge, and the Status page's link target -->
-    <section class="ol-panel {warnEdge(['system-update-available'])}" id="system-update" data-panel="system-update" {...warnFor(['system-update-available'])}>
+    <section class="ol-panel {warnEdgeOf(SYSTEM_UPDATE_WARNINGS)}" id="system-update" data-panel="system-update" {...warnForOf(SYSTEM_UPDATE_WARNINGS)}>
         <SystemUpdate container={!!status?.container} platform={status?.version?.platform} />
     </section>
 {/if}

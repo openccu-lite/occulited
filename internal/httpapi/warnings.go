@@ -278,7 +278,7 @@ func (a *SystemAPI) warningSources() []warnings.Source {
 		{IDs: []string{"trust-pin"}, Eval: a.pinWarnings}, // openccu-lite task 232
 		{IDs: []string{"hmip-port-open"}, Eval: a.hmipPortWarning},
 		{IDs: []string{"hmip-local-key"}, Eval: a.hmipLocalKeyWarning},
-		{IDs: []string{"hmip-key-declined"}, Eval: a.hmipKeyDeclinedWarning},
+		{IDs: []string{"hmip-key-declined", "hmip-pairing-failed"}, Eval: a.hmipPairingWarnings},
 		{IDs: []string{"legacy-session"}, Lists: true, Eval: a.legacySessionWarning},
 		// occulited task 14: an account's access was reset on the console
 		{IDs: []string{"console-reset"}, Lists: true, Eval: a.consoleResetWarning},
@@ -1245,75 +1245,8 @@ func (a *SystemAPI) hmipLocalKeyWarning(context.Context) ([]warnings.Warning, bo
 		Params: map[string]any{"unreachable": c.Total - c.Heard, "total": c.Total}}}, true
 }
 
-// hmipserverUnit is the unit whose log carries the decline, and declineLines how many of its
-// matching lines are read: a handful of devices, and only the newest line per device counts.
-const (
-	hmipserverUnit = "hmipserver"
-	declineLines   = 50
-)
-
-// hmip-key-declined (task 201, decided in task 154's Q&A): hmipserver turned an inclusion request
-// down because the device's local key it was given (in sgtin.map, or entered for the pairing) is
-// not that device's key. Without this the device simply never appears and nothing says why - the line
-// is in hmipserver's log and nowhere else. The image's log4j2 template keeps the logger that writes it
-// at debug whatever LOGLEVEL_HMIP says, so the line is there at the warn default too.
-//
-// Read on demand from the journal of this boot, pre-filtered by journalctl on the fixed part of
-// the line, so the usual answer costs one grep that finds nothing. The devices are listed only
-// when there is a decline to clear: a pairing that has since worked takes its warning away, which
-// is the only way it can go - the line stays in the journal. One warning per device, the variant
-// the SGTIN and the time of the newest decline, so a further decline after a silence is new.
-func (a *SystemAPI) hmipKeyDeclinedWarning(ctx context.Context) ([]warnings.Warning, bool) {
-	if a.Journal == nil {
-		return nil, true
-	}
-	lines, err := a.Journal.Read(system.LogQuery{Unit: hmipserverUnit, Boot: "0", Contains: radio.InclusionDeclinedMatch, Limit: declineLines})
-	if err != nil {
-		return nil, false
-	}
-	// the newest decline per device, in the order the devices were first declined
-	at := map[string]string{}
-	var order []string
-	for _, l := range lines {
-		sgtin := radio.InclusionDeclinedSGTIN(l.Message)
-		if sgtin == "" {
-			continue
-		}
-		if _, seen := at[sgtin]; !seen {
-			order = append(order, sgtin)
-		}
-		at[sgtin] = l.Timestamp
-		if at[sgtin] == "" {
-			at[sgtin] = l.Time
-		}
-	}
-	if len(order) == 0 {
-		return nil, true
-	}
-	paired := map[string]bool{}
-	if a.HmIPDeviceKeys != nil {
-		p, ok := a.HmIPDeviceKeys.PairedSGTINs(ctx, order)
-		if !ok {
-			// hmipserver did not answer: whether the device is in now is unknown, and unknown is
-			// not "still declined" - the silences stay, nothing is shown (warnings.Source's ok)
-			return nil, false
-		}
-		paired = p
-	}
-	var out []warnings.Warning
-	for _, sgtin := range order {
-		if paired[sgtin] {
-			continue
-		}
-		params := map[string]any{"sgtin": sgtin, "address": radio.DeviceAddressOf(sgtin)}
-		if at[sgtin] != "" {
-			params["at"] = at[sgtin]
-		}
-		out = append(out, warnings.Warning{ID: "hmip-key-declined", Variant: sgtin + "@" + at[sgtin], Severity: warnings.SeverityWarning,
-			Href: "/system/keys#device-keys", Params: params})
-	}
-	return out, true
-}
+// hmipserverUnit is the unit whose log carries the inclusion lines (task 201, task 158).
+const hmipserverUnit = "hmipserver"
 
 // addon-update (openccu-lite task 248): an installed addon has a newer version - what the Addons
 // page's check found, from the catalogue's latest releases (as the system holds them, nothing is

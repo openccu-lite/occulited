@@ -8,6 +8,7 @@
     import {pageLife} from '../lib/pagelife.svelte';
     import {api, type LocalTimer, type UnitOverride, type Service, type Timer} from '../lib/api';
     import {ask} from '../lib/dialog.svelte';
+    import {auth} from '../lib/auth.svelte';
     import {i18n, t} from '../lib/i18n.svelte';
     import SystemTitle from '../lib/SystemTitle.svelte';
     import {link, replace, router} from '../lib/router.svelte';
@@ -32,6 +33,7 @@
     const rowEdge = (id: string): Edge => worse(warnEdge(['crash-loop'], id), id.startsWith('addon-') ? worse(warnEdge(['addon-ownership'], id.slice('addon-'.length)), warnEdge(['addon-parents'])) : '');
 
     type Action = 'start' | 'stop' | 'restart' | 'enable' | 'disable';
+    const admin = $derived(auth.role === 'admin');
     let services = $state<Service[] | null>(null);
     let timers = $state<Timer[]>([]);
     let systemd = $state(false);
@@ -49,6 +51,33 @@
         const id = setInterval(() => (now = Date.now()), 1000);
         return () => clearInterval(id);
     });
+
+    // occulited task 159: the switch "record disk writes per service" - systemd's IOAccounting for
+    // every unit, shown under System → Storage. Read with the page, written by an administrator.
+    interface Recording { supported: boolean; enabled: boolean; active: boolean }
+    let recording = $state<Recording | null>(null);
+    let recordingBusy = $state(false);
+    let recordingError = $state('');
+    async function loadRecording() {
+        try {
+            recording = await api.get<Recording>('/api/system/v1/storage/writes/recording');
+            scrollToAnchor('io-accounting');
+        } catch {
+            recording = null; // an older daemon, or none: no switch
+        }
+    }
+    async function setRecording(on: boolean) {
+        recordingBusy = true;
+        recordingError = '';
+        try {
+            recording = await api.put<Recording>('/api/system/v1/storage/writes/recording', {enabled: on});
+        } catch (e) {
+            recordingError = (e as Error).message;
+            await loadRecording();
+        } finally {
+            recordingBusy = false;
+        }
+    }
 
     // B-83: the box says how long to wait between two polls - eight times what its listing costs,
     // 5 s at the least - so a slow box is not kept busy listing units for a page
@@ -97,6 +126,7 @@
         };
         const begin = () => {
             const g = generation;
+            void loadRecording();
             void load().then(() => schedule(g));
         };
         const visibility = () => {
@@ -726,6 +756,18 @@
     {:else}
         {@render table(shown)}
     {/if}
+    {#if systemd && recording}
+        <!-- occulited task 159: the kernel counts each service's disk writes once this is on -->
+        <div class="sv-recording" id="io-accounting" data-setting="io-accounting">
+            <label for="sv-io-accounting"><input id="sv-io-accounting" type="checkbox" checked={recording.enabled} disabled={!admin || recordingBusy || !recording.supported} onchange={(e) => void setRecording(e.currentTarget.checked)} /> {t('Record disk writes per service')}</label><Help>{t('The kernel then counts what every service reads from and writes to the disks, and System → Storage shows which service writes how much - to find one that wears the SD card. It applies at once, without a restart of any service, and stays on across a restart of the system. The counting itself writes nothing and costs next to nothing; the figures are kept in memory only.')}</Help>
+            {#if !recording.supported}
+                <span class="ol-muted" data-recording-state="unsupported">{t('Not available: the kernel of this system does not offer the io controller.')}</span>
+            {:else}
+                <a href="/system/storage#writes" use:link data-recording-link>{t('Shown under System → Storage')}</a>
+            {/if}
+            {#if recordingError}<span class="ol-warn" role="alert">{recordingError}</span>{/if}
+        </div>
+    {/if}
     {#if systemd && (services ?? []).length > 0 && !(services ?? []).some((s) => s.id === 'occu-etc-writable' && s.running)}
         <!-- 28.7: on an image without B-28's unit (beta.2) every switch to confined is refused with
              addgroup's read-only error; say so before the reader tries -->
@@ -911,6 +953,8 @@
     .ol-morebtn-gap { display: block; width: 28px; }
     /* the button above the timers; not an .ol-toolbar - the page's one toolbar is the filter's */
     .ol-timerbar { display: flex; gap: 8px; margin-bottom: 8px; }
+    /* occulited task 159: the recording switch, one line under the services */
+    .sv-recording { display: flex; gap: 6px 12px; align-items: center; flex-wrap: wrap; margin: 12px 0 4px; }
     .ol-rowactions .ol-morebtn {
         width: 100%;
         padding: 1px 0;

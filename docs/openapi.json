@@ -4803,6 +4803,83 @@
         ],
         "type": "object"
       },
+      "HmipPairingAttempt": {
+        "properties": {
+          "address": {
+            "type": "string"
+          },
+          "at": {
+            "type": "string"
+          },
+          "failed": {
+            "type": "boolean"
+          },
+          "http_status": {
+            "type": "integer"
+          },
+          "line": {
+            "type": "string"
+          },
+          "message": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RadioPairingText"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "outcome": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "requests": {
+            "type": "integer"
+          },
+          "sgtin": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "failed",
+          "line",
+          "outcome",
+          "requests",
+          "sgtin"
+        ],
+        "type": "object"
+      },
+      "HmipPairingView": {
+        "properties": {
+          "attempts": {
+            "items": {
+              "$ref": "#/components/schemas/HmipPairingAttempt"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "keyserver_mode": {
+            "type": "string"
+          },
+          "now": {
+            "type": "string"
+          },
+          "since": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "attempts",
+          "keyserver_mode",
+          "now"
+        ],
+        "type": "object"
+      },
       "HttpsCert": {
         "properties": {
           "managed": {
@@ -5070,6 +5147,98 @@
           "duty_cycle",
           "interface",
           "type"
+        ],
+        "type": "object"
+      },
+      "IowatchUnit": {
+        "properties": {
+          "day": {
+            "$ref": "#/components/schemas/IowatchWindow"
+          },
+          "disks": {
+            "items": {
+              "$ref": "#/components/schemas/IowatchUnitDisk"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "hour": {
+            "$ref": "#/components/schemas/IowatchWindow"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "read_bytes": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "running": {
+            "type": "boolean"
+          },
+          "unit": {
+            "type": "string"
+          },
+          "written_bytes": {
+            "minimum": 0,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "day",
+          "disks",
+          "hour",
+          "kind",
+          "read_bytes",
+          "running",
+          "unit",
+          "written_bytes"
+        ],
+        "type": "object"
+      },
+      "IowatchUnitDisk": {
+        "properties": {
+          "day": {
+            "$ref": "#/components/schemas/IowatchWindow"
+          },
+          "disk": {
+            "type": "string"
+          },
+          "hour": {
+            "$ref": "#/components/schemas/IowatchWindow"
+          },
+          "read_bytes": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "written_bytes": {
+            "minimum": 0,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "day",
+          "disk",
+          "hour",
+          "read_bytes",
+          "written_bytes"
+        ],
+        "type": "object"
+      },
+      "IowatchWindow": {
+        "properties": {
+          "seconds": {
+            "type": "integer"
+          },
+          "written_bytes": {
+            "minimum": 0,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "seconds",
+          "written_bytes"
         ],
         "type": "object"
       },
@@ -8164,6 +8333,21 @@
           "device_keys",
           "keyserver_mode",
           "offline_pairing"
+        ],
+        "type": "object"
+      },
+      "RadioPairingText": {
+        "properties": {
+          "de": {
+            "type": "string"
+          },
+          "en": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "de",
+          "en"
         ],
         "type": "object"
       },
@@ -15976,6 +16160,209 @@
         },
         "required": [
           "state"
+        ],
+        "type": "object"
+      },
+      "WiredGateway": {
+        "properties": {
+          "address": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "serial": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "serial"
+        ],
+        "type": "object"
+      },
+      "WritesDisk": {
+        "properties": {
+          "day": {
+            "$ref": "#/components/schemas/IowatchWindow"
+          },
+          "hint": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/WritesHint"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "hour": {
+            "$ref": "#/components/schemas/IowatchWindow"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "model": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "partitions": {
+            "items": {
+              "$ref": "#/components/schemas/WritesPartition"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "read_bytes": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "vendor": {
+            "type": "string"
+          },
+          "written_bytes": {
+            "minimum": 0,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "day",
+          "hour",
+          "name",
+          "partitions",
+          "read_bytes",
+          "written_bytes"
+        ],
+        "type": "object"
+      },
+      "WritesHint": {
+        "properties": {
+          "bytes_per_hour": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "limit_bytes_per_hour": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "seconds": {
+            "type": "integer"
+          },
+          "top_units": {
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "bytes_per_hour",
+          "limit_bytes_per_hour",
+          "seconds",
+          "top_units"
+        ],
+        "type": "object"
+      },
+      "WritesPartition": {
+        "properties": {
+          "mount": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "read_bytes": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "role": {
+            "type": "string"
+          },
+          "written_bytes": {
+            "minimum": 0,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "name",
+          "read_bytes",
+          "written_bytes"
+        ],
+        "type": "object"
+      },
+      "WritesRecording": {
+        "properties": {
+          "active": {
+            "type": "boolean"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "since": {
+            "format": "date-time",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "supported": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "active",
+          "enabled",
+          "supported"
+        ],
+        "type": "object"
+      },
+      "WritesView": {
+        "properties": {
+          "at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "disks": {
+            "items": {
+              "$ref": "#/components/schemas/WritesDisk"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "interval_s": {
+            "type": "integer"
+          },
+          "recording": {
+            "$ref": "#/components/schemas/WritesRecording"
+          },
+          "units": {
+            "items": {
+              "$ref": "#/components/schemas/IowatchUnit"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "uptime_s": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "at",
+          "disks",
+          "interval_s",
+          "recording",
+          "units",
+          "uptime_s"
         ],
         "type": "object"
       }
@@ -34264,6 +34651,17 @@
     "/api/system/v1/radio/health": {
       "get": {
         "operationId": "getSystemRadioHealth",
+        "parameters": [
+          {
+            "description": "The `history_cursor` of an earlier answer: `history` and `rates` carry only the samples appended since",
+            "in": "query",
+            "name": "after",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "content": {
@@ -34312,6 +34710,15 @@
                         "null"
                       ]
                     },
+                    "history_cursor": {
+                      "type": "string"
+                    },
+                    "history_delta": {
+                      "type": "boolean"
+                    },
+                    "history_rows": {
+                      "type": "integer"
+                    },
                     "interfaces": {
                       "items": {
                         "$ref": "#/components/schemas/InterfacesRadioInterface"
@@ -34347,6 +34754,24 @@
                     "units": {
                       "items": {
                         "$ref": "#/components/schemas/SystemInterfaceUnit"
+                      },
+                      "type": [
+                        "array",
+                        "null"
+                      ]
+                    },
+                    "virtual_devices_via": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": [
+                        "array",
+                        "null"
+                      ]
+                    },
+                    "wired_gateways": {
+                      "items": {
+                        "$ref": "#/components/schemas/WiredGateway"
                       },
                       "type": [
                         "array",
@@ -35512,6 +35937,62 @@
         ],
         "x-occulite-scopes": [
           "system:write"
+        ]
+      }
+    },
+    "/api/system/v1/radio/hmip/pairing": {
+      "get": {
+        "operationId": "getSystemRadioHmipPairing",
+        "parameters": [
+          {
+            "description": "Only the attempts since this time (RFC 3339): the now of an earlier answer",
+            "in": "query",
+            "name": "since",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HmipPairingView"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": [
+              "system:read"
+            ]
+          },
+          {
+            "cookie": [
+              "system:read"
+            ]
+          }
+        ],
+        "summary": "Why HmIP pairings failed: the attempts of this boot or since a time, one per device",
+        "tags": [
+          "system/radio"
+        ],
+        "x-occulite-scopes": [
+          "system:read"
         ]
       }
     },
@@ -39551,6 +40032,157 @@
           }
         ],
         "summary": "Formats a USB disk",
+        "tags": [
+          "system/storage"
+        ],
+        "x-occulite-scopes": [
+          "system:write"
+        ]
+      }
+    },
+    "/api/system/v1/storage/writes": {
+      "get": {
+        "operationId": "getSystemStorageWrites",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WritesView"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": [
+              "system:read"
+            ]
+          },
+          {
+            "cookie": [
+              "system:read"
+            ]
+          }
+        ],
+        "summary": "What was written to each disk, and by which service",
+        "tags": [
+          "system/storage"
+        ],
+        "x-occulite-scopes": [
+          "system:read"
+        ]
+      }
+    },
+    "/api/system/v1/storage/writes/recording": {
+      "get": {
+        "operationId": "getSystemStorageWritesRecording",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WritesRecording"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": [
+              "system:read"
+            ]
+          },
+          {
+            "cookie": [
+              "system:read"
+            ]
+          }
+        ],
+        "summary": "Whether disk writes are recorded per service",
+        "tags": [
+          "system/storage"
+        ],
+        "x-occulite-scopes": [
+          "system:read"
+        ]
+      },
+      "put": {
+        "operationId": "putSystemStorageWritesRecording",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "enabled": {
+                    "type": [
+                      "boolean",
+                      "null"
+                    ]
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WritesRecording"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": [
+              "system:write"
+            ]
+          },
+          {
+            "cookie": [
+              "system:write"
+            ]
+          }
+        ],
+        "summary": "Switches the recording of disk writes per service",
         "tags": [
           "system/storage"
         ],

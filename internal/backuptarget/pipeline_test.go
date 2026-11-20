@@ -363,7 +363,8 @@ func TestPipelineProbeBeforeCreate(t *testing.T) {
 	if res, _ := ReadResult(r.p.Store.SecretDir(DirectoryID)); !res.OK {
 		t.Fatalf("the directory target: %+v", res)
 	}
-	if left, _ := os.ReadDir(r.usb); len(left) != 1 {
+	// the backup and the .nobackup tag (B-153), not the probe's file
+	if left, _ := os.ReadDir(r.usb); len(left) != 2 || left[0].Name() != ".nobackup" {
 		t.Fatalf("the probe file stayed: %v", left)
 	}
 	// the share alone: nothing is made

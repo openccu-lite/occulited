@@ -15,9 +15,11 @@
     import LocalKey from '../lib/LocalKey.svelte';
     import DeviceKeys from '../lib/DeviceKeys.svelte';
     import {pageLife} from '../lib/pagelife.svelte';
-    import {warnEdge, warnFor} from '../lib/systemmenu.svelte';
+    import {warnEdge, warnEdgeOf, warnFor, warnForOf} from '../lib/systemmenu.svelte';
 
     interface Keys { security_key_set: boolean; security_key_known: boolean }
+    // task 201's declined key, and occulited task 158's failed pairings that a key fixes
+    const DEVICE_KEY_WARNINGS = [{ids: ['hmip-key-declined']}, {ids: ['hmip-pairing-failed'], key: 'no-key'}, {ids: ['hmip-pairing-failed'], key: 'key-invalid'}];
     const life = pageLife();
     let radio = $state<(Radio & Keys) | null>(null);
     let error = $state('');
@@ -109,7 +111,7 @@
          the accounts only an administrator has -->
     {#if admin}
         <section class="ol-panel {warnEdge(['hmip-local-key'])}" data-panel="local-key" {...warnFor(['hmip-local-key'])}><LocalKey /></section>
-        <section class="ol-panel {warnEdge(['hmip-key-declined'])}" data-panel="device-keys" {...warnFor(['hmip-key-declined'])}><DeviceKeys /></section>
+        <section class="ol-panel {warnEdgeOf(DEVICE_KEY_WARNINGS)}" data-panel="device-keys" {...warnForOf(DEVICE_KEY_WARNINGS)}><DeviceKeys /></section>
     {:else}
         <p class="ol-muted" data-note="hmip-keys-admin">{t("The HmIP network key and the HmIP devices' keys are an administrator's.")}</p>
     {/if}

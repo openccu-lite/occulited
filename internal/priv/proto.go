@@ -1781,6 +1781,13 @@ func (s *Server) do(ctx context.Context, req request) response {
 			return refuse("hdmi: only the switch")
 		}
 		return fail(ops.SetHDMI(ctx, req.Enabled))
+	case opIOAccounting:
+		// occulited task 159: the switch and nothing else - the drop-in's path and text are the helper's
+		if !reflect.DeepEqual(req, request{Op: req.Op, Enabled: req.Enabled}) {
+			s.log("helper: refused an io-accounting request with more than the switch")
+			return refuse("io-accounting: only the switch")
+		}
+		return fail(ops.SetIOAccounting(ctx, req.Enabled))
 	case opIPv6Conf:
 		// occulited B-139: an interface, a key and a value - what the shell shape it replaced checked
 		v, err := strconv.Atoi(string(req.Data))
@@ -1854,6 +1861,8 @@ func (s *Server) do(ctx context.Context, req request) response {
 		return s.addonImage(req)
 	case opNetMount, opNetUnmount, opNetMountRemove, opWriteTest:
 		return s.netMount(ctx, req)
+	case opBackupTag: // occulited B-153, backuptag.go
+		return s.backupTag(ctx, req)
 	case opShareList:
 		return s.shareList(ctx, req)
 	case opUSBFormat, opUSBEject:

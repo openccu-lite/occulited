@@ -196,6 +196,11 @@ func (a *SystemAPI) saveTarget(w http.ResponseWriter, r *http.Request, t backupt
 			slog.Warn("backup targets: no key made for the new target", "target", saved.ID, "err", err)
 		}
 	}
+	// occulited B-153: .nobackup in a directory target's folder, so a folder on the userfs keeps its
+	// backups out of the next one; the next run writes it again when this fails
+	if err := m.Tag(r.Context(), saved); err != nil {
+		slog.Warn("backup targets: the folder is not tagged .nobackup", "target", saved.ID, "err", err)
+	}
 	applyErr := ""
 	if saved.IsMount() {
 		if err := m.Apply(r.Context(), saved); err != nil {
