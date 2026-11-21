@@ -396,7 +396,7 @@ func TestConsoleTokenWhileDaemonRuns(t *testing.T) {
 	if err := daemon.EnsureLocalToken(filepath.Join(dir, "local-token")); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := ConsoleCreateToken(dir, "charly-setup", asRole(RoleAdmin)); err != ErrSetupRequired {
+	if _, err := ConsoleCreateToken(dir, "charly-setup", asRole(RoleAdmin), ConsoleGate{}); err != ErrSetupRequired {
 		t.Fatalf("before setup: %v", err)
 	}
 	if n := len(daemon.Tokens()); n != 1 {
@@ -406,7 +406,7 @@ func TestConsoleTokenWhileDaemonRuns(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	secret, err := ConsoleCreateToken(dir, "charly-setup", asRole(RoleAdmin))
+	secret, err := ConsoleCreateToken(dir, "charly-setup", asRole(RoleAdmin), ConsoleGate{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -421,7 +421,7 @@ func TestConsoleTokenWhileDaemonRuns(t *testing.T) {
 	if _, err := daemon.CreateToken("api", asRole(RoleUser)); err != nil {
 		t.Fatal(err)
 	}
-	secret2, err := ConsoleCreateToken(dir, "charly-setup2", asRole(RoleAdmin))
+	secret2, err := ConsoleCreateToken(dir, "charly-setup2", asRole(RoleAdmin), ConsoleGate{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -556,7 +556,7 @@ func TestSaveKeepsUnreadableFile(t *testing.T) {
 	path := filepath.Join(dir, "users.json")
 	daemon, _ := Open(dir, Options{})
 	_ = daemon.Setup("admin", "secret123")
-	secret, err := ConsoleCreateToken(dir, "console", asRole(RoleAdmin))
+	secret, err := ConsoleCreateToken(dir, "console", asRole(RoleAdmin), ConsoleGate{})
 	if err != nil {
 		t.Fatal(err)
 	}

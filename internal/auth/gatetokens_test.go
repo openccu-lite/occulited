@@ -157,3 +157,75 @@ func TestGateTokenMirrorOff(t *testing.T) {
 }
 
 func itoa(n int64) string { return strconv.FormatInt(n, 10) }
+
+// occulited B-158: a token made on the console opens the gate at once - the console writes the
+// running daemon's mirror itself, with the segments the addons' drop-ins add - instead of waiting
+// for the daemon's next reload of users.json. Without the daemon's directory it creates none.
+func TestConsoleTokenReachesGateMirror(t *testing.T) {
+	dir := t.TempDir()
+	gate := filepath.Join(dir, "run", "gate-tokens")
+	segments := func(id string) []string {
+		if id == "redmatic" {
+			return []string{"red"}
+		}
+		return nil
+	}
+	daemon, err := Open(dir, Options{SessionDir: filepath.Join(dir, "run", "sessions"), AddonSegments: segments})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := daemon.Setup("admin", "secret123"); err != nil {
+		t.Fatal(err)
+	}
+	kept, err := daemon.CreateToken("kept", TokenOptions{Scopes: Scopes{ScopeMetaRead}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	// another writer's file on its way in is not swept
+	pending := filepath.Join(gate, ".tmp-123")
+	_ = os.WriteFile(pending, nil, 0o600)
+
+	secret, err := ConsoleCreateToken(dir, "console", TokenOptions{Scopes: Scopes{AddonScope("redmatic"), AddonScope("hmm")}}, ConsoleGate{Dir: gate, AddonSegments: segments})
+	if err != nil {
+		t.Fatal(err)
+	}
+	// no request, no sweep: the file is there
+	b, err := os.ReadFile(filepath.Join(gate, hashToken(secret)))
+	if err != nil || string(b) != "name console\naddons hmm red redmatic\n" {
+		t.Fatalf("the console's token in the mirror: %q %v", b, err)
+	}
+	if st, _ := os.Stat(filepath.Join(gate, hashToken(secret))); st.Mode().Perm() != 0o644 {
+		t.Errorf("mode %o, want 644", st.Mode().Perm())
+	}
+	if _, err := os.Stat(filepath.Join(gate, hashToken(kept))); err != nil {
+		t.Errorf("the daemon's token left the mirror: %v", err)
+	}
+	if _, err := os.Stat(pending); err != nil {
+		t.Errorf("a file on its way in was swept: %v", err)
+	}
+	entries, _ := os.ReadDir(gate)
+	for _, e := range entries {
+		if strings.HasPrefix(e.Name(), ".tmp-") && e.Name() != ".tmp-123" {
+			t.Errorf("a temporary file left behind: %s", e.Name())
+		}
+	}
+	// the daemon replaces the console's file when the token changes (a rename, whoever owns it)
+	if _, err := daemon.UpdateToken("console", nil, []string{"addon:hmm"}); err != nil {
+		t.Fatal(err)
+	}
+	if b, _ := os.ReadFile(filepath.Join(gate, hashToken(secret))); string(b) != "name console\naddons hmm\n" {
+		t.Errorf("after the daemon's change: %q", b)
+	}
+
+	// no daemon directory: the console writes users.json and creates no mirror
+	other := t.TempDir()
+	d2, _ := Open(other, Options{})
+	_ = d2.Setup("admin", "secret123")
+	absent := filepath.Join(other, "run", "gate-tokens")
+	if _, err := ConsoleCreateToken(other, "xx", TokenOptions{Scopes: Scopes{ScopeAll}}, ConsoleGate{Dir: absent}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(absent); err == nil {
+		t.Error("the console created a mirror directory")
+	}
+}

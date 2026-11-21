@@ -1898,6 +1898,9 @@ func (s *Store) syncGateTokens() {
 	want := s.gateTokenFiles()
 	entries, _ := os.ReadDir(dir)
 	for _, e := range entries {
+		if strings.HasPrefix(e.Name(), ".") {
+			continue // another writer's file on its way in (writeGateToken)
+		}
 		if _, ok := want[e.Name()]; !ok {
 			_ = os.Remove(filepath.Join(dir, e.Name()))
 		}
@@ -1907,7 +1910,35 @@ func (s *Store) syncGateTokens() {
 		if cur, err := os.ReadFile(p); err == nil && string(cur) == body {
 			continue
 		}
-		writeMirror(p, body)
+		writeGateToken(p, body)
+	}
+}
+
+// writeGateToken writes one file of the token mirror by a rename: the gate never reads half a
+// file, and the daemon can replace one the console wrote as root (occulited B-158), which an
+// in-place write of a 0644 file it does not own could not.
+func writeGateToken(path, body string) {
+	f, err := os.CreateTemp(filepath.Dir(path), ".tmp-")
+	if err != nil {
+		return
+	}
+	tmp := f.Name()
+	_, werr := f.WriteString(body)
+	cerr := f.Close()
+	if werr != nil || cerr != nil || os.Chmod(tmp, 0o644) != nil {
+		_ = os.Remove(tmp)
+		return
+	}
+	// the console runs as root: its file keeps the directory's owner, as users.json does
+	if os.Geteuid() == 0 {
+		if dir, err := os.Stat(filepath.Dir(path)); err == nil {
+			if sys, ok := dir.Sys().(*syscall.Stat_t); ok {
+				_ = os.Chown(tmp, int(sys.Uid), int(sys.Gid))
+			}
+		}
+	}
+	if os.Rename(tmp, path) != nil {
+		_ = os.Remove(tmp)
 	}
 }
 
@@ -2221,11 +2252,31 @@ func ConsoleSetPassword(dir, name, pw string) error {
 	return nil
 }
 
+// ConsoleGate is the gate's token mirror as the console sees it: the running daemon's directory
+// and the segments an addon's drop-in adds (system.Root.AddonIngressSegments). The zero value
+// writes no mirror.
+type ConsoleGate struct {
+	Dir           string
+	AddonSegments func(addonID string) []string
+}
+
 // ConsoleCreateToken is what `occulited token <name>` uses: it writes the token into users.json
 // directly, and a running daemon finds it on the next credential check. While no user exists it
 // refuses with ErrSetupRequired: provisioning starts with the first administrator.
-func ConsoleCreateToken(dir, name string, opt TokenOptions) (string, error) {
-	s, err := Open(dir, Options{})
+//
+// occulited B-158: the gate reads only its mirror, and the daemon rewrites that only when a
+// request or its five-minute sweep makes it reload users.json - so a console-made token answered
+// 401 under /addons/ for seconds on a busy system and minutes on a quiet one, while /api took it
+// at once. The console therefore writes the mirror itself when the daemon's directory is there
+// (gate.Dir; it never creates one), from the same users.json the daemon reads.
+func ConsoleCreateToken(dir, name string, opt TokenOptions, gate ConsoleGate) (string, error) {
+	o := Options{AddonSegments: gate.AddonSegments}
+	if gate.Dir != "" {
+		if st, err := os.Stat(gate.Dir); err == nil && st.IsDir() {
+			o.GateTokenDir = gate.Dir
+		}
+	}
+	s, err := Open(dir, o)
 	if err != nil {
 		return "", err
 	}

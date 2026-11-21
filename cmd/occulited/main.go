@@ -1657,7 +1657,7 @@ type repeatable []string
 func (r *repeatable) String() string     { return strings.Join(*r, ",") }
 func (r *repeatable) Set(v string) error { *r = append(*r, v); return nil }
 
-const tokenUsage = "usage: occulited token <name> [--scope SCOPE]... [--role admin|user|led] [--expires DATE|DURATION] [--ip RANGE]... [--state-dir DIR]"
+const tokenUsage = "usage: occulited token <name> [--scope SCOPE]... [--role admin|user|led] [--expires DATE|DURATION] [--ip RANGE]... [--state-dir DIR] [--gate-dir DIR]"
 
 // token is the console way to an API token for headless provisioning (task 66): `occulited
 // token <name> --scope meta:read --scope system:read` prints the secret - once, to stdout,
@@ -1668,6 +1668,7 @@ const tokenUsage = "usage: occulited token <name> [--scope SCOPE]... [--role adm
 func token(args []string) error {
 	fs := flag.NewFlagSet("token", flag.ContinueOnError)
 	stateDir := fs.String("state-dir", "/usr/local/etc/occulite", "state directory")
+	gateDir := fs.String("gate-dir", "/run/occulite/gate-tokens", "the running daemon's token mirror for lighttpd's gate; written when it exists")
 	role := fs.String("role", "", "admin, user or led: the scopes that role stands for (an alias; --scope is the way)")
 	expires := fs.String("expires", "", "a date (2027-01-01 or RFC 3339) or a duration (30d, 12h) after which the token ends")
 	var scopes, ips repeatable
@@ -1715,7 +1716,9 @@ func token(args []string) error {
 		}
 		opt.Expires = &t
 	}
-	secret, err := auth.ConsoleCreateToken(*stateDir, name, opt)
+	// occulited B-158: the mirror too, so the token opens /addons/ at once, not at the daemon's
+	// next reload of users.json
+	secret, err := auth.ConsoleCreateToken(*stateDir, name, opt, auth.ConsoleGate{Dir: *gateDir, AddonSegments: system.Root("/").AddonIngressSegments})
 	if errors.Is(err, auth.ErrSetupRequired) {
 		return fmt.Errorf("no user exists in %s yet; set up the first administrator (in the web interface, or with `occulited passwd <user>`) before creating a token", *stateDir)
 	}
