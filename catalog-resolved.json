@@ -1,6 +1,6 @@
 {
   "format": 1,
-  "generated_at": "2026-11-21T12:54:43Z",
+  "generated_at": "2026-11-21T16:37:04Z",
   "catalog": "file:///home/runner/work/occulited/occulited/catalog/catalog.json",
   "repos": {
     "SukramJ/openccu-loom": {
@@ -1174,6 +1174,46 @@
     "hobbyquaker/ccu-addon-battery": {
       "releases": [
         {
+          "tag_name": "v1.4.1",
+          "name": "v1.4.1",
+          "draft": false,
+          "prerelease": false,
+          "html_url": "https://github.com/hobbyquaker/ccu-addon-battery/releases/tag/v1.4.1",
+          "published_at": "2026-11-21T16:35:58Z",
+          "assets": [
+            {
+              "name": "battery-aarch64-1.4.1.tar.gz",
+              "size": 5002863,
+              "browser_download_url": "https://github.com/hobbyquaker/ccu-addon-battery/releases/download/v1.4.1/battery-aarch64-1.4.1.tar.gz"
+            },
+            {
+              "name": "battery-aarch64-1.4.1.tar.gz.sha256",
+              "size": 95,
+              "browser_download_url": "https://github.com/hobbyquaker/ccu-addon-battery/releases/download/v1.4.1/battery-aarch64-1.4.1.tar.gz.sha256"
+            },
+            {
+              "name": "battery-armv7l-1.4.1.tar.gz",
+              "size": 5098180,
+              "browser_download_url": "https://github.com/hobbyquaker/ccu-addon-battery/releases/download/v1.4.1/battery-armv7l-1.4.1.tar.gz"
+            },
+            {
+              "name": "battery-armv7l-1.4.1.tar.gz.sha256",
+              "size": 94,
+              "browser_download_url": "https://github.com/hobbyquaker/ccu-addon-battery/releases/download/v1.4.1/battery-armv7l-1.4.1.tar.gz.sha256"
+            },
+            {
+              "name": "battery-x86_64-1.4.1.tar.gz",
+              "size": 5355929,
+              "browser_download_url": "https://github.com/hobbyquaker/ccu-addon-battery/releases/download/v1.4.1/battery-x86_64-1.4.1.tar.gz"
+            },
+            {
+              "name": "battery-x86_64-1.4.1.tar.gz.sha256",
+              "size": 94,
+              "browser_download_url": "https://github.com/hobbyquaker/ccu-addon-battery/releases/download/v1.4.1/battery-x86_64-1.4.1.tar.gz.sha256"
+            }
+          ]
+        },
+        {
           "tag_name": "v1.4.0",
           "name": "v1.4.0",
           "draft": false,
@@ -2151,6 +2191,426 @@
     },
     "hobbyquaker/homematic-manager": {
       "releases": [
+        {
+          "tag_name": "v3.7.0",
+          "name": "v3.7.0",
+          "draft": false,
+          "prerelease": false,
+          "html_url": "https://github.com/hobbyquaker/homematic-manager/releases/tag/v3.7.0",
+          "published_at": "2026-11-21T15:02:49Z",
+          "assets": [
+            {
+              "name": "hmm-ccu-aarch64-3.7.0.tar.gz",
+              "size": 46456228,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.7.0/hmm-ccu-aarch64-3.7.0.tar.gz"
+            },
+            {
+              "name": "hmm-ccu-aarch64-3.7.0.tar.gz.cdx.json",
+              "size": 22505,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.7.0/hmm-ccu-aarch64-3.7.0.tar.gz.cdx.json"
+            },
+            {
+              "name": "hmm-ccu-aarch64-3.7.0.tar.gz.sha256",
+              "size": 95,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.7.0/hmm-ccu-aarch64-3.7.0.tar.gz.sha256"
+            },
+            {
+              "name": "hmm-ccu-armv7l-3.7.0.tar.gz",
+              "size": 26984491,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.7.0/hmm-ccu-armv7l-3.7.0.tar.gz"
+            },
+            {
+              "name": "hmm-ccu-armv7l-3.7.0.tar.gz.cdx.json",
+              "size": 36655,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.7.0/hmm-ccu-armv7l-3.7.0.tar.gz.cdx.json"
+            },
+            {
+              "name": "hmm-ccu-armv7l-3.7.0.tar.gz.sha256",
+              "size": 94,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.7.0/hmm-ccu-armv7l-3.7.0.tar.gz.sha256"
+            },
+            {
+              "name": "hmm-ccu-x86_64-3.7.0.tar.gz",
+              "size": 46776156,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.7.0/hmm-ccu-x86_64-3.7.0.tar.gz"
+            },
+            {
+              "name": "hmm-ccu-x86_64-3.7.0.tar.gz.cdx.json",
+              "size": 22498,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.7.0/hmm-ccu-x86_64-3.7.0.tar.gz.cdx.json"
+            },
+            {
+              "name": "hmm-ccu-x86_64-3.7.0.tar.gz.sha256",
+              "size": 94,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.7.0/hmm-ccu-x86_64-3.7.0.tar.gz.sha256"
+            },
+            {
+              "name": "Homematic-Manager-3.7.0-arm64.AppImage",
+              "size": 129341505,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.7.0/Homematic-Manager-3.7.0-arm64.AppImage"
+            },
+            {
+              "name": "Homematic-Manager-3.7.0-arm64.AppImage.cdx.json",
+              "size": 33883,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.7.0/Homematic-Manager-3.7.0-arm64.AppImage.cdx.json"
+            },
+            {
+              "name": "Homematic-Manager-3.7.0-portable-arm64.exe",
+              "size": 107348032,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.7.0/Homematic-Manager-3.7.0-portable-arm64.exe"
+            },
+            {
+              "name": "Homematic-Manager-3.7.0-portable-arm64.exe.cdx.json",
+              "size": 34148,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.7.0/Homematic-Manager-3.7.0-portable-arm64.exe.cdx.json"
+            },
+            {
+              "name": "Homematic-Manager-3.7.0-portable-x64.exe",
+              "size": 113642586,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.7.0/Homematic-Manager-3.7.0-portable-x64.exe"
+            },
+            {
+              "name": "Homematic-Manager-3.7.0-portable-x64.exe.cdx.json",
+              "size": 34144,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.7.0/Homematic-Manager-3.7.0-portable-x64.exe.cdx.json"
+            },
+            {
+              "name": "Homematic-Manager-3.7.0-portable.exe",
+              "size": 220282502,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.7.0/Homematic-Manager-3.7.0-portable.exe"
+            },
+            {
+              "name": "Homematic-Manager-3.7.0-portable.exe.cdx.json",
+              "size": 34136,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.7.0/Homematic-Manager-3.7.0-portable.exe.cdx.json"
+            },
+            {
+              "name": "Homematic-Manager-3.7.0-universal-mac.zip",
+              "size": 230944532,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.7.0/Homematic-Manager-3.7.0-universal-mac.zip"
+            },
+            {
+              "name": "Homematic-Manager-3.7.0-universal-mac.zip.blockmap",
+              "size": 241142,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.7.0/Homematic-Manager-3.7.0-universal-mac.zip.blockmap"
+            },
+            {
+              "name": "Homematic-Manager-3.7.0-universal-mac.zip.cdx.json",
+              "size": 33631,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.7.0/Homematic-Manager-3.7.0-universal-mac.zip.cdx.json"
+            },
+            {
+              "name": "Homematic-Manager-3.7.0-universal.dmg",
+              "size": 230945360,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.7.0/Homematic-Manager-3.7.0-universal.dmg"
+            },
+            {
+              "name": "Homematic-Manager-3.7.0-universal.dmg.blockmap",
+              "size": 242171,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.7.0/Homematic-Manager-3.7.0-universal.dmg.blockmap"
+            },
+            {
+              "name": "Homematic-Manager-3.7.0-universal.dmg.cdx.json",
+              "size": 33623,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.7.0/Homematic-Manager-3.7.0-universal.dmg.cdx.json"
+            },
+            {
+              "name": "Homematic-Manager-3.7.0-x86_64.AppImage",
+              "size": 128019495,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.7.0/Homematic-Manager-3.7.0-x86_64.AppImage"
+            },
+            {
+              "name": "Homematic-Manager-3.7.0-x86_64.AppImage.cdx.json",
+              "size": 33885,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.7.0/Homematic-Manager-3.7.0-x86_64.AppImage.cdx.json"
+            },
+            {
+              "name": "homematic-manager-3.7.0.tgz",
+              "size": 1790352,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.7.0/homematic-manager-3.7.0.tgz"
+            },
+            {
+              "name": "homematic-manager-3.7.0.tgz.cdx.json",
+              "size": 21600,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.7.0/homematic-manager-3.7.0.tgz.cdx.json"
+            },
+            {
+              "name": "homematic-manager-docker-3.7.0.cdx.json",
+              "size": 412856,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.7.0/homematic-manager-docker-3.7.0.cdx.json"
+            },
+            {
+              "name": "Homematic-Manager-Setup-3.7.0.exe",
+              "size": 220581356,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.7.0/Homematic-Manager-Setup-3.7.0.exe"
+            },
+            {
+              "name": "Homematic-Manager-Setup-3.7.0.exe.blockmap",
+              "size": 227117,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.7.0/Homematic-Manager-Setup-3.7.0.exe.blockmap"
+            },
+            {
+              "name": "Homematic-Manager-Setup-3.7.0.exe.cdx.json",
+              "size": 34130,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.7.0/Homematic-Manager-Setup-3.7.0.exe.cdx.json"
+            },
+            {
+              "name": "homematic-manager_3.7.0_amd64.deb",
+              "size": 101865260,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.7.0/homematic-manager_3.7.0_amd64.deb"
+            },
+            {
+              "name": "homematic-manager_3.7.0_amd64.deb.cdx.json",
+              "size": 33868,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.7.0/homematic-manager_3.7.0_amd64.deb.cdx.json"
+            },
+            {
+              "name": "homematic-manager_3.7.0_arm64.deb",
+              "size": 97001732,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.7.0/homematic-manager_3.7.0_arm64.deb"
+            },
+            {
+              "name": "homematic-manager_3.7.0_arm64.deb.cdx.json",
+              "size": 33867,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.7.0/homematic-manager_3.7.0_arm64.deb.cdx.json"
+            },
+            {
+              "name": "latest-linux-arm64.yml",
+              "size": 561,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.7.0/latest-linux-arm64.yml"
+            },
+            {
+              "name": "latest-linux.yml",
+              "size": 564,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.7.0/latest-linux.yml"
+            },
+            {
+              "name": "latest-mac.yml",
+              "size": 547,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.7.0/latest-mac.yml"
+            },
+            {
+              "name": "latest.yml",
+              "size": 363,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.7.0/latest.yml"
+            },
+            {
+              "name": "sbom.cdx.json",
+              "size": 33805,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.7.0/sbom.cdx.json"
+            }
+          ]
+        },
+        {
+          "tag_name": "v3.6.1",
+          "name": "v3.6.1",
+          "draft": false,
+          "prerelease": false,
+          "html_url": "https://github.com/hobbyquaker/homematic-manager/releases/tag/v3.6.1",
+          "published_at": "2026-11-21T13:44:45Z",
+          "assets": [
+            {
+              "name": "hmm-ccu-aarch64-3.6.1.tar.gz",
+              "size": 46450478,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.6.1/hmm-ccu-aarch64-3.6.1.tar.gz"
+            },
+            {
+              "name": "hmm-ccu-aarch64-3.6.1.tar.gz.cdx.json",
+              "size": 22505,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.6.1/hmm-ccu-aarch64-3.6.1.tar.gz.cdx.json"
+            },
+            {
+              "name": "hmm-ccu-aarch64-3.6.1.tar.gz.sha256",
+              "size": 95,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.6.1/hmm-ccu-aarch64-3.6.1.tar.gz.sha256"
+            },
+            {
+              "name": "hmm-ccu-armv7l-3.6.1.tar.gz",
+              "size": 26982231,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.6.1/hmm-ccu-armv7l-3.6.1.tar.gz"
+            },
+            {
+              "name": "hmm-ccu-armv7l-3.6.1.tar.gz.cdx.json",
+              "size": 36655,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.6.1/hmm-ccu-armv7l-3.6.1.tar.gz.cdx.json"
+            },
+            {
+              "name": "hmm-ccu-armv7l-3.6.1.tar.gz.sha256",
+              "size": 94,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.6.1/hmm-ccu-armv7l-3.6.1.tar.gz.sha256"
+            },
+            {
+              "name": "hmm-ccu-x86_64-3.6.1.tar.gz",
+              "size": 46773897,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.6.1/hmm-ccu-x86_64-3.6.1.tar.gz"
+            },
+            {
+              "name": "hmm-ccu-x86_64-3.6.1.tar.gz.cdx.json",
+              "size": 22498,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.6.1/hmm-ccu-x86_64-3.6.1.tar.gz.cdx.json"
+            },
+            {
+              "name": "hmm-ccu-x86_64-3.6.1.tar.gz.sha256",
+              "size": 94,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.6.1/hmm-ccu-x86_64-3.6.1.tar.gz.sha256"
+            },
+            {
+              "name": "Homematic-Manager-3.6.1-arm64.AppImage",
+              "size": 129341526,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.6.1/Homematic-Manager-3.6.1-arm64.AppImage"
+            },
+            {
+              "name": "Homematic-Manager-3.6.1-arm64.AppImage.cdx.json",
+              "size": 33883,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.6.1/Homematic-Manager-3.6.1-arm64.AppImage.cdx.json"
+            },
+            {
+              "name": "Homematic-Manager-3.6.1-portable-arm64.exe",
+              "size": 107345185,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.6.1/Homematic-Manager-3.6.1-portable-arm64.exe"
+            },
+            {
+              "name": "Homematic-Manager-3.6.1-portable-arm64.exe.cdx.json",
+              "size": 34148,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.6.1/Homematic-Manager-3.6.1-portable-arm64.exe.cdx.json"
+            },
+            {
+              "name": "Homematic-Manager-3.6.1-portable-x64.exe",
+              "size": 113639805,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.6.1/Homematic-Manager-3.6.1-portable-x64.exe"
+            },
+            {
+              "name": "Homematic-Manager-3.6.1-portable-x64.exe.cdx.json",
+              "size": 34144,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.6.1/Homematic-Manager-3.6.1-portable-x64.exe.cdx.json"
+            },
+            {
+              "name": "Homematic-Manager-3.6.1-portable.exe",
+              "size": 220276865,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.6.1/Homematic-Manager-3.6.1-portable.exe"
+            },
+            {
+              "name": "Homematic-Manager-3.6.1-portable.exe.cdx.json",
+              "size": 34136,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.6.1/Homematic-Manager-3.6.1-portable.exe.cdx.json"
+            },
+            {
+              "name": "Homematic-Manager-3.6.1-universal-mac.zip",
+              "size": 230940591,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.6.1/Homematic-Manager-3.6.1-universal-mac.zip"
+            },
+            {
+              "name": "Homematic-Manager-3.6.1-universal-mac.zip.blockmap",
+              "size": 241383,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.6.1/Homematic-Manager-3.6.1-universal-mac.zip.blockmap"
+            },
+            {
+              "name": "Homematic-Manager-3.6.1-universal-mac.zip.cdx.json",
+              "size": 33631,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.6.1/Homematic-Manager-3.6.1-universal-mac.zip.cdx.json"
+            },
+            {
+              "name": "Homematic-Manager-3.6.1-universal.dmg",
+              "size": 230952943,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.6.1/Homematic-Manager-3.6.1-universal.dmg"
+            },
+            {
+              "name": "Homematic-Manager-3.6.1-universal.dmg.blockmap",
+              "size": 240286,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.6.1/Homematic-Manager-3.6.1-universal.dmg.blockmap"
+            },
+            {
+              "name": "Homematic-Manager-3.6.1-universal.dmg.cdx.json",
+              "size": 33623,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.6.1/Homematic-Manager-3.6.1-universal.dmg.cdx.json"
+            },
+            {
+              "name": "Homematic-Manager-3.6.1-x86_64.AppImage",
+              "size": 128019470,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.6.1/Homematic-Manager-3.6.1-x86_64.AppImage"
+            },
+            {
+              "name": "Homematic-Manager-3.6.1-x86_64.AppImage.cdx.json",
+              "size": 33885,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.6.1/Homematic-Manager-3.6.1-x86_64.AppImage.cdx.json"
+            },
+            {
+              "name": "homematic-manager-3.6.1.tgz",
+              "size": 1787256,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.6.1/homematic-manager-3.6.1.tgz"
+            },
+            {
+              "name": "homematic-manager-3.6.1.tgz.cdx.json",
+              "size": 21600,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.6.1/homematic-manager-3.6.1.tgz.cdx.json"
+            },
+            {
+              "name": "homematic-manager-docker-3.6.1.cdx.json",
+              "size": 412856,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.6.1/homematic-manager-docker-3.6.1.cdx.json"
+            },
+            {
+              "name": "Homematic-Manager-Setup-3.6.1.exe",
+              "size": 220575725,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.6.1/Homematic-Manager-Setup-3.6.1.exe"
+            },
+            {
+              "name": "Homematic-Manager-Setup-3.6.1.exe.blockmap",
+              "size": 227659,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.6.1/Homematic-Manager-Setup-3.6.1.exe.blockmap"
+            },
+            {
+              "name": "Homematic-Manager-Setup-3.6.1.exe.cdx.json",
+              "size": 34130,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.6.1/Homematic-Manager-Setup-3.6.1.exe.cdx.json"
+            },
+            {
+              "name": "homematic-manager_3.6.1_amd64.deb",
+              "size": 101862412,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.6.1/homematic-manager_3.6.1_amd64.deb"
+            },
+            {
+              "name": "homematic-manager_3.6.1_amd64.deb.cdx.json",
+              "size": 33868,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.6.1/homematic-manager_3.6.1_amd64.deb.cdx.json"
+            },
+            {
+              "name": "homematic-manager_3.6.1_arm64.deb",
+              "size": 96996048,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.6.1/homematic-manager_3.6.1_arm64.deb"
+            },
+            {
+              "name": "homematic-manager_3.6.1_arm64.deb.cdx.json",
+              "size": 33867,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.6.1/homematic-manager_3.6.1_arm64.deb.cdx.json"
+            },
+            {
+              "name": "latest-linux-arm64.yml",
+              "size": 561,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.6.1/latest-linux-arm64.yml"
+            },
+            {
+              "name": "latest-linux.yml",
+              "size": 564,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.6.1/latest-linux.yml"
+            },
+            {
+              "name": "latest-mac.yml",
+              "size": 547,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.6.1/latest-mac.yml"
+            },
+            {
+              "name": "latest.yml",
+              "size": 363,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.6.1/latest.yml"
+            },
+            {
+              "name": "sbom.cdx.json",
+              "size": 33805,
+              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.6.1/sbom.cdx.json"
+            }
+          ]
+        },
         {
           "tag_name": "v3.6.0",
           "name": "v3.6.0",
@@ -3830,426 +4290,6 @@
               "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.2.3/sbom.cdx.json"
             }
           ]
-        },
-        {
-          "tag_name": "v3.2.2",
-          "name": "v3.2.2",
-          "draft": false,
-          "prerelease": false,
-          "html_url": "https://github.com/hobbyquaker/homematic-manager/releases/tag/v3.2.2",
-          "published_at": "2026-10-15T22:16:47Z",
-          "assets": [
-            {
-              "name": "hmm-ccu-aarch64-3.2.2.tar.gz",
-              "size": 46339390,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.2.2/hmm-ccu-aarch64-3.2.2.tar.gz"
-            },
-            {
-              "name": "hmm-ccu-aarch64-3.2.2.tar.gz.cdx.json",
-              "size": 22505,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.2.2/hmm-ccu-aarch64-3.2.2.tar.gz.cdx.json"
-            },
-            {
-              "name": "hmm-ccu-aarch64-3.2.2.tar.gz.sha256",
-              "size": 95,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.2.2/hmm-ccu-aarch64-3.2.2.tar.gz.sha256"
-            },
-            {
-              "name": "hmm-ccu-armv7l-3.2.2.tar.gz",
-              "size": 28162489,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.2.2/hmm-ccu-armv7l-3.2.2.tar.gz"
-            },
-            {
-              "name": "hmm-ccu-armv7l-3.2.2.tar.gz.cdx.json",
-              "size": 36663,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.2.2/hmm-ccu-armv7l-3.2.2.tar.gz.cdx.json"
-            },
-            {
-              "name": "hmm-ccu-armv7l-3.2.2.tar.gz.sha256",
-              "size": 94,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.2.2/hmm-ccu-armv7l-3.2.2.tar.gz.sha256"
-            },
-            {
-              "name": "hmm-ccu-x86_64-3.2.2.tar.gz",
-              "size": 46656526,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.2.2/hmm-ccu-x86_64-3.2.2.tar.gz"
-            },
-            {
-              "name": "hmm-ccu-x86_64-3.2.2.tar.gz.cdx.json",
-              "size": 22498,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.2.2/hmm-ccu-x86_64-3.2.2.tar.gz.cdx.json"
-            },
-            {
-              "name": "hmm-ccu-x86_64-3.2.2.tar.gz.sha256",
-              "size": 94,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.2.2/hmm-ccu-x86_64-3.2.2.tar.gz.sha256"
-            },
-            {
-              "name": "Homematic-Manager-3.2.2-arm64.AppImage",
-              "size": 129214427,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.2.2/Homematic-Manager-3.2.2-arm64.AppImage"
-            },
-            {
-              "name": "Homematic-Manager-3.2.2-arm64.AppImage.cdx.json",
-              "size": 33883,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.2.2/Homematic-Manager-3.2.2-arm64.AppImage.cdx.json"
-            },
-            {
-              "name": "Homematic-Manager-3.2.2-portable-arm64.exe",
-              "size": 107227130,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.2.2/Homematic-Manager-3.2.2-portable-arm64.exe"
-            },
-            {
-              "name": "Homematic-Manager-3.2.2-portable-arm64.exe.cdx.json",
-              "size": 34148,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.2.2/Homematic-Manager-3.2.2-portable-arm64.exe.cdx.json"
-            },
-            {
-              "name": "Homematic-Manager-3.2.2-portable-x64.exe",
-              "size": 113521688,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.2.2/Homematic-Manager-3.2.2-portable-x64.exe"
-            },
-            {
-              "name": "Homematic-Manager-3.2.2-portable-x64.exe.cdx.json",
-              "size": 34144,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.2.2/Homematic-Manager-3.2.2-portable-x64.exe.cdx.json"
-            },
-            {
-              "name": "Homematic-Manager-3.2.2-portable.exe",
-              "size": 220040697,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.2.2/Homematic-Manager-3.2.2-portable.exe"
-            },
-            {
-              "name": "Homematic-Manager-3.2.2-portable.exe.cdx.json",
-              "size": 34136,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.2.2/Homematic-Manager-3.2.2-portable.exe.cdx.json"
-            },
-            {
-              "name": "Homematic-Manager-3.2.2-universal-mac.zip",
-              "size": 230818078,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.2.2/Homematic-Manager-3.2.2-universal-mac.zip"
-            },
-            {
-              "name": "Homematic-Manager-3.2.2-universal-mac.zip.blockmap",
-              "size": 240828,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.2.2/Homematic-Manager-3.2.2-universal-mac.zip.blockmap"
-            },
-            {
-              "name": "Homematic-Manager-3.2.2-universal-mac.zip.cdx.json",
-              "size": 33631,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.2.2/Homematic-Manager-3.2.2-universal-mac.zip.cdx.json"
-            },
-            {
-              "name": "Homematic-Manager-3.2.2-universal.dmg",
-              "size": 230820020,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.2.2/Homematic-Manager-3.2.2-universal.dmg"
-            },
-            {
-              "name": "Homematic-Manager-3.2.2-universal.dmg.blockmap",
-              "size": 243086,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.2.2/Homematic-Manager-3.2.2-universal.dmg.blockmap"
-            },
-            {
-              "name": "Homematic-Manager-3.2.2-universal.dmg.cdx.json",
-              "size": 33623,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.2.2/Homematic-Manager-3.2.2-universal.dmg.cdx.json"
-            },
-            {
-              "name": "Homematic-Manager-3.2.2-x86_64.AppImage",
-              "size": 127896498,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.2.2/Homematic-Manager-3.2.2-x86_64.AppImage"
-            },
-            {
-              "name": "Homematic-Manager-3.2.2-x86_64.AppImage.cdx.json",
-              "size": 33885,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.2.2/Homematic-Manager-3.2.2-x86_64.AppImage.cdx.json"
-            },
-            {
-              "name": "homematic-manager-3.2.2.tgz",
-              "size": 1728003,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.2.2/homematic-manager-3.2.2.tgz"
-            },
-            {
-              "name": "homematic-manager-3.2.2.tgz.cdx.json",
-              "size": 21600,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.2.2/homematic-manager-3.2.2.tgz.cdx.json"
-            },
-            {
-              "name": "homematic-manager-docker-3.2.2.cdx.json",
-              "size": 410971,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.2.2/homematic-manager-docker-3.2.2.cdx.json"
-            },
-            {
-              "name": "Homematic-Manager-Setup-3.2.2.exe",
-              "size": 220339538,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.2.2/Homematic-Manager-Setup-3.2.2.exe"
-            },
-            {
-              "name": "Homematic-Manager-Setup-3.2.2.exe.blockmap",
-              "size": 227326,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.2.2/Homematic-Manager-Setup-3.2.2.exe.blockmap"
-            },
-            {
-              "name": "Homematic-Manager-Setup-3.2.2.exe.cdx.json",
-              "size": 34130,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.2.2/Homematic-Manager-Setup-3.2.2.exe.cdx.json"
-            },
-            {
-              "name": "homematic-manager_3.2.2_amd64.deb",
-              "size": 101027864,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.2.2/homematic-manager_3.2.2_amd64.deb"
-            },
-            {
-              "name": "homematic-manager_3.2.2_amd64.deb.cdx.json",
-              "size": 33868,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.2.2/homematic-manager_3.2.2_amd64.deb.cdx.json"
-            },
-            {
-              "name": "homematic-manager_3.2.2_arm64.deb",
-              "size": 96191448,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.2.2/homematic-manager_3.2.2_arm64.deb"
-            },
-            {
-              "name": "homematic-manager_3.2.2_arm64.deb.cdx.json",
-              "size": 33867,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.2.2/homematic-manager_3.2.2_arm64.deb.cdx.json"
-            },
-            {
-              "name": "latest-linux-arm64.yml",
-              "size": 561,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.2.2/latest-linux-arm64.yml"
-            },
-            {
-              "name": "latest-linux.yml",
-              "size": 564,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.2.2/latest-linux.yml"
-            },
-            {
-              "name": "latest-mac.yml",
-              "size": 547,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.2.2/latest-mac.yml"
-            },
-            {
-              "name": "latest.yml",
-              "size": 363,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.2.2/latest.yml"
-            },
-            {
-              "name": "sbom.cdx.json",
-              "size": 33287,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.2.2/sbom.cdx.json"
-            }
-          ]
-        },
-        {
-          "tag_name": "v3.2.1",
-          "name": "v3.2.1",
-          "draft": false,
-          "prerelease": false,
-          "html_url": "https://github.com/hobbyquaker/homematic-manager/releases/tag/v3.2.1",
-          "published_at": "2026-10-15T21:59:20Z",
-          "assets": [
-            {
-              "name": "hmm-ccu-aarch64-3.2.1.tar.gz",
-              "size": 46340707,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.2.1/hmm-ccu-aarch64-3.2.1.tar.gz"
-            },
-            {
-              "name": "hmm-ccu-aarch64-3.2.1.tar.gz.cdx.json",
-              "size": 22505,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.2.1/hmm-ccu-aarch64-3.2.1.tar.gz.cdx.json"
-            },
-            {
-              "name": "hmm-ccu-aarch64-3.2.1.tar.gz.sha256",
-              "size": 95,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.2.1/hmm-ccu-aarch64-3.2.1.tar.gz.sha256"
-            },
-            {
-              "name": "hmm-ccu-armv7l-3.2.1.tar.gz",
-              "size": 28161639,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.2.1/hmm-ccu-armv7l-3.2.1.tar.gz"
-            },
-            {
-              "name": "hmm-ccu-armv7l-3.2.1.tar.gz.cdx.json",
-              "size": 36663,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.2.1/hmm-ccu-armv7l-3.2.1.tar.gz.cdx.json"
-            },
-            {
-              "name": "hmm-ccu-armv7l-3.2.1.tar.gz.sha256",
-              "size": 94,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.2.1/hmm-ccu-armv7l-3.2.1.tar.gz.sha256"
-            },
-            {
-              "name": "hmm-ccu-x86_64-3.2.1.tar.gz",
-              "size": 46660149,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.2.1/hmm-ccu-x86_64-3.2.1.tar.gz"
-            },
-            {
-              "name": "hmm-ccu-x86_64-3.2.1.tar.gz.cdx.json",
-              "size": 22498,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.2.1/hmm-ccu-x86_64-3.2.1.tar.gz.cdx.json"
-            },
-            {
-              "name": "hmm-ccu-x86_64-3.2.1.tar.gz.sha256",
-              "size": 94,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.2.1/hmm-ccu-x86_64-3.2.1.tar.gz.sha256"
-            },
-            {
-              "name": "Homematic-Manager-3.2.1-arm64.AppImage",
-              "size": 129214379,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.2.1/Homematic-Manager-3.2.1-arm64.AppImage"
-            },
-            {
-              "name": "Homematic-Manager-3.2.1-arm64.AppImage.cdx.json",
-              "size": 33883,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.2.1/Homematic-Manager-3.2.1-arm64.AppImage.cdx.json"
-            },
-            {
-              "name": "Homematic-Manager-3.2.1-portable-arm64.exe",
-              "size": 107227272,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.2.1/Homematic-Manager-3.2.1-portable-arm64.exe"
-            },
-            {
-              "name": "Homematic-Manager-3.2.1-portable-arm64.exe.cdx.json",
-              "size": 34148,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.2.1/Homematic-Manager-3.2.1-portable-arm64.exe.cdx.json"
-            },
-            {
-              "name": "Homematic-Manager-3.2.1-portable-x64.exe",
-              "size": 113521749,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.2.1/Homematic-Manager-3.2.1-portable-x64.exe"
-            },
-            {
-              "name": "Homematic-Manager-3.2.1-portable-x64.exe.cdx.json",
-              "size": 34144,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.2.1/Homematic-Manager-3.2.1-portable-x64.exe.cdx.json"
-            },
-            {
-              "name": "Homematic-Manager-3.2.1-portable.exe",
-              "size": 220040901,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.2.1/Homematic-Manager-3.2.1-portable.exe"
-            },
-            {
-              "name": "Homematic-Manager-3.2.1-portable.exe.cdx.json",
-              "size": 34136,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.2.1/Homematic-Manager-3.2.1-portable.exe.cdx.json"
-            },
-            {
-              "name": "Homematic-Manager-3.2.1-universal-mac.zip",
-              "size": 230817937,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.2.1/Homematic-Manager-3.2.1-universal-mac.zip"
-            },
-            {
-              "name": "Homematic-Manager-3.2.1-universal-mac.zip.blockmap",
-              "size": 240796,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.2.1/Homematic-Manager-3.2.1-universal-mac.zip.blockmap"
-            },
-            {
-              "name": "Homematic-Manager-3.2.1-universal-mac.zip.cdx.json",
-              "size": 33631,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.2.1/Homematic-Manager-3.2.1-universal-mac.zip.cdx.json"
-            },
-            {
-              "name": "Homematic-Manager-3.2.1-universal.dmg",
-              "size": 230819818,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.2.1/Homematic-Manager-3.2.1-universal.dmg"
-            },
-            {
-              "name": "Homematic-Manager-3.2.1-universal.dmg.blockmap",
-              "size": 243254,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.2.1/Homematic-Manager-3.2.1-universal.dmg.blockmap"
-            },
-            {
-              "name": "Homematic-Manager-3.2.1-universal.dmg.cdx.json",
-              "size": 33623,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.2.1/Homematic-Manager-3.2.1-universal.dmg.cdx.json"
-            },
-            {
-              "name": "Homematic-Manager-3.2.1-x86_64.AppImage",
-              "size": 127896463,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.2.1/Homematic-Manager-3.2.1-x86_64.AppImage"
-            },
-            {
-              "name": "Homematic-Manager-3.2.1-x86_64.AppImage.cdx.json",
-              "size": 33885,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.2.1/Homematic-Manager-3.2.1-x86_64.AppImage.cdx.json"
-            },
-            {
-              "name": "homematic-manager-3.2.1.tgz",
-              "size": 1727981,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.2.1/homematic-manager-3.2.1.tgz"
-            },
-            {
-              "name": "homematic-manager-3.2.1.tgz.cdx.json",
-              "size": 21600,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.2.1/homematic-manager-3.2.1.tgz.cdx.json"
-            },
-            {
-              "name": "homematic-manager-docker-3.2.1.cdx.json",
-              "size": 410971,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.2.1/homematic-manager-docker-3.2.1.cdx.json"
-            },
-            {
-              "name": "Homematic-Manager-Setup-3.2.1.exe",
-              "size": 220339663,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.2.1/Homematic-Manager-Setup-3.2.1.exe"
-            },
-            {
-              "name": "Homematic-Manager-Setup-3.2.1.exe.blockmap",
-              "size": 227319,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.2.1/Homematic-Manager-Setup-3.2.1.exe.blockmap"
-            },
-            {
-              "name": "Homematic-Manager-Setup-3.2.1.exe.cdx.json",
-              "size": 34130,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.2.1/Homematic-Manager-Setup-3.2.1.exe.cdx.json"
-            },
-            {
-              "name": "homematic-manager_3.2.1_amd64.deb",
-              "size": 101027260,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.2.1/homematic-manager_3.2.1_amd64.deb"
-            },
-            {
-              "name": "homematic-manager_3.2.1_amd64.deb.cdx.json",
-              "size": 33868,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.2.1/homematic-manager_3.2.1_amd64.deb.cdx.json"
-            },
-            {
-              "name": "homematic-manager_3.2.1_arm64.deb",
-              "size": 96191888,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.2.1/homematic-manager_3.2.1_arm64.deb"
-            },
-            {
-              "name": "homematic-manager_3.2.1_arm64.deb.cdx.json",
-              "size": 33867,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.2.1/homematic-manager_3.2.1_arm64.deb.cdx.json"
-            },
-            {
-              "name": "latest-linux-arm64.yml",
-              "size": 561,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.2.1/latest-linux-arm64.yml"
-            },
-            {
-              "name": "latest-linux.yml",
-              "size": 564,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.2.1/latest-linux.yml"
-            },
-            {
-              "name": "latest-mac.yml",
-              "size": 547,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.2.1/latest-mac.yml"
-            },
-            {
-              "name": "latest.yml",
-              "size": 363,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.2.1/latest.yml"
-            },
-            {
-              "name": "sbom.cdx.json",
-              "size": 33287,
-              "browser_download_url": "https://github.com/hobbyquaker/homematic-manager/releases/download/v3.2.1/sbom.cdx.json"
-            }
-          ]
         }
       ],
       "per_page": 10,
@@ -4863,6 +4903,131 @@
     },
     "hobbyquaker/openccu-lite": {
       "releases": [
+        {
+          "tag_name": "v2.0.0-beta.12",
+          "name": "v2.0.0-beta.12",
+          "draft": false,
+          "prerelease": true,
+          "html_url": "https://github.com/openccu-lite/openccu-lite/releases/tag/v2.0.0-beta.12",
+          "published_at": "2026-11-21T16:33:00Z",
+          "assets": [
+            {
+              "name": "occulited-asyncapi-2.0.0-beta.12.json",
+              "size": 56720,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.0-beta.12/occulited-asyncapi-2.0.0-beta.12.json"
+            },
+            {
+              "name": "occulited-asyncapi-2.0.0-beta.12.json.sha256",
+              "size": 104,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.0-beta.12/occulited-asyncapi-2.0.0-beta.12.json.sha256"
+            },
+            {
+              "name": "occulited-lite-rpc-methods-2.0.0-beta.12.json",
+              "size": 5152,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.0-beta.12/occulited-lite-rpc-methods-2.0.0-beta.12.json"
+            },
+            {
+              "name": "occulited-lite-rpc-methods-2.0.0-beta.12.json.sha256",
+              "size": 112,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.0-beta.12/occulited-lite-rpc-methods-2.0.0-beta.12.json.sha256"
+            },
+            {
+              "name": "occulited-openapi-2.0.0-beta.12.json",
+              "size": 1040578,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.0-beta.12/occulited-openapi-2.0.0-beta.12.json"
+            },
+            {
+              "name": "occulited-openapi-2.0.0-beta.12.json.sha256",
+              "size": 103,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.0-beta.12/occulited-openapi-2.0.0-beta.12.json.sha256"
+            },
+            {
+              "name": "openccu-lite-aarch64-rpi3-2.0.0-beta.12-ccu3.tgz",
+              "size": 310077189,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.0-beta.12/openccu-lite-aarch64-rpi3-2.0.0-beta.12-ccu3.tgz"
+            },
+            {
+              "name": "openccu-lite-aarch64-rpi3-2.0.0-beta.12-ccu3.tgz.sha256",
+              "size": 115,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.0-beta.12/openccu-lite-aarch64-rpi3-2.0.0-beta.12-ccu3.tgz.sha256"
+            },
+            {
+              "name": "openccu-lite-aarch64-rpi3-2.0.0-beta.12.cdx.json",
+              "size": 2450590,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.0-beta.12/openccu-lite-aarch64-rpi3-2.0.0-beta.12.cdx.json"
+            },
+            {
+              "name": "openccu-lite-aarch64-rpi3-2.0.0-beta.12.cdx.json.sha256",
+              "size": 115,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.0-beta.12/openccu-lite-aarch64-rpi3-2.0.0-beta.12.cdx.json.sha256"
+            },
+            {
+              "name": "openccu-lite-aarch64-rpi3-2.0.0-beta.12.zip",
+              "size": 313898451,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.0-beta.12/openccu-lite-aarch64-rpi3-2.0.0-beta.12.zip"
+            },
+            {
+              "name": "openccu-lite-aarch64-rpi3-2.0.0-beta.12.zip.sha256",
+              "size": 110,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.0-beta.12/openccu-lite-aarch64-rpi3-2.0.0-beta.12.zip.sha256"
+            },
+            {
+              "name": "openccu-lite-aarch64-rpi4-2.0.0-beta.12.cdx.json",
+              "size": 2457871,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.0-beta.12/openccu-lite-aarch64-rpi4-2.0.0-beta.12.cdx.json"
+            },
+            {
+              "name": "openccu-lite-aarch64-rpi4-2.0.0-beta.12.cdx.json.sha256",
+              "size": 115,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.0-beta.12/openccu-lite-aarch64-rpi4-2.0.0-beta.12.cdx.json.sha256"
+            },
+            {
+              "name": "openccu-lite-aarch64-rpi4-2.0.0-beta.12.zip",
+              "size": 313921836,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.0-beta.12/openccu-lite-aarch64-rpi4-2.0.0-beta.12.zip"
+            },
+            {
+              "name": "openccu-lite-aarch64-rpi4-2.0.0-beta.12.zip.sha256",
+              "size": 110,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.0-beta.12/openccu-lite-aarch64-rpi4-2.0.0-beta.12.zip.sha256"
+            },
+            {
+              "name": "openccu-lite-x86_64-ova-2.0.0-beta.12.cdx.json",
+              "size": 2414826,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.0-beta.12/openccu-lite-x86_64-ova-2.0.0-beta.12.cdx.json"
+            },
+            {
+              "name": "openccu-lite-x86_64-ova-2.0.0-beta.12.cdx.json.sha256",
+              "size": 113,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.0-beta.12/openccu-lite-x86_64-ova-2.0.0-beta.12.cdx.json.sha256"
+            },
+            {
+              "name": "openccu-lite-x86_64-ova-2.0.0-beta.12.ova",
+              "size": 311644160,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.0-beta.12/openccu-lite-x86_64-ova-2.0.0-beta.12.ova"
+            },
+            {
+              "name": "openccu-lite-x86_64-ova-2.0.0-beta.12.ova.sha256",
+              "size": 108,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.0-beta.12/openccu-lite-x86_64-ova-2.0.0-beta.12.ova.sha256"
+            },
+            {
+              "name": "openccu-lite-x86_64-ova-2.0.0-beta.12.zip",
+              "size": 306476538,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.0-beta.12/openccu-lite-x86_64-ova-2.0.0-beta.12.zip"
+            },
+            {
+              "name": "openccu-lite-x86_64-ova-2.0.0-beta.12.zip.sha256",
+              "size": 108,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.0-beta.12/openccu-lite-x86_64-ova-2.0.0-beta.12.zip.sha256"
+            },
+            {
+              "name": "SHA256SUMS",
+              "size": 2503,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.0-beta.12/SHA256SUMS"
+            }
+          ]
+        },
         {
           "tag_name": "v1.2.4",
           "name": "v1.2.4",
@@ -12734,6 +12899,131 @@
     "openccu-lite/openccu-lite": {
       "releases": [
         {
+          "tag_name": "v2.0.0-beta.12",
+          "name": "v2.0.0-beta.12",
+          "draft": false,
+          "prerelease": true,
+          "html_url": "https://github.com/openccu-lite/openccu-lite/releases/tag/v2.0.0-beta.12",
+          "published_at": "2026-11-21T16:33:00Z",
+          "assets": [
+            {
+              "name": "occulited-asyncapi-2.0.0-beta.12.json",
+              "size": 56720,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.0-beta.12/occulited-asyncapi-2.0.0-beta.12.json"
+            },
+            {
+              "name": "occulited-asyncapi-2.0.0-beta.12.json.sha256",
+              "size": 104,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.0-beta.12/occulited-asyncapi-2.0.0-beta.12.json.sha256"
+            },
+            {
+              "name": "occulited-lite-rpc-methods-2.0.0-beta.12.json",
+              "size": 5152,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.0-beta.12/occulited-lite-rpc-methods-2.0.0-beta.12.json"
+            },
+            {
+              "name": "occulited-lite-rpc-methods-2.0.0-beta.12.json.sha256",
+              "size": 112,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.0-beta.12/occulited-lite-rpc-methods-2.0.0-beta.12.json.sha256"
+            },
+            {
+              "name": "occulited-openapi-2.0.0-beta.12.json",
+              "size": 1040578,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.0-beta.12/occulited-openapi-2.0.0-beta.12.json"
+            },
+            {
+              "name": "occulited-openapi-2.0.0-beta.12.json.sha256",
+              "size": 103,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.0-beta.12/occulited-openapi-2.0.0-beta.12.json.sha256"
+            },
+            {
+              "name": "openccu-lite-aarch64-rpi3-2.0.0-beta.12-ccu3.tgz",
+              "size": 310077189,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.0-beta.12/openccu-lite-aarch64-rpi3-2.0.0-beta.12-ccu3.tgz"
+            },
+            {
+              "name": "openccu-lite-aarch64-rpi3-2.0.0-beta.12-ccu3.tgz.sha256",
+              "size": 115,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.0-beta.12/openccu-lite-aarch64-rpi3-2.0.0-beta.12-ccu3.tgz.sha256"
+            },
+            {
+              "name": "openccu-lite-aarch64-rpi3-2.0.0-beta.12.cdx.json",
+              "size": 2450590,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.0-beta.12/openccu-lite-aarch64-rpi3-2.0.0-beta.12.cdx.json"
+            },
+            {
+              "name": "openccu-lite-aarch64-rpi3-2.0.0-beta.12.cdx.json.sha256",
+              "size": 115,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.0-beta.12/openccu-lite-aarch64-rpi3-2.0.0-beta.12.cdx.json.sha256"
+            },
+            {
+              "name": "openccu-lite-aarch64-rpi3-2.0.0-beta.12.zip",
+              "size": 313898451,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.0-beta.12/openccu-lite-aarch64-rpi3-2.0.0-beta.12.zip"
+            },
+            {
+              "name": "openccu-lite-aarch64-rpi3-2.0.0-beta.12.zip.sha256",
+              "size": 110,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.0-beta.12/openccu-lite-aarch64-rpi3-2.0.0-beta.12.zip.sha256"
+            },
+            {
+              "name": "openccu-lite-aarch64-rpi4-2.0.0-beta.12.cdx.json",
+              "size": 2457871,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.0-beta.12/openccu-lite-aarch64-rpi4-2.0.0-beta.12.cdx.json"
+            },
+            {
+              "name": "openccu-lite-aarch64-rpi4-2.0.0-beta.12.cdx.json.sha256",
+              "size": 115,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.0-beta.12/openccu-lite-aarch64-rpi4-2.0.0-beta.12.cdx.json.sha256"
+            },
+            {
+              "name": "openccu-lite-aarch64-rpi4-2.0.0-beta.12.zip",
+              "size": 313921836,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.0-beta.12/openccu-lite-aarch64-rpi4-2.0.0-beta.12.zip"
+            },
+            {
+              "name": "openccu-lite-aarch64-rpi4-2.0.0-beta.12.zip.sha256",
+              "size": 110,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.0-beta.12/openccu-lite-aarch64-rpi4-2.0.0-beta.12.zip.sha256"
+            },
+            {
+              "name": "openccu-lite-x86_64-ova-2.0.0-beta.12.cdx.json",
+              "size": 2414826,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.0-beta.12/openccu-lite-x86_64-ova-2.0.0-beta.12.cdx.json"
+            },
+            {
+              "name": "openccu-lite-x86_64-ova-2.0.0-beta.12.cdx.json.sha256",
+              "size": 113,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.0-beta.12/openccu-lite-x86_64-ova-2.0.0-beta.12.cdx.json.sha256"
+            },
+            {
+              "name": "openccu-lite-x86_64-ova-2.0.0-beta.12.ova",
+              "size": 311644160,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.0-beta.12/openccu-lite-x86_64-ova-2.0.0-beta.12.ova"
+            },
+            {
+              "name": "openccu-lite-x86_64-ova-2.0.0-beta.12.ova.sha256",
+              "size": 108,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.0-beta.12/openccu-lite-x86_64-ova-2.0.0-beta.12.ova.sha256"
+            },
+            {
+              "name": "openccu-lite-x86_64-ova-2.0.0-beta.12.zip",
+              "size": 306476538,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.0-beta.12/openccu-lite-x86_64-ova-2.0.0-beta.12.zip"
+            },
+            {
+              "name": "openccu-lite-x86_64-ova-2.0.0-beta.12.zip.sha256",
+              "size": 108,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.0-beta.12/openccu-lite-x86_64-ova-2.0.0-beta.12.zip.sha256"
+            },
+            {
+              "name": "SHA256SUMS",
+              "size": 2503,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.0-beta.12/SHA256SUMS"
+            }
+          ]
+        },
+        {
           "tag_name": "v1.2.4",
           "name": "v1.2.4",
           "draft": false,
@@ -19904,7 +20194,7 @@
       "git": "https://github.com/hobbyquaker/homematic-manager",
       "manifest": "apps/ccu-addon/files/openccu-lite.json",
       "id": "hmm",
-      "tag": "v3.6.0",
+      "tag": "v3.7.0",
       "release_repo": "hobbyquaker/homematic-manager",
       "images": {
         "icon": "ok"
@@ -19960,7 +20250,7 @@
       "git": "https://github.com/hobbyquaker/ccu-addon-battery",
       "manifest": "addon/openccu-lite.json",
       "id": "battery",
-      "tag": "v1.4.0",
+      "tag": "v1.4.1",
       "release_repo": "hobbyquaker/ccu-addon-battery",
       "images": {
         "icon": "ok",
