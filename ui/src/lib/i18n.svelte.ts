@@ -458,6 +458,8 @@ const CATALOGUE: Record<string, {de: string; en?: string}> = {
     'Loading the catalogue…': {de: 'Katalog wird geladen…'},
     'Load the catalogue now': {de: 'Katalog jetzt laden'},
     'The list of addons could not be shown: {error}': {de: 'Die Liste der Zusatzsoftware konnte nicht angezeigt werden: {error}'},
+    // B-157: one card's own failure; the other cards stay
+    "This addon's card could not be shown: {error}": {de: 'Die Karte dieser Zusatzsoftware konnte nicht angezeigt werden: {error}'},
     'The addon catalogue could not be loaded from GitHub {n} times in a row since {since}: {detail}. The Addons page shows the list the system holds; load the catalogue there once the connection works.': {de: 'Der Katalog der Zusatzsoftware konnte {n}-mal in Folge seit {since} nicht von GitHub geladen werden: {detail}. Die Seite Zusatzsoftware zeigt die Liste, die das System hat; laden Sie den Katalog dort, sobald die Verbindung funktioniert.'},
     'Its description arrives with the next check for updates, which reads the addon\'s manifest from its repository.': {
         de: 'Seine Beschreibung kommt mit der nächsten Suche nach Updates, die das Manifest des Addons aus seinem Repository liest.',

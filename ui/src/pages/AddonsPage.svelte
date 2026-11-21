@@ -722,6 +722,8 @@
     {/if}
     <div class="ol-cards ad-cards" data-addon-cards={shown.length}>
         {#each shown as c (c.id)}
+            <!-- B-157: one card that cannot render stands as a notice of its own; the others stay -->
+            <svelte:boundary onerror={(e) => console.error(`addons: the card of ${c.id} could not be rendered`, e)}>
             {@const a = c.addon}
             {@const e = c.entry}
             {@const repo = e ? repoURL({id: e.id, name: c.name, git: e.git, release: e.release}) : ''}
@@ -921,6 +923,14 @@
                     {/if}
                 </div>
             </div>
+                {#snippet failed(err, reset)}
+                    <div class="ol-card ad-card err" id={`addon-row-${c.id}`} data-addon-card={c.id} data-card-error>
+                        <h3 class="ad-name">{c.name}</h3>
+                        <p class="ol-warn">{t('This addon\'s card could not be shown: {error}', {error: (err as Error)?.message ?? String(err)})}</p>
+                        <div class="ol-card-foot ad-foot"><button class="hmm-button" onclick={reset}>{t('Try again')}</button></div>
+                    </div>
+                {/snippet}
+            </svelte:boundary>
         {/each}
     </div>
         {#snippet failed(err, reset)}

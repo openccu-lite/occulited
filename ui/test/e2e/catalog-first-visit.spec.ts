@@ -134,7 +134,10 @@ test('a card that cannot render does not blank the list without a word', async (
     const view = {format: 1, addons: broken, source: 'published', checked: '2026-10-06T14:35:00Z'};
     await freshSystem(page, view, view);
     await page.goto('/addons');
-    await expect(page.locator('[data-cards-error]')).toContainText('The list of addons could not be shown:');
+    // B-157: the broken card says so on its own, the other card stays
+    await expect(page.locator('[data-card-error]')).toContainText("This addon's card could not be shown:");
+    await expect(page.locator('[data-addon-card]:not([data-card-error])')).toHaveCount(1);
+    await expect(page.locator('[data-cards-error]')).toHaveCount(0);
     // the rest of the page is there
     await expect(page.locator('[data-addons-toolbar]')).toBeVisible();
 });
