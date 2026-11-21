@@ -333,6 +333,6 @@ func OwnedID(owner string, p PortSpec) string {
 // Default is a fresh system's configuration: policy DROP in both families, the web server's and
 // the network discovery's rules.
 func Default() Config {
-	c := Config{Version: 1, Policy: Policy{V4: Drop, V6: Drop}, Rules: []Rule{}, Active: []string{}}
+	c := Config{Version: RulesVersion, Policy: Policy{V4: Drop, V6: Drop}, Rules: []Rule{}, Active: []string{}}
 	return Reconcile(c, AlwaysOwners())
 }

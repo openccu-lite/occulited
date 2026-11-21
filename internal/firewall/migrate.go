@@ -54,7 +54,7 @@ func Migrate(in MigrateInputs, now time.Time) Config {
 	if in.Old.Mode == "MOST_OPEN" {
 		policy = Accept
 	}
-	c := Config{Version: 1, Policy: Policy{V4: policy, V6: policy}, Rules: []Rule{}, Active: []string{}}
+	c := Config{Version: RulesVersion, Policy: Policy{V4: policy, V6: policy}, Rules: []Rule{}, Active: []string{}}
 	owners := AlwaysOwners()
 	for o, p := range in.Owners {
 		owners[o] = p
