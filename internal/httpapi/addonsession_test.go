@@ -133,10 +133,14 @@ func TestNavAndAddonsSessionHeader(t *testing.T) {
 			if (a["fullscreen"] == true) != want || (!want && a["fullscreen"] != nil) {
 				t.Errorf("addon %v: fullscreen %v, want declared %v", a["id"], a["fullscreen"], want)
 			}
+			// occulited task 168: ui.regadom_import_url the same way
+			if wantURL := map[bool]any{true: "/addons/red/#/import", false: nil}[want]; a["regadom_import_url"] != wantURL {
+				t.Errorf("addon %v: regadom_import_url %v", a["id"], a["regadom_import_url"])
+			}
 		}
 	}
 	check(false) // nothing declared yet
-	storeManifest(t, root, "redmatic", `{"format": 1, "id": "redmatic", "name": "RedMatic", "ui": {"session_header": true, "fullscreen": true}}`)
+	storeManifest(t, root, "redmatic", `{"format": 1, "id": "redmatic", "name": "RedMatic", "ui": {"session_header": true, "fullscreen": true, "regadom_import_url": "/addons/red/#/import"}}`)
 	check(true)
 }
 

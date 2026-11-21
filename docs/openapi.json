@@ -7166,6 +7166,9 @@
           "own_updater": {
             "type": "boolean"
           },
+          "regadom_import_url": {
+            "type": "string"
+          },
           "session_header": {
             "type": "boolean"
           },
@@ -9979,6 +9982,9 @@
             "type": "boolean"
           },
           "rega_reason": {
+            "type": "string"
+          },
+          "regadom_import_url": {
             "type": "string"
           },
           "reinstall_dismissed": {

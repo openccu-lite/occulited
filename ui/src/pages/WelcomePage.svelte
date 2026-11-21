@@ -8,6 +8,7 @@
     import {certificateText, renameText, type AcmeNames, type CertNames, type Rename} from '../lib/rename';
     import UpdateChannel from '../lib/UpdateChannel.svelte';
     import WelcomeFrontend from '../lib/WelcomeFrontend.svelte';
+    import WelcomeLogic from '../lib/WelcomeLogic.svelte';
     import {normalChannel, type Channel} from '../lib/updatechannel';
 
     interface FwState { enabled: boolean }
@@ -317,6 +318,8 @@
 
 <!-- occulited task 143: device management needs an addon - Homematic Manager in one click, the catalogue beside it -->
 <WelcomeFrontend step={steps} blocked={blocked || busy !== ''} onopen={(p) => void done(p)} />
+<!-- occulited task 168: the programs and system variables in one click - only when the catalogue lists lite-addon-logic -->
+<WelcomeLogic step={steps + 1} blocked={blocked || busy !== ''} onopen={(p) => void done(p)} />
 
 <div class="ol-actions" style="margin-top:16px">
     <button class="hmm-button" disabled={blocked || busy !== ''} onclick={() => done()} data-action="welcome-done">{t('Done')}</button>

@@ -69,13 +69,16 @@ func TestParseRefuses(t *testing.T) {
 		"release":       `{"format": 1, "id": "x", "name": "X", "release": {"github": "nobody"}}`,
 		"no asset":      `{"format": 1, "id": "x", "name": "X", "release": {"github": "a/b"}}`,
 		"settings_url":  `{"format": 1, "id": "x", "name": "X", "ui": {"settings_url": "/system/users"}}`,
-		"icon path":     `{"format": 1, "id": "x", "name": "X", "ui": {"icon": "../etc/passwd"}}`,
-		"capability":    `{"format": 1, "id": "x", "name": "X", "runtime": {"capabilities": ["sys_admin"]}}`,
-		"group":         `{"format": 1, "id": "x", "name": "X", "runtime": {"groups": ["Root"]}}`,
-		"path":          `{"format": 1, "id": "x", "name": "X", "runtime": {"paths": ["etc"]}}`,
-		"data_dir":      `{"format": 1, "id": "x", "name": "X", "runtime": {"data_dirs": ["/etc/config"]}}`,
-		"port":          `{"format": 1, "id": "x", "name": "X", "runtime": {"ports": [0]}}`,
-		"port_info":     `{"format": 1, "id": "x", "name": "X", "runtime": {"ports": [1883], "port_info": {"8883": {}}}}`,
+		// occulited task 168
+		"regadom_import_url":    `{"format": 1, "id": "x", "name": "X", "ui": {"regadom_import_url": "/system/backup"}}`,
+		"regadom_import_url ..": `{"format": 1, "id": "x", "name": "X", "ui": {"regadom_import_url": "/addons/x/../../etc"}}`,
+		"icon path":             `{"format": 1, "id": "x", "name": "X", "ui": {"icon": "../etc/passwd"}}`,
+		"capability":            `{"format": 1, "id": "x", "name": "X", "runtime": {"capabilities": ["sys_admin"]}}`,
+		"group":                 `{"format": 1, "id": "x", "name": "X", "runtime": {"groups": ["Root"]}}`,
+		"path":                  `{"format": 1, "id": "x", "name": "X", "runtime": {"paths": ["etc"]}}`,
+		"data_dir":              `{"format": 1, "id": "x", "name": "X", "runtime": {"data_dirs": ["/etc/config"]}}`,
+		"port":                  `{"format": 1, "id": "x", "name": "X", "runtime": {"ports": [0]}}`,
+		"port_info":             `{"format": 1, "id": "x", "name": "X", "runtime": {"ports": [1883], "port_info": {"8883": {}}}}`,
 		// openccu-lite task 105: a range's "to" lies above the port and at most at 65535
 		"port_info to":  `{"format": 1, "id": "x", "name": "X", "runtime": {"ports": [51800], "port_info": {"51800": {"to": 51800}}}}`,
 		"port_info to2": `{"format": 1, "id": "x", "name": "X", "runtime": {"ports": [51800], "port_info": {"51800": {"to": 70000}}}}`,
@@ -556,6 +559,16 @@ func TestRuntimeRPCInterface(t *testing.T) {
 		}
 		if got := m.Runtime.RPCInterface.URL(); got != c.url {
 			t.Errorf("%s: %s", c.extra, got)
+		}
+	}
+}
+
+// occulited task 168: ui.regadom_import_url - a path under /addons/, a query and a route fragment.
+func TestRegadomImportURL(t *testing.T) {
+	for _, u := range []string{"/addons/logic/#/import", "/addons/logic/import.html?from=regadom", "/addons/logic/"} {
+		m, err := Parse([]byte(`{"format": 1, "id": "logic", "name": "L", "ui": {"regadom_import_url": "` + u + `"}}`))
+		if err != nil || m.UI.RegadomImportURL != u {
+			t.Errorf("%s: %v", u, err)
 		}
 	}
 }

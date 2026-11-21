@@ -280,6 +280,12 @@ type UI struct {
 	// show it as the whole window, without its top bar. The flag only makes the choice available:
 	// the user ticks it per addon on the Settings page, and it is off until then.
 	Fullscreen bool `json:"fullscreen,omitempty"`
+	// RegadomImportURL (occulited task 168): the addon's page that imports from the CCU's ReGa
+	// database kept after the switch (GET /api/system/v1/regadom/file, occulited task 167) - for
+	// lite-addon-logic its programs and system variables. A path under /addons/, with a query and
+	// a fragment (a single-page app's route). The welcome page and the Backup page's ReGa panel
+	// link it while the database is there.
+	RegadomImportURL string `json:"regadom_import_url,omitempty"`
 }
 
 // Runtime is what the addon needs when it runs under systemd as its own user (or as root).
@@ -529,16 +535,17 @@ func sortedKeys(m map[string]bool) []string {
 }
 
 var (
-	idRe       = regexp.MustCompile(`^[a-z0-9][a-z0-9_.-]{0,31}$`)
-	capRe      = regexp.MustCompile(`^CAP_[A-Z_]{1,40}$`)
-	groupRe    = regexp.MustCompile(`^[a-z_][a-z0-9_-]{0,31}$`)
-	pathRe     = regexp.MustCompile(`^/[A-Za-z0-9_./-]{0,200}$`)
-	relPathRe  = regexp.MustCompile(`^[A-Za-z0-9_][A-Za-z0-9_./-]{0,200}$`)
-	scopeRe    = regexp.MustCompile(`^[a-z]+(:[a-z]+)?$`)
-	githubRe   = regexp.MustCompile(`^[\w.-]+/[\w.-]+$`)
-	versionRe  = regexp.MustCompile(`^[0-9]+(\.[0-9]+)*([-+][A-Za-z0-9.+-]+)?$`)
-	settingsRe = regexp.MustCompile(`^/addons/[A-Za-z0-9][A-Za-z0-9._~-]*(?:/[A-Za-z0-9][A-Za-z0-9._~-]*)*/?(?:\?[A-Za-z0-9._~%&=+-]*)?$`)
-	urlRe      = regexp.MustCompile(`^https?://[^\s"'<>]+$`)
+	idRe        = regexp.MustCompile(`^[a-z0-9][a-z0-9_.-]{0,31}$`)
+	capRe       = regexp.MustCompile(`^CAP_[A-Z_]{1,40}$`)
+	groupRe     = regexp.MustCompile(`^[a-z_][a-z0-9_-]{0,31}$`)
+	pathRe      = regexp.MustCompile(`^/[A-Za-z0-9_./-]{0,200}$`)
+	relPathRe   = regexp.MustCompile(`^[A-Za-z0-9_][A-Za-z0-9_./-]{0,200}$`)
+	scopeRe     = regexp.MustCompile(`^[a-z]+(:[a-z]+)?$`)
+	githubRe    = regexp.MustCompile(`^[\w.-]+/[\w.-]+$`)
+	versionRe   = regexp.MustCompile(`^[0-9]+(\.[0-9]+)*([-+][A-Za-z0-9.+-]+)?$`)
+	importURLRe = regexp.MustCompile(`^/addons/[A-Za-z0-9][A-Za-z0-9._~-]*(?:/[A-Za-z0-9][A-Za-z0-9._~-]*)*/?(?:\?[A-Za-z0-9._~%&=+-]*)?(?:#[A-Za-z0-9._~%&=+/-]*)?$`)
+	settingsRe  = regexp.MustCompile(`^/addons/[A-Za-z0-9][A-Za-z0-9._~-]*(?:/[A-Za-z0-9][A-Za-z0-9._~-]*)*/?(?:\?[A-Za-z0-9._~%&=+-]*)?$`)
+	urlRe       = regexp.MustCompile(`^https?://[^\s"'<>]+$`)
 )
 
 // Parse reads and validates one manifest.
@@ -607,6 +614,9 @@ func (m *Manifest) Validate() error {
 	}
 	if u := m.UI.SettingsURL; u != "" && (!settingsRe.MatchString(u) || strings.Contains(u, "..")) {
 		return fmt.Errorf("ui.settings_url %q is not a path under /addons/", u)
+	}
+	if u := m.UI.RegadomImportURL; u != "" && (!importURLRe.MatchString(u) || strings.Contains(u, "..")) {
+		return fmt.Errorf("ui.regadom_import_url %q is not a path under /addons/", u)
 	}
 	if err := m.Runtime.validate(); err != nil {
 		return err

@@ -44,3 +44,13 @@ test('German', async ({page}) => {
     await expect(panel).toContainText('Vom Umstieg erhalten');
     await expect(panel.locator('[data-action="regadom-remove"]')).toHaveText('ReGa-Datenbank entfernen…');
 });
+
+// occulited task 168: an installed addon that names its import page gets a link on the panel
+test('the import page of an installed addon', async ({page}) => {
+    await page.route('**/api/system/v1/regadom', (r) => r.fulfill({json: {present: true, bytes: 1048576, modified: '2026-11-01T12:00:00Z'}}));
+    await page.route('**/api/system/v1/addons', (r) => r.fulfill({json: {addons: [{id: 'logic', name: 'L', version: '1.0.0', regadom_import_url: '/addons/logic/#/import'}]}}));
+    await page.goto('/system/backup');
+    const link = page.locator('[data-section="regadom"] [data-action="regadom-import"]');
+    await expect(link).toHaveText('Import programs and system variables');
+    await expect(link).toHaveAttribute('href', '/addons/logic/#/import');
+});

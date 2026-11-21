@@ -1060,6 +1060,9 @@ func (a *SystemAPI) addons(w http.ResponseWriter, r *http.Request) {
 		list[i].LegacySession = a.LegacySession(list[i].ID, list[i].Version, path)       // task 125
 		list[i].Images = addonImageURLs(a.Root, list[i].ID, list[i].Version)             // openccu-lite task 100
 		list[i].Fullscreen = Fullscreen(a.Root, list[i].ID)                              // occulited task 24
+		if m := a.Root.ReadAddonManifest(list[i].ID); m != nil {
+			list[i].RegadomImportURL = m.UI.RegadomImportURL // occulited task 168
+		}
 	}
 	a.MarkPayloadMissing(list) // openccu-lite task 146
 	writeJSON(w, 200, map[string]any{"addons": list})

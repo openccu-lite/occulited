@@ -23,8 +23,14 @@
     let error = $state('');
     let removed = $state('');
 
+    // occulited task 168: the import page of an installed addon that names one (ui.regadom_import_url)
+    let importURL = $state('');
     async function load() {
         try { view = await api.get<KeptRegadomView>('/api/system/v1/regadom'); } catch { /* the panel stays hidden */ }
+        if (!view?.present) return;
+        try {
+            importURL = (await api.get<{addons: {regadom_import_url?: string}[]}>('/api/system/v1/addons')).addons.find((a) => a.regadom_import_url)?.regadom_import_url ?? '';
+        } catch { /* no link */ }
     }
     onMount(() => { void load(); });
 
@@ -56,7 +62,10 @@
         {#if view?.present}
             <p data-regadom="present">{t('Kept from the switch: {size}, last saved on the CCU on {date}.', {size: formatBytes(view.bytes ?? 0), date: view.modified ? dateOnly(view.modified) : '?'})}</p>
             <p class="ol-muted">{t('The addon "Programs and system variables" can import the CCU\'s programs and system variables from it. Remove it when you no longer need it.')}</p>
-            <div class="ol-actions"><button type="button" class="hmm-button danger" onclick={remove} disabled={busy} data-action="regadom-remove">{busy ? t('Removing…') : t('Remove the ReGa database…')}</button></div>
+            <div class="ol-actions">
+                {#if importURL}<a class="hmm-button" href={importURL} target="_blank" rel="noopener" data-action="regadom-import">{t('Import programs and system variables')}</a>{/if}
+                <button type="button" class="hmm-button danger" onclick={remove} disabled={busy} data-action="regadom-remove">{busy ? t('Removing…') : t('Remove the ReGa database…')}</button>
+            </div>
         {:else}
             <p class="ol-muted" data-regadom="removed">{removed}</p>
         {/if}

@@ -241,7 +241,7 @@ full name; without it a room's or function's page leaves its own name out of the
 "Fenster Küche links" reads "Fenster links") on `GET/PUT /api/auth/v1/me/preferences` — a PUT replaces the whole
 object, so a writer sends `addons` and all four along. An addon's frontend shown as the whole window
 the same way is `fullscreen: true` on its `addons` entry (occulited task 24): the shell acts on it only for an addon whose
-manifest declares `ui.fullscreen` (`fullscreen` on `GET /addons`), the addon's promise of its own way back to `/`.
+manifest declares `ui.fullscreen` (`fullscreen` on `GET /addons`), the addon's promise of its own way back to `/`. `regadom_import_url` on an entry is its manifest's `ui.regadom_import_url` (occulited task 168): the addon's page that imports from the kept ReGa database.
 
 ## `/api/system/v1`
 

@@ -92,7 +92,8 @@
         },
         "session_header": {"type": "boolean", "description": "this version reads X-Occulite-Session everywhere the shell opens it"},
         "own_updater": {"type": "boolean", "description": "the addon still carries an update mechanism of its own"},
-        "fullscreen": {"type": "boolean", "description": "the frontend offers its own way back to the system, so the shell may show it as the whole window once the user switches that on"}
+        "fullscreen": {"type": "boolean", "description": "the frontend offers its own way back to the system, so the shell may show it as the whole window once the user switches that on"},
+        "regadom_import_url": {"type": "string", "pattern": "^/addons/[A-Za-z0-9][A-Za-z0-9._~-]*(?:/[A-Za-z0-9][A-Za-z0-9._~-]*)*/?(?:\\?[A-Za-z0-9._~%&=+-]*)?(?:#[A-Za-z0-9._~%&=+/-]*)?$", "not": {"pattern": "\\.\\."}, "description": "the addon's page that imports from the CCU's ReGa database kept after the switch (occulited task 168; openccu-lite from 2.0.0-rc.1): the welcome page and the Backup page link it while the database is there"}
       }
     },
     "runtime": {

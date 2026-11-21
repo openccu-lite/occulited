@@ -179,7 +179,7 @@
             <button class="hmm-button primary wf-catalog" disabled={blocked} onclick={() => onopen('/addons')} data-action="welcome-catalog">{t('Open the Addons page')}</button>
         </div>
     {/if}
-    <InstallProgress bind:this={progressView} bind:busy={slotBusy} bind:job showEnded={false} onfinished={finished} />
+    <InstallProgress bind:this={progressView} bind:busy={slotBusy} bind:job showEnded={false} onfinished={finished} addon={id} />
     <!-- one line under the buttons, its height reserved: the state changes the words, not the buttons -->
     <p class="ol-muted wf-status" data-welcome-hm-status role="status">
         {#if st === 'installed'}

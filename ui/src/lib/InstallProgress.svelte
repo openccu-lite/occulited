@@ -50,8 +50,13 @@
         showEnded?: boolean;
         /** called once when a run has ended (done or failed) since the page opened */
         onfinished?: (p: Progress) => void;
+        /**
+         * occulited task 168: only this addon's catalogue run is shown (the welcome page has two
+         * one-click installs, each with its own notice); the slot (busy, job) is everybody's
+         */
+        addon?: string;
     }
-    let {busy = $bindable(false), job = $bindable(null), showEnded = true, onfinished}: Props = $props();
+    let {busy = $bindable(false), job = $bindable(null), showEnded = true, onfinished, addon = ''}: Props = $props();
 
     let progress = $state<Progress | null>(null);
     const keyOf = runKey;
@@ -106,7 +111,7 @@
     // B-21: a run refused because the release list could not be read says so in the reader's language
     const refused = $derived(progress?.phase === 'failed' && releasesProblemKind(progress.error, progress.retry_minutes) !== '');
     const pct = $derived(progress?.percent ?? (progress?.total ? Math.round(((progress.bytes ?? 0) / progress.total) * 100) : 0));
-    const visible = $derived(!!progress && (!progress.finished || keyOf(progress) !== closed));
+    const visible = $derived(!!progress && (addon === '' || progress.addon_id === addon) && (!progress.finished || keyOf(progress) !== closed));
     /** the close button: the ended run's notice goes, and a reload does not bring it back */
     function close() {
         if (!progress?.finished) return;

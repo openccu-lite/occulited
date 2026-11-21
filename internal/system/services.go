@@ -346,6 +346,9 @@ type Addon struct {
 	// user's choice is a preference (auth.AddonPreference.Fullscreen), not this. Set per request
 	// by GET /addons (httpapi.Fullscreen).
 	Fullscreen bool `json:"fullscreen,omitempty"`
+	// RegadomImportURL: the stored manifest's ui.regadom_import_url (occulited task 168), the
+	// addon's page that imports from the kept ReGa database. Set per request by GET /addons.
+	RegadomImportURL string `json:"regadom_import_url,omitempty"`
 	// LegacySession: the shell opens the settings page with the session's ?sid=@..@ alias (task
 	// 125): the addon does not read the header, and the legacy session is switched on for it.
 	// Set per request by GET /addons (httpapi.LegacySession).
