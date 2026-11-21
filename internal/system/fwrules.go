@@ -318,7 +318,7 @@ func (f *FirewallRules) Sync(ctx context.Context, force bool) error {
 	}
 	want := f.desired(c)
 	next := firewall.Reconcile(c, want)
-	changed := !reflect.DeepEqual(next.Active, c.Active) || !reflect.DeepEqual(next.Rules, c.Rules)
+	changed := next.Version != c.Version || !reflect.DeepEqual(next.Active, c.Active) || !reflect.DeepEqual(next.Rules, c.Rules)
 	if changed {
 		if err := f.Root.WriteRules(next); err != nil {
 			return err

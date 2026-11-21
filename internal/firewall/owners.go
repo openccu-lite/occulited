@@ -39,10 +39,14 @@ var (
 	// - what HmIP-HAPs and DRAPs connect to. The eQ-3 discovery on udp 43439 was here until
 	// openccu-lite B-221; it is occulited's own and the apps' (D-108, D-110), so it is in
 	// DiscoveryPorts, which every system has.
+	//
+	// From the local networks (openccu-lite B-363): the access points are on the LAN, and the rules
+	// from every address offered hmipserver's HTTP servers to the internet wherever the router
+	// passes incoming IPv6. A rule file from before is converted once (Reconcile, Version 2).
 	HmIPAPPorts = []PortSpec{
-		{Port: 9293, Proto: ProtoTCP, Comment: "hmipserver update server: HmIP-HAP, HmIPW-DRAP"},
-		{Port: 9294, Proto: ProtoTCP, Comment: "hmipserver update server: HmIP-HAP2"},
-		{Port: 43438, Proto: ProtoUDP, Comment: "hmipserver: HmIP access points (HAP, DRAP)"},
+		{Port: 9293, Proto: ProtoTCP, Local: true, Comment: "hmipserver update server: HmIP-HAP, HmIPW-DRAP"},
+		{Port: 9294, Proto: ProtoTCP, Local: true, Comment: "hmipserver update server: HmIP-HAP2"},
+		{Port: 43438, Proto: ProtoUDP, Local: true, Comment: "hmipserver: HmIP access points (HAP, DRAP)"},
 	}
 	// DiscoveryPorts are what libfirewall allowed for finding and being found, always (the
 	// maintainer, 2026-09-18: in the one list, editable, ACCEPT by default): link-local multicast
@@ -190,7 +194,7 @@ func splitKey(k string) (owner string, p PortSpec, ok bool) {
 // duplicates too; an owner that wants nothing any more loses all its rules. A port wanted before
 // and now is left alone, so a rule the user deleted stays deleted.
 func Reconcile(c Config, desired map[string][]PortSpec) Config {
-	out := c.Clone()
+	out := upgrade(c.Clone())
 	want := map[string]bool{}
 	wantOwner := map[string]bool{}
 	for owner, ports := range desired {
@@ -262,6 +266,27 @@ func Reconcile(c Config, desired map[string][]PortSpec) Config {
 	}
 	sort.Strings(out.Active)
 	return out
+}
+
+// RulesVersion is the rule file's format: 2 since the HmIP access point rules are from the local
+// networks (openccu-lite B-363).
+const RulesVersion = 2
+
+// upgrade converts a rule file of an older version once. Version 1 -> 2 (openccu-lite B-363): the
+// HmIP access point rules still from every address - the old default - are from the local networks
+// now; a rule whose source the user narrowed keeps it, and a user who sets 0/0 again afterwards
+// keeps that, since the file then says version 2.
+func upgrade(c Config) Config {
+	if c.Version >= RulesVersion {
+		return c
+	}
+	for i, r := range c.Rules {
+		if r.Owner == OwnerHmIPAP && r.Source == AnySource {
+			c.Rules[i].Source = LocalNetworks
+		}
+	}
+	c.Version = RulesVersion
+	return c
 }
 
 // ownedSpec is the spec an owner lists for this port, with its comment - also for a spec an owner

@@ -571,3 +571,87 @@ func TestDiscoveryMovedFromHmIPAP(t *testing.T) {
 		}
 	}
 }
+
+// openccu-lite B-363: the HmIP access point rules are from the local networks; a version 1 rule
+// file is converted once - the rules still at the old default 0/0, not a source the user chose -
+// and a 0/0 the user sets afterwards stays.
+func TestHmIPAPLocalNetworks(t *testing.T) {
+	on := map[string][]PortSpec{OwnerWeb: WebPorts, OwnerHmIPAP: HmIPAPPorts, OwnerDiscovery: DiscoveryPorts}
+	fresh := Reconcile(Default(), on)
+	if fresh.Version != RulesVersion {
+		t.Fatalf("version %d", fresh.Version)
+	}
+	for _, r := range fresh.Rules {
+		if r.Owner == OwnerHmIPAP && (r.Source != LocalNetworks || r.Family != FamilyBoth || r.Target != Accept) {
+			t.Errorf("new access point rule %+v", r)
+		}
+	}
+	v4, err := Render(fresh, FamilyV4, sampleLocal)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, l := range []string{"-p tcp -m tcp --dport 9293 -j ACCEPT", "-p tcp -m tcp --dport 9294 -j ACCEPT", "-p udp -m udp --dport 43438 -j ACCEPT"} {
+		if strings.Contains(v4, "-A lite-input "+l+"\n") {
+			t.Errorf("from anywhere: %s", l)
+		}
+	}
+	if !strings.Contains(v4, "-A lite-input -p tcp -s 192.168.0.0/16 -m tcp --dport 9293 -j ACCEPT\n") || !strings.Contains(v4, "-A lite-input -p udp -s 10.0.0.0/8 -m udp --dport 43438 -j ACCEPT\n") {
+		t.Errorf("not from the local networks:\n%s", v4)
+	}
+	// a 1.2.4 rule file: the three rules from 0/0, one of them narrowed by the user, one rejected
+	old := fresh.Clone()
+	old.Version = 1
+	for i, r := range old.Rules {
+		if r.Owner == OwnerHmIPAP {
+			old.Rules[i].Source = AnySource
+			switch r.Port {
+			case 9294:
+				old.Rules[i].Source = "192.168.7.0/24"
+			case 43438:
+				old.Rules[i].Target = Reject
+			}
+		}
+	}
+	got := Reconcile(old, on)
+	if got.Version != RulesVersion {
+		t.Fatalf("version %d after the conversion", got.Version)
+	}
+	want := map[int]Rule{9293: {Source: LocalNetworks, Target: Accept}, 9294: {Source: "192.168.7.0/24", Target: Accept}, 43438: {Source: LocalNetworks, Target: Reject}}
+	n := 0
+	for _, r := range got.Rules {
+		if r.Owner != OwnerHmIPAP {
+			continue
+		}
+		n++
+		if w := want[r.Port]; r.Source != w.Source || r.Target != w.Target {
+			t.Errorf("%d: source %q target %s, want %q %s", r.Port, r.Source, r.Target, w.Source, w.Target)
+		}
+	}
+	if n != 3 || len(got.Rules) != len(old.Rules) {
+		t.Fatalf("%d access point rules, %d rules (before %d)", n, len(got.Rules), len(old.Rules))
+	}
+	// a hand-made rule from 0/0 on the same port is the user's and stays
+	mine := Rule{ID: "mine", Port: 9293, Proto: ProtoTCP, Source: AnySource, Family: FamilyBoth, Target: Accept}
+	old.Rules = append(old.Rules, mine)
+	if r := Reconcile(old, on).Rules[len(old.Rules)-1]; r != mine {
+		t.Errorf("hand-made rule changed: %+v", r)
+	}
+	// converted once: 0/0 set again by the user afterwards stays
+	for i, r := range got.Rules {
+		if r.Owner == OwnerHmIPAP && r.Port == 9293 {
+			got.Rules[i].Source = AnySource
+		}
+	}
+	again := Reconcile(got, on)
+	for _, r := range again.Rules {
+		if r.Owner == OwnerHmIPAP && r.Port == 9293 && r.Source != AnySource {
+			t.Errorf("the user's 0/0 was converted again: %+v", r)
+		}
+	}
+	// D-110's hint reads the targets: accepted from the local networks is accepted
+	for _, v := range HmIPAPVerdicts(Reconcile(Default(), on)) {
+		if v.Target != Accept || v.Source != LocalNetworks {
+			t.Errorf("verdict %+v", v)
+		}
+	}
+}
