@@ -77,6 +77,7 @@ func (a *MetaAPI) Register(mux *http.ServeMux) {
 	route(mux, auth.ScopeMetaRead, "GET "+p+"/snapshot", a.snapshot)
 	route(mux, auth.ScopeMetaRead, "GET "+p+"/objects", a.listObjects)
 	route(mux, auth.ScopeMetaWrite, "POST "+p+"/objects:bulk", a.bulk)
+	a.registerInterfaceNames(mux, p) // metainterface.go, occulited task 169
 	route(mux, auth.ScopeMetaRead, "GET "+p+"/objects/{ref}", a.getObject)
 	route(mux, auth.ScopeMetaWrite, "PUT "+p+"/objects/{ref}", a.putObject)
 	route(mux, auth.ScopeMetaWrite, "PATCH "+p+"/objects/{ref}", a.patchObject)

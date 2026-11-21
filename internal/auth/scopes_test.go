@@ -414,3 +414,32 @@ func TestPowerHalt(t *testing.T) {
 		t.Fatal("power:halt must not grant power")
 	}
 }
+
+// occulited task 169: meta:interface is an addon's alone, like timers:addon; occulited task 167:
+// regadom:read is grantable and an addon may declare it, and no scope but Full access includes it.
+func TestMetaInterfaceAndRegadomScopes(t *testing.T) {
+	granted, refused := AddonScopes([]string{"meta:interface", "regadom:read", "rpc:operate"})
+	if strings.Join(granted.Strings(), ",") != "meta:interface,regadom:read,rpc:operate" || len(refused) != 0 {
+		t.Errorf("granted %v, refused %v", granted, refused)
+	}
+	if Known(ScopeMetaInterface) {
+		t.Error("meta:interface is known to a token made by a person")
+	}
+	if _, err := ParseScopes([]string{"meta:interface"}); err == nil {
+		t.Error("a token made by a person carries meta:interface")
+	}
+	if !Known(ScopeRegadomRead) {
+		t.Error("regadom:read is not grantable")
+	}
+	for _, s := range Grantable {
+		if s == ScopeMetaInterface {
+			t.Error("meta:interface is offered")
+		}
+		if s != ScopeRegadomRead && (Covers(s, ScopeRegadomRead) || Covers(s, ScopeMetaInterface)) {
+			t.Errorf("%s includes an addon's or the regadom's scope", s)
+		}
+	}
+	if !Covers(ScopeAll, ScopeRegadomRead) || !Covers(ScopeAll, ScopeMetaInterface) || Covers(ScopeMetaInterface, ScopeMetaWrite) || Covers(ScopeMetaWrite, ScopeMetaInterface) {
+		t.Error("covers")
+	}
+}

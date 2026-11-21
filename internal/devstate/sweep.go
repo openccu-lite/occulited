@@ -1,6 +1,8 @@
 package devstate
 
 import (
+	"github.com/hobbyquaker/occulited/internal/addoniface"
+
 	"context"
 	"sort"
 	"time"
@@ -25,8 +27,9 @@ import (
 // Source leaves their channels out). A datapoint the answer does not mention stays unconfirmed
 // (PRESS_SHORT is only ever an event): the next event confirms it.
 
-// Swept says whether the sweep reads an interface: HmIP-RF alone (above).
-func Swept(iface string) bool { return iface == "HmIP-RF" }
+// Swept says whether the sweep reads an interface: HmIP-RF (above), and an addon's interface
+// (occulited task 169: the addon answers from its memory, nothing goes on air).
+func Swept(iface string) bool { return iface == "HmIP-RF" || addoniface.Is(iface) }
 
 // DefaultPace is the pause between two reads of the sweep.
 const DefaultPace = 200 * time.Millisecond
@@ -240,7 +243,7 @@ func (s *Store) sweepOne(ctx context.Context, src Source, iface string, publish 
 func (s *Store) Reconcile(iface, channel string, vals map[string]any, at time.Time, publish func(rpcsub.Message)) int {
 	dps := make([]string, 0, len(vals))
 	for dp := range vals {
-		if s.tracked(dp) {
+		if s.tracked(iface, dp) {
 			dps = append(dps, dp)
 		}
 	}

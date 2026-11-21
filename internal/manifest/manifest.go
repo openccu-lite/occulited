@@ -323,6 +323,75 @@ type Runtime struct {
 	// whose data its run reads; the rendered service then carries those addons' own groups
 	// (addon-<x>) as supplementary groups, and no other. Without it no timer gets a foreign group.
 	ReadAddonData bool `json:"read_addon_data,omitempty"`
+	// RPCInterface (occulited task 169): the addon is an interface process of its own - it speaks
+	// the interface processes' XML-RPC on a loopback port, and the system lists it in
+	// InterfacesList.xml while the addon is installed and switched on, so lite-rpc offers it like
+	// rfd or hmipserver (lite-addon-logic's variables and programs as devices).
+	RPCInterface *RPCInterface `json:"rpc_interface,omitempty"`
+}
+
+// RPCInterface is runtime.rpc_interface (occulited task 169).
+type RPCInterface struct {
+	// Name is the interface's name in InterfacesList.xml and lite-rpc ("Logic"): ValidInterfaceName.
+	Name string `json:"name"`
+	// Port is the loopback port the addon's XML-RPC server listens on (127.0.0.1 only, D-29).
+	Port int `json:"port"`
+	// Path is the URL path of the server ("/" when empty), as VirtualDevices' /groups.
+	Path string `json:"path,omitempty"`
+	// Protocol is "xmlrpc", the one there is (the default).
+	Protocol string `json:"protocol,omitempty"`
+}
+
+var (
+	interfaceNameRe = regexp.MustCompile(`^[A-Za-z][A-Za-z0-9_-]{1,31}$`)
+	interfacePathRe = regexp.MustCompile(`^(/[A-Za-z0-9_.-]+)*/?$`)
+)
+
+// ReservedInterfaces are the names of the system's own interface processes and of those a CCU
+// knew: no addon may provide one of them.
+var ReservedInterfaces = []string{"BidCos-RF", "BidCos-Wired", "HmIP-RF", "VirtualDevices", "CUxD", "ReGaHSS", "ReGa", "System", "CCU-Jack"}
+
+// ValidInterfaceName is the rule for an addon interface's name: letters, digits, _ and -, starting
+// with a letter, 2 to 32 characters, none of ReservedInterfaces (in any case).
+func ValidInterfaceName(name string) error {
+	if !interfaceNameRe.MatchString(name) {
+		return fmt.Errorf("runtime.rpc_interface.name %q: letters, digits, _ and -, starting with a letter, 2 to 32 characters", name)
+	}
+	for _, r := range ReservedInterfaces {
+		if strings.EqualFold(r, name) {
+			return fmt.Errorf("runtime.rpc_interface.name %q is the system's own", name)
+		}
+	}
+	return nil
+}
+
+// Validate is the rule for runtime.rpc_interface.
+func (i *RPCInterface) Validate() error {
+	if i == nil {
+		return nil
+	}
+	if err := ValidInterfaceName(i.Name); err != nil {
+		return err
+	}
+	if i.Port < 1024 || i.Port > 65535 {
+		return fmt.Errorf("runtime.rpc_interface.port %d: 1024 to 65535", i.Port)
+	}
+	if i.Path != "" && (!interfacePathRe.MatchString(i.Path) || len(i.Path) > 64 || strings.Contains(i.Path, "..")) {
+		return fmt.Errorf("runtime.rpc_interface.path %q", i.Path)
+	}
+	if i.Protocol != "" && i.Protocol != "xmlrpc" {
+		return fmt.Errorf("runtime.rpc_interface.protocol %q: xmlrpc is the one there is", i.Protocol)
+	}
+	return nil
+}
+
+// URL is the interface's InterfacesList.xml URL: xmlrpc://127.0.0.1:<port><path>.
+func (i *RPCInterface) URL() string {
+	p := i.Path
+	if p == "/" {
+		p = ""
+	}
+	return fmt.Sprintf("xmlrpc://127.0.0.1:%d%s", i.Port, p)
 }
 
 // Timers is runtime.timers (occulited task 154): what a timer of the addon runs.
@@ -610,6 +679,9 @@ func (rt *Runtime) validate() error {
 		if err := ValidBin(rt.Bin); err != nil {
 			return err
 		}
+	}
+	if err := rt.RPCInterface.Validate(); err != nil {
+		return err
 	}
 	if rt.Timers != nil {
 		if err := rt.Timers.Validate(); err != nil {

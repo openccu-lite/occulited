@@ -21,6 +21,8 @@
 package devstate
 
 import (
+	"github.com/hobbyquaker/occulited/internal/addoniface"
+
 	"log/slog"
 	"math"
 	"reflect"
@@ -113,7 +115,12 @@ func (s *Store) log() *slog.Logger {
 	return slog.Default()
 }
 
-func (s *Store) tracked(dp string) bool {
+func (s *Store) tracked(iface, dp string) bool {
+	// occulited task 169: an addon's interface (lite-addon-logic's variables and programs) is kept
+	// whole - its datapoints are its whole point, and none of them costs airtime
+	if addoniface.Is(iface) {
+		return true
+	}
 	if s.Tracked != nil {
 		return s.Tracked(dp)
 	}
@@ -179,7 +186,7 @@ func (s *Store) observe(iface, address, dp string, v any, at time.Time, source s
 	if s.OnObserve != nil {
 		s.OnObserve(iface, address, dp, v, at)
 	}
-	if !s.tracked(dp) {
+	if !s.tracked(iface, dp) {
 		return observed{}
 	}
 	k := key(iface, address, dp)

@@ -517,3 +517,45 @@ func TestBackupTargets(t *testing.T) {
 		}
 	}
 }
+
+// occulited task 169: runtime.rpc_interface - a name of its own, a loopback port, an optional path.
+func TestRuntimeRPCInterface(t *testing.T) {
+	with := func(extra string) string {
+		return strings.Replace(good, `"needs": [],`, `"needs": [], `+extra+`,`, 1)
+	}
+	for _, c := range []struct {
+		extra, url string
+		ok         bool
+	}{
+		{`"rpc_interface": {"name": "Logic", "port": 39310}`, "xmlrpc://127.0.0.1:39310", true},
+		{`"rpc_interface": {"name": "My_Logic-2", "port": 40000, "path": "/rpc", "protocol": "xmlrpc"}`, "xmlrpc://127.0.0.1:40000/rpc", true},
+		{`"rpc_interface": {"name": "Logic", "port": 39310, "path": "/"}`, "xmlrpc://127.0.0.1:39310", true},
+		{`"rpc_interface": {"name": "HmIP-RF", "port": 39310}`, "", false},
+		{`"rpc_interface": {"name": "virtualdevices", "port": 39310}`, "", false},
+		{`"rpc_interface": {"name": "1Logic", "port": 39310}`, "", false},
+		{`"rpc_interface": {"name": "Lo gic", "port": 39310}`, "", false},
+		{`"rpc_interface": {"name": "L", "port": 39310}`, "", false},
+		{`"rpc_interface": {"name": "Logic", "port": 80}`, "", false},
+		{`"rpc_interface": {"name": "Logic", "port": 70000}`, "", false},
+		{`"rpc_interface": {"name": "Logic"}`, "", false},
+		{`"rpc_interface": {"name": "Logic", "port": 39310, "path": "rpc"}`, "", false},
+		{`"rpc_interface": {"name": "Logic", "port": 39310, "path": "/a b"}`, "", false},
+		{`"rpc_interface": {"name": "Logic", "port": 39310, "path": "/../x"}`, "", false},
+		{`"rpc_interface": {"name": "Logic", "port": 39310, "protocol": "binrpc"}`, "", false},
+	} {
+		m, err := Parse([]byte(with(c.extra)))
+		if c.ok != (err == nil) {
+			t.Errorf("%s: %v", c.extra, err)
+			continue
+		}
+		if err != nil {
+			if !strings.Contains(err.Error(), "runtime.rpc_interface") {
+				t.Errorf("%s: %v", c.extra, err)
+			}
+			continue
+		}
+		if got := m.Runtime.RPCInterface.URL(); got != c.url {
+			t.Errorf("%s: %s", c.extra, got)
+		}
+	}
+}

@@ -1,6 +1,8 @@
 package radio
 
 import (
+	"github.com/hobbyquaker/occulited/internal/addoniface"
+
 	"bufio"
 	"context"
 	"os"
@@ -36,10 +38,13 @@ type Inputs struct {
 	CustomStorage    string `json:"custom_storage_path,omitempty"`
 	HmIPNetworkKey   bool   `json:"hmip_networkkey_exists"`
 	// The image's templates and defaults.
-	TemplateRFDConf        string            `json:"-"`
-	TemplateMultimacdConf  string            `json:"-"`
-	TemplateCrRFDConf      string            `json:"-"`
-	TemplateInterfacesList string            `json:"-"`
+	TemplateRFDConf        string `json:"-"`
+	TemplateMultimacdConf  string `json:"-"`
+	TemplateCrRFDConf      string `json:"-"`
+	TemplateInterfacesList string `json:"-"`
+	// AddonInterfaces are the interfaces addons provide (occulited task 169: addoniface.File, which
+	// occulited keeps), appended to InterfacesList.xml like BidCos-Wired.
+	AddonInterfaces        []Interface       `json:"addon_interfaces,omitempty"`
 	TemplateHmIPNetworkKey bool              `json:"-"`
 	HMServerConf           string            `json:"-"`
 	HmIPServerDefaults     map[string]string `json:"hmipserver_defaults,omitempty"`
@@ -93,6 +98,9 @@ func Load(ctx context.Context, root string, run Runner, det Detection) Inputs {
 	in.TemplateMultimacdConf = readFile(p("/etc/config_templates/multimacd.conf"))
 	in.TemplateCrRFDConf = readFile(p("/etc/config_templates/crRFD.conf"))
 	in.TemplateInterfacesList = readFile(p("/etc/config_templates/InterfacesList.xml"))
+	for _, e := range addoniface.Parse([]byte(readFile(p(addoniface.File)))) {
+		in.AddonInterfaces = append(in.AddonInterfaces, Interface{Name: e.Name, URL: e.URL, Info: e.Name})
+	}
 	in.TemplateHmIPNetworkKey = exists(p("/etc/config_templates/hmip_networkkey.conf"))
 	in.HMServerConf = readFile(p("/etc/HMServer.conf"))
 	in.HmIPServerDefaults = map[string]string{}

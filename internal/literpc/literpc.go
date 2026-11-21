@@ -10,6 +10,8 @@
 package literpc
 
 import (
+	"github.com/hobbyquaker/occulited/internal/addoniface"
+
 	"bytes"
 	"context"
 	"encoding/xml"
@@ -221,8 +223,12 @@ type Interface struct {
 	Protocol string `json:"protocol"` // xmlrpc
 	URLPath  string `json:"url_path"`
 	// Running: the subscriber's view - the process answered its last init or ping.
-	Running bool   `json:"running"`
-	addr    string // http://127.0.0.1:<port>[/path], where the call goes
+	Running bool `json:"running"`
+	// Addon names the addon that provides the interface (occulited task 169): not a radio - no
+	// pairing, no firmware, no duty cycle; its devices are the addon's objects. Absent for the
+	// system's own interface processes.
+	Addon string `json:"addon,omitempty"`
+	addr  string // http://127.0.0.1:<port>[/path], where the call goes
 }
 
 // Interfaces lists what is offered: every InterfacesList.xml entry the subscriber speaks to
@@ -239,7 +245,11 @@ func (s *Service) Interfaces() []Interface {
 		if err != nil {
 			continue
 		}
-		out = append(out, Interface{Name: st.Name, Protocol: "xmlrpc", URLPath: "/api/rpc/v1/xmlrpc/" + st.Name, Running: st.State != "down", addr: addr})
+		i := Interface{Name: st.Name, Protocol: "xmlrpc", URLPath: "/api/rpc/v1/xmlrpc/" + st.Name, Running: st.State != "down", addr: addr}
+		if e, ok := addoniface.Lookup(st.Name); ok {
+			i.Addon = e.Addon
+		}
+		out = append(out, i)
 	}
 	sort.Slice(out, func(a, b int) bool { return out[a].Name < out[b].Name })
 	if out == nil {

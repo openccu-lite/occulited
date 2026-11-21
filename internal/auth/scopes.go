@@ -57,6 +57,13 @@ const (
 	// addon's manifest can ask for it (AddonScopes): it is not in Grantable and not Known to a token
 	// made by a person, since no other token can use it. Full access covers it like every scope.
 	ScopeTimersAddon Scope = "timers:addon"
+	// ScopeMetaInterface is the names of an addon's own interface's devices and nothing else
+	// (occulited task 169): POST /api/meta/v1/interfaces/{interface}/objects:bulk, for the
+	// interface the calling addon provides (runtime.rpc_interface) and only for names. What
+	// lite-addon-logic declares to keep its variables' and programs' names in the metadata instead
+	// of meta:write, with which it could rename every device. Like timers:addon only an addon's
+	// manifest can ask for it: not Grantable, not Known to a token made by a person.
+	ScopeMetaInterface Scope = "meta:interface"
 	// ScopeBackup is creating and downloading backups (D-62).
 	ScopeBackup Scope = "backup"
 	// ScopeLED is the status LED's state, an override of the token's own and locate (task 95's
@@ -328,8 +335,9 @@ func AddonScopes(declared []string) (granted Scopes, refused []string) {
 	for _, n := range declared {
 		n = strings.TrimSpace(n)
 		s := Scope(n)
-		// timers:addon is an addon's alone: known here, and to no other token (not in Known)
-		if _, ingress := AddonOf(s); n == "" || (!Known(s) && s != ScopeTimersAddon) || contains(AddonNever, s) || ingress {
+		// timers:addon and meta:interface are an addon's alone: known here, and to no other token
+		// (not in Known)
+		if _, ingress := AddonOf(s); n == "" || (!Known(s) && s != ScopeTimersAddon && s != ScopeMetaInterface) || contains(AddonNever, s) || ingress {
 			refused = append(refused, n)
 			continue
 		}

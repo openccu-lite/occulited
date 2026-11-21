@@ -127,6 +127,12 @@ func TestRouteTable(t *testing.T) {
 		t.Fatal("no addon token with timers:addon", err)
 	}
 	tokens[auth.ScopeTimersAddon] = addonSecret
+	// meta:interface (occulited task 169) the same way
+	ifaceSecret, _, _, err := store.MintAddonToken("logic", []string{"meta:interface"})
+	if err != nil || ifaceSecret == "" {
+		t.Fatal("no addon token with meta:interface", err)
+	}
+	tokens[auth.ScopeMetaInterface] = ifaceSecret
 	var patterns []string
 	for p := range table {
 		patterns = append(patterns, p)

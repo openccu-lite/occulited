@@ -355,6 +355,7 @@ var routeDocs = map[string]apidoc.Doc{
 	"POST /api/system/v1/storage/shares/{id}/mount":                      {Summary: "Mounts a network share"},
 	"POST /api/system/v1/storage/shares/{id}/test":                       {Summary: "Tests a network share"},
 	"POST /api/system/v1/storage/shares/{id}/unmount":                    {Summary: "Unmounts a network share"},
+	"POST /api/meta/v1/interfaces/{interface}/objects:bulk":              {Summary: "An addon names the devices of the interface it provides"},
 	"GET /api/system/v1/regadom":                                         {Summary: "Whether the CCU's ReGa database is kept, its size and age"},
 	"GET /api/system/v1/regadom/file":                                    {Summary: "The kept ReGa database, for lite-addon-logic's import"},
 	"DELETE /api/system/v1/regadom":                                      {Summary: "Removes the kept ReGa database"},

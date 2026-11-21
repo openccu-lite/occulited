@@ -6506,6 +6506,9 @@
       },
       "LiterpcInterface": {
         "properties": {
+          "addon": {
+            "type": "string"
+          },
           "name": {
             "type": "string"
           },
@@ -6913,6 +6916,27 @@
         },
         "type": "object"
       },
+      "ManifestRPCInterface": {
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          },
+          "port": {
+            "type": "integer"
+          },
+          "protocol": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "port"
+        ],
+        "type": "object"
+      },
       "ManifestRelease": {
         "properties": {
           "asset": {
@@ -7065,6 +7089,16 @@
           },
           "root": {
             "type": "boolean"
+          },
+          "rpc_interface": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ManifestRPCInterface"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "start": {
             "type": "string"
@@ -21657,6 +21691,104 @@
         ],
         "x-occulite-scopes": [
           "meta:write"
+        ]
+      }
+    },
+    "/api/meta/v1/interfaces/{interface}/objects:bulk": {
+      "post": {
+        "operationId": "postMetaInterfacesByInterfaceObjectsBulk",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "interface",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "delete": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": [
+                      "array",
+                      "null"
+                    ]
+                  },
+                  "set": {
+                    "additionalProperties": {
+                      "additionalProperties": {},
+                      "type": [
+                        "object",
+                        "null"
+                      ]
+                    },
+                    "type": [
+                      "object",
+                      "null"
+                    ]
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "revision": {
+                      "minimum": 0,
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "revision"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": [
+              "meta:interface"
+            ]
+          },
+          {
+            "cookie": [
+              "meta:interface"
+            ]
+          }
+        ],
+        "summary": "An addon names the devices of the interface it provides",
+        "tags": [
+          "meta/interfaces"
+        ],
+        "x-occulite-scopes": [
+          "meta:interface"
         ]
       }
     },
@@ -43386,6 +43518,10 @@
     {
       "description": "The routes under `/api/meta/v1/import`.",
       "name": "meta/import"
+    },
+    {
+      "description": "The routes under `/api/meta/v1/interfaces/{interface}/objects:bulk`.",
+      "name": "meta/interfaces"
     },
     {
       "description": "The routes under `/api/meta/v1`.",

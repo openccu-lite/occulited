@@ -135,6 +135,18 @@
             "args": {"type": "array", "maxItems": 4, "items": {"type": "string", "pattern": "^[A-Za-z0-9_.=-]{1,64}$"}}
           }
         },
+        "rpc_interface": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["name", "port"],
+          "description": "the addon is an interface process of its own (occulited task 169; openccu-lite from 2.0.0-rc.1): it speaks the interface processes' XML-RPC on 127.0.0.1:<port><path>, and the system lists it in InterfacesList.xml under this name while the addon is installed and switched on, so lite-rpc offers it like the radios' interfaces",
+          "properties": {
+            "name": {"type": "string", "pattern": "^[A-Za-z][A-Za-z0-9_-]{1,31}$", "not": {"enum": ["BidCos-RF", "BidCos-Wired", "HmIP-RF", "VirtualDevices", "CUxD", "ReGaHSS", "ReGa", "System", "CCU-Jack"]}},
+            "port": {"type": "integer", "minimum": 1024, "maximum": 65535},
+            "path": {"type": "string", "maxLength": 64, "pattern": "^(/[A-Za-z0-9_.-]+)*/?$", "not": {"pattern": "\\.\\."}},
+            "protocol": {"type": "string", "enum": ["xmlrpc"]}
+          }
+        },
         "read_addon_data": {"type": "boolean", "description": "a timer of this addon may name other installed addons whose data its run reads; its service then runs with those addons' own groups (occulited task 154)"},
         "port_info": {
           "type": "object",

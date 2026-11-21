@@ -4,6 +4,8 @@
 package main
 
 import (
+	"github.com/hobbyquaker/occulited/internal/addoniface"
+
 	"bytes"
 	"context"
 	"encoding/json"
@@ -599,9 +601,15 @@ func run(opts daemonOptions) error {
 	if firstBoot == nil && len(disabledBinary) > 0 {
 		firstBoot = &httpapi.FirstBootImport{At: time.Now(), DisabledBinaryAddons: disabledBinary}
 	}
+	// occulited task 169: the interfaces addons provide, from the record, before the first poll;
+	// they are no radios - the radio health poll, the key change and the log levels leave them out
+	root.LoadAddonInterfaces()
 	radioIfs := func() []interfaces.Interface {
 		var list []struct{ Name, URL string }
 		for _, i := range root.ReadRadio().Interfaces {
+			if addoniface.Is(i.Name) {
+				continue
+			}
 			list = append(list, struct{ Name, URL string }{i.Name, i.URL})
 		}
 		return interfaces.FromList(list)
@@ -738,7 +746,16 @@ func run(opts daemonOptions) error {
 		devState.Reconcile(iface, channel, values, at, rpcSub.Publish)
 	}
 	// occulited task 13: the sampler makes the interface cards' events/min of the subscriber's counts
-	sampler.Feed = rpcSub.Status
+	// occulited task 169: an addon's interface has no telegrams and no radio: out of the event rates
+	sampler.Feed = func() []rpcsub.IfaceStatus {
+		var out []rpcsub.IfaceStatus
+		for _, st := range rpcSub.Status() {
+			if !addoniface.Is(st.Name) {
+				out = append(out, st)
+			}
+		}
+		return out
+	}
 	// the daily addon update check (what checkAddonUpdates.sh did into a ReGa variable)
 	// the update check runs the addon's update.cgi through occulited's own CGI route (not
 	// lighttpd's gate), authenticated with the box's local token (B-2)
@@ -1395,7 +1412,15 @@ func run(opts daemonOptions) error {
 		// the first. hmipserver starts minutes after occulited on a Pi: asked every 30 s, 20 min.
 		go sysAPI.Groups.HealAtStart(samplerCtx, 30*time.Second, 40)
 		// task 194: the state store's sweep of what is not confirmed, paced, when an interface is up
-		go devState.RunSweeps(samplerCtx, stateSource{ifs: radioIfs}, rpcSub.Publish, 0)
+		// occulited task 169: the sweep reads an addon's interface too (from the addon's memory)
+		allIfs := func() []interfaces.Interface {
+			var list []struct{ Name, URL string }
+			for _, i := range root.ReadRadio().Interfaces {
+				list = append(list, struct{ Name, URL string }{i.Name, i.URL})
+			}
+			return interfaces.FromList(list)
+		}
+		go devState.RunSweeps(samplerCtx, stateSource{ifs: allIfs}, rpcSub.Publish, 0)
 		go hbWatch.Run(samplerCtx) // task 218
 		if crashLoops != nil {
 			go crashLoops.Run(samplerCtx) // task 283

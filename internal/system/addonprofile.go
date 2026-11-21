@@ -114,11 +114,13 @@ func syncAddonProfiles(root Root, off func(id string) bool, adopt ...string) []P
 // the Services page's switch counted as off: after a switch there. It logs what it changed or could
 // not, and answers what it changed, as "<id> written" or "<id> removed".
 func (s SystemdServices) SyncAddonProfiles() []string {
+	s.Root.SyncAddonInterfaces(s.addonSwitchedOff) // occulited task 169: the same switch decides
 	return logProfiles(syncAddonProfiles(s.Root, s.addonSwitchedOff))
 }
 
 // SyncAddonProfiles is the same for the addon manager: at start and after Enable and Disable.
 func (a *SystemdAddons) SyncAddonProfiles() []string {
+	a.Scripts.Root.SyncAddonInterfaces(a.Systemd.addonSwitchedOff) // occulited task 169
 	return logProfiles(syncAddonProfiles(a.Scripts.Root, a.Systemd.addonSwitchedOff))
 }
 
@@ -164,5 +166,14 @@ func profileOutput(results []ProfileResult) string {
 func (a *SystemdAddons) syncProfilesAfterChange(adopt ...string) string {
 	results := syncAddonProfiles(a.Scripts.Root, a.Systemd.addonSwitchedOff, adopt...)
 	logProfiles(results)
-	return profileOutput(results)
+	out := profileOutput(results)
+	// occulited task 169: an addon's interface in InterfacesList.xml follows it the same way
+	for _, c := range a.Scripts.Root.SyncAddonInterfaces(a.Systemd.addonSwitchedOff) {
+		if c[0] == '+' {
+			out += "\n[system] rpc_interface: " + c[1:] + " listed in InterfacesList.xml (lite-rpc offers it)"
+		} else {
+			out += "\n[system] rpc_interface: " + c[1:] + " removed from InterfacesList.xml"
+		}
+	}
+	return out
 }

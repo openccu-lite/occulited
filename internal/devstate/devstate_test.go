@@ -1,6 +1,8 @@
 package devstate
 
 import (
+	"github.com/hobbyquaker/occulited/internal/addoniface"
+
 	"context"
 	"errors"
 	"fmt"
@@ -551,5 +553,27 @@ func TestCodecChangedAt(t *testing.T) {
 	b[1] = 1 // what an older binary wrote
 	if got, ok := decode(b); !ok || got.seen || !got.hasPrev {
 		t.Errorf("old entry: %+v", got)
+	}
+}
+
+// occulited task 169: an addon's interface is kept whole - VALUE, ACTIVE, LAST_RUN are not in the
+// chosen set - and swept; a radio's datapoint outside the set is still not kept.
+func TestAddonInterfaceKeptWhole(t *testing.T) {
+	addoniface.Set([]addoniface.Entry{{Name: "Logic", Addon: "logic", URL: "xmlrpc://127.0.0.1:39310"}})
+	t.Cleanup(func() { addoniface.Set(nil) })
+	s := &Store{}
+	for _, dp := range []string{"VALUE", "ACTIVE", "LAST_RUN"} {
+		if o := s.observe("Logic", "prg-x:1", dp, 1, at(0), SourceEvent); !o.tracked {
+			t.Errorf("%s not kept", dp)
+		}
+	}
+	if o := s.observe("HmIP-RF", "A:1", "VALUE", 1, at(0), SourceEvent); o.tracked {
+		t.Error("a radio's VALUE kept")
+	}
+	if !Swept("Logic") || !Swept("HmIP-RF") || Swept("BidCos-RF") || Swept("Other") {
+		t.Error("swept")
+	}
+	if e, ok := s.Get("Logic", "prg-x:1", "LAST_RUN"); !ok || e.Value != 1 {
+		t.Fatalf("%+v %v", e, ok)
 	}
 }

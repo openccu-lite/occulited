@@ -514,6 +514,13 @@ func MakePlan(in Inputs) Plan {
 	case !p.HS485D.Run:
 		p.Interfaces = removeInterface(p.Interfaces, "BidCos-Wired")
 	}
+	// occulited task 169: the interfaces addons provide, as occulited listed them last; a name the
+	// list has already is the system's own and stays
+	for _, a := range in.AddonInterfaces {
+		if !hasInterface(p.Interfaces, a.Name) {
+			p.Interfaces = append(p.Interfaces, a)
+		}
+	}
 	return p
 }
 

@@ -549,9 +549,15 @@ func TestDetectUSBAdapterAndFallback(t *testing.T) {
 	if !det.TTYFallback || len(det.Modules) != 2 || det.Modules[0].Node != "/dev/ttyAMA0" || !det.Modules[1].USBAdapter || det.Modules[1].Serial != "KEQ0123456" || !det.Found() {
 		t.Fatalf("%+v", det)
 	}
+	// occulited task 169: the addon interfaces' record beside InterfacesList.xml
+	_ = os.MkdirAll(filepath.Join(root, "etc/config"), 0o755)
+	_ = os.WriteFile(filepath.Join(root, "etc/config/addon-interfaces.json"), []byte(`{"interfaces":[{"name":"Logic","addon":"logic","url":"xmlrpc://127.0.0.1:39310"}]}`), 0o644)
 	in := Load(context.Background(), root, fp.run, det)
 	if in.Host != "" || in.Mode != "NORMAL" || in.RFDConfExists || in.Arch != "aarch64" {
 		t.Fatalf("%+v", in)
+	}
+	if len(in.AddonInterfaces) != 1 || in.AddonInterfaces[0].Name != "Logic" || in.AddonInterfaces[0].URL != "xmlrpc://127.0.0.1:39310" {
+		t.Fatalf("addon interfaces %+v", in.AddonInterfaces)
 	}
 }
 
@@ -580,5 +586,20 @@ func TestHMServerConfDiagramDirs(t *testing.T) {
 	in.Diagrams = true
 	if f := Render(in, p); strings.Contains(f.HMServerConf, DiagramsOffPath) {
 		t.Fatalf("render on: %s", f.HMServerConf)
+	}
+}
+
+// occulited task 169: the interfaces addons provide (addoniface.File) are appended after the
+// system's own; a name the list has already stays the system's; the rendered file has them.
+func TestPlanAddonInterfaces(t *testing.T) {
+	in := inputs(rpiRFMod("/dev/raw-uart"))
+	in.AddonInterfaces = []Interface{{Name: "Logic", URL: "xmlrpc://127.0.0.1:39310", Info: "Logic"}, {Name: "HmIP-RF", URL: "xmlrpc://127.0.0.1:1", Info: "x"}}
+	p := MakePlan(in)
+	if names(p.Interfaces) != "BidCos-RF,VirtualDevices,HmIP-RF,Logic" {
+		t.Fatalf("%s", names(p.Interfaces))
+	}
+	f := Render(in, p)
+	if got := ParseInterfaces(f.InterfacesList); len(got) != 4 || got[3].URL != "xmlrpc://127.0.0.1:39310" || got[2].URL != "xmlrpc://127.0.0.1:32010" {
+		t.Fatalf("%+v", got)
 	}
 }

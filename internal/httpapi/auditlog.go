@@ -80,13 +80,14 @@ func (h callerMark) WithGroup(name string) slog.Handler {
 
 // quietScopes are the routes whose calls are not changes of the system (see above).
 var quietScopes = map[auth.Scope]bool{
-	auth.ScopeMetaWrite:    true,
-	auth.ScopeRPCRead:      true,
-	auth.ScopeRPCOperate:   true,
-	auth.ScopeRPCConfigure: true,
-	auth.ScopeRPCAdmin:     true,
-	auth.ScopeSystemRead:   true, // the previews and searches that are POSTs
-	auth.ScopeLED:          true, // the LED's live state: overrides and locate
+	auth.ScopeMetaWrite:     true,
+	auth.ScopeMetaInterface: true, // occulited task 169: an addon's own interface's names
+	auth.ScopeRPCRead:       true,
+	auth.ScopeRPCOperate:    true,
+	auth.ScopeRPCConfigure:  true,
+	auth.ScopeRPCAdmin:      true,
+	auth.ScopeSystemRead:    true, // the previews and searches that are POSTs
+	auth.ScopeLED:           true, // the LED's live state: overrides and locate
 }
 
 // quietRoutes are single routes of a changing scope that change nothing lasting: the LED page's
