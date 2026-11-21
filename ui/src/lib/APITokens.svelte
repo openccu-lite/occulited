@@ -57,6 +57,7 @@
         led: 'Status LED',
         'power:halt': 'Power off, nothing else',
         'radio:keys': 'HmIP device keys (reads every key in clear)',
+        'regadom:read': "The CCU's ReGa database (for lite-addon-logic's import)",
         'auth:admin': 'Users, tokens, login settings',
         'rpc:read': 'RPC: read',
         'rpc:operate': 'RPC: operate',

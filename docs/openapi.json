@@ -12573,6 +12573,23 @@
         ],
         "type": "object"
       },
+      "SystemKeptRegadom": {
+        "properties": {
+          "bytes": {
+            "type": "integer"
+          },
+          "modified": {
+            "type": "string"
+          },
+          "present": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "present"
+        ],
+        "type": "object"
+      },
       "SystemLANGateway": {
         "properties": {
           "address": {
@@ -37439,6 +37456,152 @@
         ]
       }
     },
+    "/api/system/v1/regadom": {
+      "delete": {
+        "operationId": "deleteSystemRegadom",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "freed_bytes": {
+                      "type": "integer"
+                    },
+                    "removed": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "freed_bytes",
+                    "removed"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": [
+              "system:write"
+            ]
+          },
+          {
+            "cookie": [
+              "system:write"
+            ]
+          }
+        ],
+        "summary": "Removes the kept ReGa database",
+        "tags": [
+          "system/regadom"
+        ],
+        "x-occulite-scopes": [
+          "system:write"
+        ]
+      },
+      "get": {
+        "operationId": "getSystemRegadom",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SystemKeptRegadom"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": [
+              "system:read"
+            ]
+          },
+          {
+            "cookie": [
+              "system:read"
+            ]
+          }
+        ],
+        "summary": "Whether the CCU's ReGa database is kept, its size and age",
+        "tags": [
+          "system/regadom"
+        ],
+        "x-occulite-scopes": [
+          "system:read"
+        ]
+      }
+    },
+    "/api/system/v1/regadom/file": {
+      "get": {
+        "operationId": "getSystemRegadomFile",
+        "responses": {
+          "200": {
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "contentMediaType": "application/octet-stream",
+                  "type": "string"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": [
+              "regadom:read"
+            ]
+          },
+          {
+            "cookie": [
+              "regadom:read"
+            ]
+          }
+        ],
+        "summary": "The kept ReGa database, for lite-addon-logic's import",
+        "tags": [
+          "system/regadom"
+        ],
+        "x-occulite-scopes": [
+          "regadom:read"
+        ]
+      }
+    },
     "/api/system/v1/remote-access": {
       "get": {
         "operationId": "getSystemRemoteAccess",
@@ -43403,6 +43566,10 @@
     {
       "description": "The routes under `/api/system/v1/reboot`.",
       "name": "system/reboot"
+    },
+    {
+      "description": "The routes under `/api/system/v1/regadom`.",
+      "name": "system/regadom"
     },
     {
       "description": "The routes under `/api/system/v1/remote-access`.",

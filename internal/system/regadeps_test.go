@@ -71,24 +71,28 @@ func TestLegacyLeftovers(t *testing.T) {
 	for _, it := range items {
 		by[it.ID] = it
 	}
-	if !by["regadom"].Present || by["regadom"].Bytes != 1000 || !by["regadom"].WayBack || by["measurement"].Bytes != 5 || by["userprofiles"].Present {
+	if _, listed := by["regadom"]; listed || !by["regadom-bak"].Present || by["regadom-bak"].Bytes != 500 || !by["regadom-bak"].WayBack || by["measurement"].Bytes != 5 || by["userprofiles"].Present {
 		t.Fatalf("%+v", items)
 	}
 	if _, err := r.RemoveLegacy([]string{"regadom", "bogus"}); err == nil {
 		t.Error("unknown id accepted")
 	}
-	removed, err := r.RemoveLegacy([]string{"regadom-bak", "measurement"})
-	if err != nil || len(removed) != 2 {
+	removed, err := r.RemoveLegacy([]string{"measurement"})
+	if err != nil || len(removed) != 1 {
 		t.Fatalf("%v %v", err, removed)
 	}
 	if _, err := os.Stat(r.join("/etc/config/measurement")); !os.IsNotExist(err) {
 		t.Error("measurement kept")
 	}
 	if !r.LegacyLeftovers()[0].Present {
-		t.Error("regadom removed although not asked")
+		t.Error("regadom-bak removed although not asked")
 	}
 	removed, _ = r.RemoveLegacy(nil)
-	if len(removed) != 1 || removed[0] != "regadom" {
+	if len(removed) != 1 || removed[0] != "regadom-bak" {
 		t.Errorf("%v", removed)
+	}
+	// occulited task 167: the database itself is no leftover
+	if _, err := os.Stat(r.join("/etc/config/homematic.regadom")); err != nil {
+		t.Error("the ReGa database removed with the leftovers")
 	}
 }

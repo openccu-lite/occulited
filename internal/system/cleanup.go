@@ -17,8 +17,9 @@ import (
 )
 
 // Legacy leftovers (roadmap task 21): what an update from OpenCCU leaves on the userfs that
-// openccu-lite never reads - the ReGa database above all. Removing them frees space and ends the
-// confusion of two sources of names. Since task 250 they go by themselves after the first start
+// openccu-lite never reads - the ReGa database's previous copy, the WebUI's data, the NEO Server
+// (since occulited task 167 the ReGa database itself stays: regadomkeep.go). Removing them frees
+// space and ends the confusion of two sources of names. Since task 250 they go by themselves after the first start
 // (RemoveLeftoversOnce); the Backup page's panel is gone.
 //
 // The way back to OpenCCU is a backup taken before the migration in every case (D-35, revised
@@ -52,7 +53,10 @@ type LegacyItem struct {
 }
 
 var legacyItems = []LegacyItem{
-	{ID: "regadom", Path: "/etc/config/homematic.regadom", Why: "the ReGa database: programs, system variables, and the names openccu-lite imported at its first boot", WayBack: true},
+	// occulited task 167: the ReGa database itself (homematic.regadom) is not on this list any more -
+	// it stays after the switch until the user removes it (KeptRegadom), because lite-addon-logic
+	// imports programs and system variables from it. Its .bak, the database before the ReGa's last
+	// save, is never an import source and goes as before: it would double the space kept.
 	{ID: "regadom-bak", Path: "/etc/config/homematic.regadom.bak", Why: "the ReGa's previous database", WayBack: true},
 	{ID: "measurement", Path: "/etc/config/measurement", Why: "the WebUI's diagram data"},
 	{ID: "userprofiles", Path: "/etc/config/userprofiles", Why: "WebUI user profiles (favourites, page settings)"},

@@ -2221,7 +2221,8 @@ func hardenAddonParents(root system.Root, log *slog.Logger) {
 }
 
 // firstBootLeftovers removes what the CCU left on the userfs that openccu-lite never reads - the
-// ReGa database, the WebUI's data, the NEO Server (system.RemoveLeftoversOnce's list) - once, after
+// ReGa database's .bak, the WebUI's data, the NEO Server (system.RemoveLeftoversOnce's list; the
+// ReGa database itself stays for lite-addon-logic's import, occulited task 167) - once, after
 // the first-boot name import settled (task 250: the maintainer, "kill these files after first boot
 // of openccu-lite"; the way back is the (Open)CCU's backup from before the switch). An import that
 // still has to run keeps them, with a warning, until a later start.

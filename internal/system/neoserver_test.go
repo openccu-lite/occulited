@@ -140,17 +140,17 @@ func TestNeoServerLeftover(t *testing.T) {
 	}
 	// a half-removed addon - the rc.d entry alone - is still a leftover, and RemoveLegacy(nil)
 	// takes it with the rest
-	half := rootWith(t, map[string]string{"usr/local/etc/config/rc.d/97NeoServer": "#!/bin/sh\n", "etc/config/homematic.regadom": "x"})
+	half := rootWith(t, map[string]string{"usr/local/etc/config/rc.d/97NeoServer": "#!/bin/sh\n", "etc/config/homematic.regadom.bak": "x"})
 	var present []string
 	for _, it := range half.LegacyLeftovers() {
 		if it.Present {
 			present = append(present, it.ID)
 		}
 	}
-	if !slices.Equal(present, []string{"regadom", "neoserver"}) {
+	if !slices.Equal(present, []string{"regadom-bak", "neoserver"}) {
 		t.Errorf("present: %v", present)
 	}
-	if removed, err := half.RemoveLegacy(nil); err != nil || !slices.Equal(removed, []string{"neoserver", "regadom"}) {
+	if removed, err := half.RemoveLegacy(nil); err != nil || !slices.Equal(removed, []string{"neoserver", "regadom-bak"}) {
 		t.Errorf("%v %v", removed, err)
 	}
 }

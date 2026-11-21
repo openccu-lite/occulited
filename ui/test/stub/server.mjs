@@ -105,6 +105,8 @@ const routes = {
         {id: 'battery', name: {de: 'Batterien', en: 'Batteries'}, hook: 'bin/backup-snapshot', staging: 'var/backup', restore: 'bin/backup-restore', timeout: 120, size_hint_mb: 20, large: false, enabled: true, last: {id: 'battery', at: '2026-09-07T00:07:05Z', ok: true, bytes: 4194304, files: 1, duration_ms: 850}},
         {id: 'history', name: 'History', hook: 'bin/snap', staging: 'var/backup', timeout: 600, size_hint_mb: 800, large: true, enabled: false, last: {id: 'history', at: '2026-09-06T00:07:05Z', ok: false, exit: 1, error: 'the hook exited 1', output: 'no stick', bytes: 0, files: 0, duration_ms: 40}},
     ]},
+    // occulited task 167: no ReGa database kept on the stub's system; the spec plants one
+    'GET /api/system/v1/regadom': {present: false},
     'GET /api/system/v1/backup/last': {automatic: {time: '2026-09-07T00:07:12Z', name: 'openccu-2026-09-07.sbk', size: 4718592, encrypted: false, instance: 'nightly', targets: ['directory', 'tssh0001']}, download: {time: '2026-09-06T18:30:00Z', name: 'openccu-2026-09-06.sbk', size: 4718592, encrypted: false, by: 'admin'}},
     'GET /api/system/v1/factory-reset': {hostname: 'ccu-vm-1', armed: false, container: '', update_staged: false, interfaces: {'BidCos-RF': {devices: 0, known: true}, 'HmIP-RF': {devices: 0, known: true}}, security_key_set: false, security_key_known: true, hmip_local_key: false},
     'GET /api/system/v1/health': {ok: true, version: 'stub', release: '1.0.0-alpha.0', base: '3.89.8.20260719', uptime_s: 12345, meta: {revision: 9, recovered: false}},

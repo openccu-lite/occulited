@@ -66,6 +66,11 @@ const (
 	// removing one, applying them, and the key sheet - the one answer with every key in clear. No
 	// other scope includes it, and an addon's token never gets it.
 	ScopeRadioKeys Scope = "radio:keys"
+	// ScopeRegadomRead is reading the CCU's ReGa database kept after the switch (occulited task
+	// 167): GET /regadom/file, and nothing else. What lite-addon-logic declares to import programs
+	// and system variables from it. Its own scope because the file holds the old system's whole
+	// logic and its WebUI accounts; no other scope includes it, Full access does.
+	ScopeRegadomRead Scope = "regadom:read"
 	// ScopeAuthAdmin is accounts, tokens, every session, the security and login settings (the
 	// identity provider, the password-login switch, the global legacy session switch).
 	// Includes self.
@@ -115,7 +120,7 @@ func AddonOf(s Scope) (string, bool) {
 var Grantable = []Scope{
 	ScopeMetaRead, ScopeMetaWrite,
 	ScopeSystemRead, ScopeLogsRead, ScopeSystemWrite, ScopeAddonsWrite,
-	ScopePower, ScopePowerHalt, ScopeBackup, ScopeLED, ScopeRadioKeys, ScopeAuthAdmin,
+	ScopePower, ScopePowerHalt, ScopeBackup, ScopeLED, ScopeRadioKeys, ScopeRegadomRead, ScopeAuthAdmin,
 	ScopeRPCRead, ScopeRPCOperate, ScopeRPCConfigure, ScopeRPCAdmin,
 }
 

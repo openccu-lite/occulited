@@ -233,7 +233,7 @@ func TestAPITokens(t *testing.T) {
 		t.Fatalf("a forged in-range element: %d %v", st, out)
 	}
 	st, out, _ = do(t, srv, "GET", "/api/auth/v1/tokens", "", hdr)
-	if st != 200 || len(out["tokens"].([]any)) != 2 || len(out["scopes"].([]any)) != 16 {
+	if st != 200 || len(out["tokens"].([]any)) != 2 || len(out["scopes"].([]any)) != 17 {
 		t.Fatalf("list: %d %v", st, out)
 	}
 	if tk := out["tokens"].([]any)[1].(map[string]any); tk["name"] != "lan" || fmt.Sprint(tk["ips"]) != "[127.0.0.1/32 10.0.0.0/8]" || tk["expires"] == nil || fmt.Sprint(tk["scopes"]) != "[meta:write]" {

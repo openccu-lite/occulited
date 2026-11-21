@@ -540,6 +540,7 @@ func (a *SystemAPI) Register(mux *http.ServeMux) {
 	route(mux, auth.ScopeSystemRead, "GET "+p+"/usb/storage", a.usbStorage)
 	a.registerStorageUSB(mux, p)    // storageusb.go, task 228
 	a.registerStorageWrites(mux, p) // storagewrites.go, occulited task 159
+	a.registerRegadom(mux, p)       // regadom.go, occulited task 167
 	a.registerRadioWrites(mux, p)   // radiowrites.go, occulited task 163
 	a.registerShares(mux, p)        // storageshares.go, task 228 phase 2
 	a.registerLocations(mux, p)     // storagelocations.go, task 228 phases 3-4

@@ -20,6 +20,7 @@
     import FactoryReset from '../lib/FactoryReset.svelte';
     import BackupTargets from '../lib/BackupTargets.svelte';
     import LastBackups from '../lib/LastBackups.svelte';
+    import KeptRegadom from '../lib/KeptRegadom.svelte';
     import BackupAddons from '../lib/BackupAddons.svelte';
     import {warnEdge, warnFor} from '../lib/systemmenu.svelte';
     import BootBar from '../lib/BootBar.svelte';
@@ -548,6 +549,9 @@
 
     <!-- openccu-lite task 399: the addons that snapshot their data for the backup, each with its switch -->
     <BackupAddons />
+
+    <!-- occulited task 167: the CCU's ReGa database kept after the switch, while it is there -->
+    <KeptRegadom />
 
     <!-- task 86: the targets - the USB directory, NFS and SMB shares, SSH servers -->
     <!-- occulited task 12: the nightly backup's target and its deliveries -->
