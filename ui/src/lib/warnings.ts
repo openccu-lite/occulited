@@ -84,7 +84,7 @@ export interface Warning {
     id: string;
     variant: string;
     severity: Severity;
-    params?: {addon?: string; title?: Record<string, string>; text?: Record<string, string>; posted?: string; expires?: string; addons?: WarnAddon[]; updates?: WarnUpdate[]; account?: string; at?: string; path?: string; days?: number; verdict?: string; reasons?: StorageReason[]; devices?: WarnDevice[]; mode?: string; reason?: string; adapter?: string; cause?: string; line?: string; families?: string[]; unreachable?: number; total?: number; port?: number; addresses?: string; sgtin?: string; address?: string; name?: string; detail?: string; label?: string; dir?: string; target?: string; share?: string; reconnecting?: boolean; interface?: string; kind?: string; since?: string; checked?: boolean; listeners?: StallListener[]; folder?: string; device?: string; running?: string; latest?: string; staged?: boolean; newest?: string; node?: string; drops_off?: boolean; hosts?: string[]; issuer?: string; store?: string; candidate?: boolean; from?: string; module?: string; version?: string; channel?: string; url?: string; minimum?: string; count?: number; bytes?: number; units?: WarnLoopUnit[]; fails?: number; failures?: number; restarts?: number; result?: string; first?: string; last?: string; written?: number; calc?: number; current?: number; offset?: number; wraps_at?: string; clock_state?: string; behind?: boolean; source?: string; duty_cycle?: number; carrier_sense?: number; transfer?: boolean; purpose?: string; host?: string; subject?: string; fingerprint?: string; spki?: string; accounts?: {user: string; at: string}[]; way?: string; by?: string; targets?: string; first_boot_journal?: string; first_boot_journal_size?: number; parents?: WarnParent[]; celsius?: number; warn_c?: number; max_c?: number; disks?: WarnHotDisk[]; http_status?: number};
+    params?: {addon?: string; title?: Record<string, string>; text?: Record<string, string>; posted?: string; expires?: string; addons?: WarnAddon[]; updates?: WarnUpdate[]; account?: string; at?: string; path?: string; days?: number; verdict?: string; reasons?: StorageReason[]; devices?: WarnDevice[]; mode?: string; reason?: string; adapter?: string; cause?: string; line?: string; families?: string[]; unreachable?: number; total?: number; port?: number; addresses?: string; sgtin?: string; address?: string; name?: string; detail?: string; label?: string; dir?: string; target?: string; share?: string; reconnecting?: boolean; interface?: string; kind?: string; since?: string; checked?: boolean; listeners?: StallListener[]; folder?: string; device?: string; running?: string; latest?: string; staged?: boolean; newest?: string; node?: string; drops_off?: boolean; hosts?: string[]; issuer?: string; store?: string; candidate?: boolean; from?: string; module?: string; version?: string; channel?: string; url?: string; minimum?: string; count?: number; bytes?: number; units?: WarnLoopUnit[]; fails?: number; failures?: number; restarts?: number; result?: string; first?: string; last?: string; written?: number; calc?: number; current?: number; offset?: number; wraps_at?: string; clock_state?: string; behind?: boolean; source?: string; duty_cycle?: number; carrier_sense?: number; transfer?: boolean; purpose?: string; host?: string; subject?: string; fingerprint?: string; spki?: string; accounts?: {user: string; at: string}[]; way?: string; by?: string; targets?: string; first_boot_journal?: string; first_boot_journal_size?: number; parents?: WarnParent[]; celsius?: number; warn_c?: number; max_c?: number; disks?: WarnHotDisk[]; http_status?: number; client?: string; burst?: boolean; average?: boolean; peak_minute?: number; peak_average?: number; average_minutes?: number; dc_from?: number; dc_to?: number; writes?: number; share_percent?: number; minutes?: number};
     href?: string;
     /** this administrator's own silence (D-64) */
     silenced?: Silence;
@@ -345,6 +345,20 @@ export function warningText(w: Warning, words: Words): string {
             const busy = t('The radio is busy: {interface} reports {what}.', {interface: p.interface ?? '', what: parts.join(t(' and '))});
             return kinds.includes('dc') && p.transfer ? `${busy} ${t('A device firmware transfer is running, which takes about half of the airtime; this is more.')}` : busy;
         }
+        case 'radio-writes':
+        case 'radio-writes-duty-cycle': {
+            // occulited task 163: a lite-rpc client that sends many radio writes (the hint), or that
+            // sent at least half of an interface's while its duty cycle rose (the warning)
+            const name = p.label ? `${p.client ?? ''} (${p.label})` : (p.client ?? w.variant);
+            const who = p.kind === 'user' ? t('The account {name}', {name}) : p.kind === 'system' ? t('The system itself') : t('The program {name}', {name});
+            const rest = t('Every radio write costs airtime, and once the duty cycle is used up the radio module stops sending for a while. Nothing is slowed down here: the program has to send less.');
+            if (w.id === 'radio-writes-duty-cycle')
+                return `${t('{who} sent {share} % of the radio writes to {interface} in the last {m} minutes ({n}), and the duty cycle there rose from {from} % to {to} % in that time.', {who, share: p.share_percent ?? '?', interface: p.interface ?? '', m: p.minutes ?? 15, n: p.writes ?? '?', from: p.dc_from ?? '?', to: p.dc_to ?? '?'})} ${rest}`;
+            const what = p.burst
+                ? t('{who} sends many radio writes: up to {n} in one minute.', {who, n: p.peak_minute ?? '?'})
+                : t('{who} sends many radio writes: {n} a minute on average over {m} minutes.', {who, n: p.peak_average ?? '?', m: p.average_minutes ?? 5});
+            return `${what} ${rest}`;
+        }
         case 'hb-rf-eth':
             // task 218: a configured board that does not answer; the system retries in the background
             if (p.reconnecting) return t('The HB-RF-ETH at {address} lost its connection: the radio module on it is not available until it is back. The system reconnects it on its own.', {address: p.address ?? w.variant});
@@ -520,6 +534,8 @@ const LINK_LABELS: Record<string, string> = {
     'devices-import': 'Interfaces',
     'hb-rf-eth': 'LAN devices',
     'radio-load': 'Interfaces',
+    'radio-writes': 'Radio writes',
+    'radio-writes-duty-cycle': 'Radio writes',
     'radio-firmware': 'Radio firmware',
     'addon-update': 'Manage addons',
     'system-update-available': 'Updates',

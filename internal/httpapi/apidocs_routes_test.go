@@ -355,6 +355,7 @@ var routeDocs = map[string]apidoc.Doc{
 	"POST /api/system/v1/storage/shares/{id}/mount":                      {Summary: "Mounts a network share"},
 	"POST /api/system/v1/storage/shares/{id}/test":                       {Summary: "Tests a network share"},
 	"POST /api/system/v1/storage/shares/{id}/unmount":                    {Summary: "Unmounts a network share"},
+	"GET /api/system/v1/radio/writes":                                    {Summary: "The radio writes per lite-rpc client, with the duty cycle beside them"},
 	"GET /api/system/v1/storage/writes":                                  {Summary: "What was written to each disk, and by which service"},
 	"GET /api/system/v1/storage/writes/recording":                        {Summary: "Whether disk writes are recorded per service"},
 	"PUT /api/system/v1/storage/writes/recording":                        {Summary: "Switches the recording of disk writes per service"},

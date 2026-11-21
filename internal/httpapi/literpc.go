@@ -15,6 +15,7 @@ import (
 	"github.com/hobbyquaker/occulited/internal/devstate"
 	"github.com/hobbyquaker/occulited/internal/literpc"
 	"github.com/hobbyquaker/occulited/internal/paramsets"
+	"github.com/hobbyquaker/occulited/internal/radiowrites"
 	"github.com/hobbyquaker/occulited/internal/rpctrace"
 	"github.com/hobbyquaker/occulited/internal/system"
 )
@@ -63,6 +64,16 @@ func traceWho(r *http.Request, sess *auth.Session) string {
 		return remote(r) + " (token " + strings.TrimPrefix(sess.ID, auth.TokenSessionPrefix) + ")"
 	}
 	return remote(r) + " (user " + sess.User + ")"
+}
+
+// liteContext is a request's context with its caller: as the trace names it, and as the kind and
+// name the radio writes are counted under (occulited task 163) - a token's name, or an account's.
+func liteContext(r *http.Request, sess *auth.Session, enc string) context.Context {
+	ctx := literpc.WithSource(r.Context(), traceWho(r, sess), enc)
+	if sess.IsToken() {
+		return literpc.WithClient(ctx, radiowrites.KindToken, strings.TrimPrefix(sess.ID, auth.TokenSessionPrefix))
+	}
+	return literpc.WithClient(ctx, radiowrites.KindUser, sess.User)
 }
 
 // rpcTraceView is GET /rpc-trace: the switch, and whether the permanent choice deserves the
@@ -289,7 +300,7 @@ func (a *SystemAPI) liteXMLRPC(w http.ResponseWriter, r *http.Request) {
 		w.Write(literpc.EncodeResponse(nil, err))
 		return
 	}
-	v, err := a.LiteRPC.Forward(literpc.WithSource(r.Context(), traceWho(r, sess), "xmlrpc"), i, c)
+	v, err := a.LiteRPC.Forward(liteContext(r, sess, "xmlrpc"), i, c)
 	if errors.Is(err, literpc.ErrDown) {
 		a.liteLog().Warn("lite-rpc: the interface process does not answer", "interface", i.Name, "method", c.Method, "err", err)
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
@@ -314,7 +325,7 @@ func (a *SystemAPI) liteJSON(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusBadRequest, apiError{Error: "bad-request", Message: err.Error()})
 		return
 	}
-	out, st := a.LiteRPC.ServeJSON(literpc.WithSource(r.Context(), traceWho(r, sess), "json"), i, body, a.liteChecker(sess, i.Name))
+	out, st := a.LiteRPC.ServeJSON(liteContext(r, sess, "json"), i, body, a.liteChecker(sess, i.Name))
 	if st == 204 {
 		w.WriteHeader(204)
 		return
@@ -622,7 +633,7 @@ func (a *SystemAPI) liteParamsetsFor(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusForbidden, apiError{Error: "forbidden", Message: err.Error()})
 		return
 	}
-	ctx := literpc.WithSource(r.Context(), traceWho(r, sess), "json")
+	ctx := liteContext(r, sess, "json")
 	keys := map[string]string{}
 	descs := map[string]paramsets.Description{}
 	errs := map[string]string{}

@@ -17,6 +17,7 @@
     import SubscriberLabel from '../lib/SubscriberLabel.svelte';
     import StoragePanel from '../lib/StoragePanel.svelte';
     import TemperaturePanel from '../lib/TemperaturePanel.svelte';
+    import RadioWrites from '../lib/RadioWrites.svelte';
     import {socSeries} from '../lib/thermal';
     import {clientLabel, streamDetail, streamName as streamLabel, streamPillTitle, type SubClient, type SubSummary} from '../lib/subscribers';
     import Icon from '../lib/Icon.svelte';
@@ -997,6 +998,9 @@
             </a>
         {/if}
     </div>
+
+    <!-- occulited task 163: the radio writes per lite-rpc client, with the duty cycle on the same minutes -->
+    <RadioWrites active={() => life.active && tabVisible()} warnAttrs={warnFor(['radio-writes', 'radio-writes-duty-cycle'])} />
 
     <!-- task 111: the old storage health panel is gone - its disks are the usage panels above. What
          it held beyond them stays here: the files beside the journal (task 84), and for a daemon

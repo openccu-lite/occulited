@@ -57,6 +57,20 @@ describe('the Status page warnings (task 81)', () => {
         expect(warningText(w('arch', 'cuxd', {addons: [{id: 'cuxd', enabled: false}]}), words)).toBe('Built for another architecture, and therefore disabled: cuxd. The repair is a release built for this system.');
     });
 
+    it('names the client that sends many radio writes, and the one behind a duty cycle\'s rise (occulited task 163)', () => {
+        const rest = 'Every radio write costs airtime, and once the duty cycle is used up the radio module stops sending for a while. Nothing is slowed down here: the program has to send less.';
+        const burst = w('radio-writes', 'token:nodered-1', {client: 'nodered-1', kind: 'token', burst: true, average: false, peak_minute: 84, peak_average: 19.2, average_minutes: 5}, '#radio-writes');
+        expect(warningText(burst, words)).toBe(`The program nodered-1 sends many radio writes: up to 84 in one minute. ${rest}`);
+        const avg = w('radio-writes', 'token:hm2mqtt', {client: 'hm2mqtt', label: 'hm2mqtt.js', kind: 'token', burst: false, average: true, peak_minute: 30, peak_average: 24.4, average_minutes: 5}, '#radio-writes');
+        expect(warningText(avg, words)).toBe(`The program hm2mqtt (hm2mqtt.js) sends many radio writes: 24.4 a minute on average over 5 minutes. ${rest}`);
+        expect(warningText(w('radio-writes', 'user:admin', {client: 'admin', kind: 'user', burst: true, peak_minute: 70}), words)).toContain('The account admin sends many radio writes: up to 70 in one minute.');
+        expect(warningText(w('radio-writes', 'system:occulited', {client: 'occulited', kind: 'system', burst: true, peak_minute: 70}), words)).toContain('The system itself sends many radio writes');
+        const red = w('radio-writes-duty-cycle', 'token:nodered-1@HmIP-RF', {client: 'nodered-1', kind: 'token', interface: 'HmIP-RF', dc_from: 3, dc_to: 24, writes: 560, share_percent: 85, minutes: 15}, '#radio-writes');
+        expect(warningText(red, words)).toBe(`The program nodered-1 sent 85 % of the radio writes to HmIP-RF in the last 15 minutes (560), and the duty cycle there rose from 3 % to 24 % in that time. ${rest}`);
+        expect(warningLink(red, t)).toEqual({href: '#radio-writes', label: 'Radio writes'});
+        expect(warningLink(burst, t)).toEqual({href: '#radio-writes', label: 'Radio writes'});
+    });
+
     it('says an HB-RF-ETH whose link is lost is reconnected, not retried (B-218)', () => {
         expect(warningText(w('hb-rf-eth', '192.0.2.209', {address: '192.0.2.209', reconnecting: true}), words)).toBe('The HB-RF-ETH at 192.0.2.209 lost its connection: the radio module on it is not available until it is back. The system reconnects it on its own.');
         expect(warningText(w('hb-rf-eth', '192.0.2.209', {address: '192.0.2.209', reconnecting: false}), words)).toContain('tries again every 30 seconds');

@@ -2633,6 +2633,35 @@ function storageWritesRoute(req, u, res, jar) {
     return true;
 }
 
+// occulited task 163: the radio writes per lite-rpc client, per browser (stub-radio-writes). No
+// variant: nobody wrote. "busy": hm2mqtt behind a rise of HmIP-RF's duty cycle (the warning),
+// ci-nightly with a burst (the hint), the account admin quiet; "busy-classic" adds the classic RPC
+// note; "off" is a system without the counter.
+function radioWritesView(variant) {
+    const thresholds = {average_per_minute: 20, average_minutes: 5, burst_per_minute: 60, hold_minutes: 15, duty_cycle_rise: 10, duty_cycle_minutes: 15, share: 0.5, min_writes: 30};
+    const base = {at: new Date().toISOString(), available: !variant.startsWith('off'), classic_rpc: variant.startsWith('busy-classic'), thresholds, clients: [], duty_cycle: []};
+    if (!variant.startsWith('busy')) return base;
+    const minutes = (fill) => Array.from({length: 60}, (_, i) => fill(i));
+    const sum = (m) => m.reduce((a, b) => a + b, 0);
+    const mqtt = minutes((i) => (i < 40 ? 4 : i < 52 ? 45 + (i % 3) * 5 : 6));
+    const ci = minutes((i) => (i === 50 ? 84 : i === 51 ? 12 : 0));
+    const admin = minutes((i) => (i === 20 || i === 58 ? 1 : 0));
+    const dc = minutes((i) => (i < 40 ? 3 : i < 53 ? 3 + Math.round((i - 39) * 1.6) : 24));
+    dc[10] = null;
+    return {...base,
+        clients: [
+            {kind: 'token', name: 'hm2mqtt', label: 'hm2mqtt.js', per_minute: 6, hour: sum(mqtt), noop: Math.round(sum(mqtt) * 0.62), minutes: mqtt, interfaces: [{name: 'BidCos-RF', hour: 60, noop: 0}, {name: 'HmIP-RF', hour: sum(mqtt) - 60, noop: Math.round(sum(mqtt) * 0.62)}],
+                level: 'warning', hint: {burst: false, average: true, peak_minute: 55, peak_average: 50}, cause: {interface: 'HmIP-RF', address: '3014F711A0001F0000000A03', from: 3, to: 24, writes: 560, total: 656, share_percent: 85}},
+            {kind: 'token', name: 'ci-nightly', per_minute: 0, hour: sum(ci), noop: 0, minutes: ci, interfaces: [{name: 'HmIP-RF', hour: sum(ci), noop: 0}], level: 'hint', hint: {burst: true, average: false, peak_minute: 84, peak_average: 19.2}},
+            {kind: 'user', name: 'admin', per_minute: 1, hour: 2, noop: 1, minutes: admin, interfaces: [{name: 'HmIP-RF', hour: 2, noop: 1}]},
+        ],
+        duty_cycle: [
+            {interface: 'BidCos-RF', address: 'JEQ0000001', minutes: minutes(() => 2)},
+            ...(variant.startsWith('busy-classic') ? [{interface: 'BidCos-RF', address: 'JEQ9000001', minutes: minutes(() => 0)}] : []),
+            {interface: 'HmIP-RF', address: '3014F711A0001F0000000A03', minutes: dc},
+        ]};
+}
+
 // openccu-lite task 228, phase 2: the network shares - an SMB share that is mounted and an NFS
 // export that is idle; stub-shares=none starts without any, stub-shares=container is a container.
 // A server named "down…" is unreachable in the test and the mount.
@@ -3033,6 +3062,11 @@ function variant(req, u, res) {
     if (ledRoute(req, u, res, jar)) return true;
     // openccu-lite task 228: the Storage page's USB sticks, per browser (stub-usb; stub-usb=none: none)
     if (u.pathname.startsWith('/api/system/v1/storage/usb')) return storageUSBRoute(req, u, res, jar);
+    // occulited task 163: the radio writes per client, per browser (stub-radio-writes)
+    if (key === 'GET /api/system/v1/radio/writes') {
+        sendJSON(res, radioWritesView(jar['stub-radio-writes'] ?? ''));
+        return true;
+    }
     // occulited task 159: the disk writes and the recording switch, per browser (stub-writes)
     if (u.pathname.startsWith('/api/system/v1/storage/writes')) return storageWritesRoute(req, u, res, jar);
     // openccu-lite task 228, phase 2: the network shares, per browser (stub-shares)

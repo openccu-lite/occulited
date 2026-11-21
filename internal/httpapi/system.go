@@ -26,6 +26,7 @@ import (
 	"github.com/hobbyquaker/occulited/internal/logctl"
 	"github.com/hobbyquaker/occulited/internal/paramsets"
 	"github.com/hobbyquaker/occulited/internal/radio"
+	"github.com/hobbyquaker/occulited/internal/radiowrites"
 	"github.com/hobbyquaker/occulited/internal/rpcsub"
 	"github.com/hobbyquaker/occulited/internal/rpctrace"
 	"github.com/hobbyquaker/occulited/internal/servicemsg"
@@ -366,7 +367,10 @@ type SystemAPI struct {
 	// IOWatch counts the disks' and the services' writes (occulited task 159); nil = GET
 	// /storage/writes answers no disks. IOAccounting is the switch of the per-service recording;
 	// nil where there is no systemd.
-	IOWatch      *iowatch.Sampler
+	IOWatch *iowatch.Sampler
+	// RadioWrites counts the radio writes per lite-rpc client (occulited task 163); nil: GET
+	// /radio/writes answers available false and no warning is raised.
+	RadioWrites  *radiowrites.Tracker
 	IOAccounting *system.IOAccounting
 	// Storage is the storage health panel (task 69); nil = GET /storage answers 501.
 	Storage *system.Storage
@@ -536,6 +540,7 @@ func (a *SystemAPI) Register(mux *http.ServeMux) {
 	route(mux, auth.ScopeSystemRead, "GET "+p+"/usb/storage", a.usbStorage)
 	a.registerStorageUSB(mux, p)    // storageusb.go, task 228
 	a.registerStorageWrites(mux, p) // storagewrites.go, occulited task 159
+	a.registerRadioWrites(mux, p)   // radiowrites.go, occulited task 163
 	a.registerShares(mux, p)        // storageshares.go, task 228 phase 2
 	a.registerLocations(mux, p)     // storagelocations.go, task 228 phases 3-4
 	route(mux, auth.ScopeSystemRead, "GET "+p+"/storage", a.storage)

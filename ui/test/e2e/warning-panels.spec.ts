@@ -44,6 +44,9 @@ const CASES: Case[] = [
     {id: 'hmip-security-counter', severity: 'error', href: '/system/interfaces#connections', variant: 'behind'},
     {id: 'rpc-stalled', severity: 'error', href: '/system/interfaces#stalls', variant: 'BidCos-RF', params: {interface: 'BidCos-RF', kind: 'delivery', checked: false, listeners: []}},
     {id: 'radio-load', severity: 'warning', href: '/radio', variant: 'duty_cycle', params: {duty_cycle: 60}},
+    // occulited task 163: the Status page's own panel
+    {id: 'radio-writes', severity: 'warning', href: '#radio-writes', variant: 'token:ci-nightly', params: {client: 'ci-nightly', kind: 'token', burst: true, peak_minute: 84}},
+    {id: 'radio-writes-duty-cycle', severity: 'error', href: '#radio-writes', variant: 'token:hm2mqtt@HmIP-RF', params: {client: 'hm2mqtt', kind: 'token', interface: 'HmIP-RF', dc_from: 3, dc_to: 24, writes: 560, share_percent: 85, minutes: 15}},
     {id: 'firewall', severity: 'error', href: '/system/firewall', variant: 'ipv4', params: {families: ['ipv4']}},
     {id: 'hmip-port-open', severity: 'warning', href: '/system/firewall', variant: '2010', params: {port: 2010, addresses: '0.0.0.0'}},
     {id: 'classic-rpc-open', severity: 'warning', href: '/system/remote-access', variant: 'plain'},
@@ -152,7 +155,7 @@ test.describe('the panel a warning leads to carries its edge', () => {
         const known = [...CASES.map((c) => c.id), ...Object.keys(NO_PANEL)];
         expect(new Set(known).size).toBe(known.length);
         // the ids of internal/httpapi/warnings.go and its siblings, as of task 12
-        for (const id of ['addon-payload', 'addon-ended', 'addon-failed', 'rega', 'arch', 'legacy-session', 'addon-update', 'addon-ownership', 'addon-parents', 'crash-loop', 'occulited-crash-loop', 'meta', 'unclean', 'backup-target', 'backup-userfs', 'backup-unencrypted', 'backup-delivery', 'backup-age', 'certificate', 'storage', 'security-key', 'hmip-local-key', 'hmip-key-declined', 'hmip-pairing-failed', 'hmip-adapter', 'hmip-local-swap', 'hmip-module-missing', 'devices-import', 'hmip-security-counter', 'rpc-stalled', 'radio-load', 'firewall', 'hmip-port-open', 'classic-rpc-open', 'app-public', 'radio-firmware', 'radio-module-unusable', 'hmip-clock-hold', 'hb-rf-eth', 'journal-target', 'journal-sync', 'store-target', 'trust-ca', 'system-update-available', 'device-update-ready', 'soc-hot', 'disk-hot']) {
+        for (const id of ['addon-payload', 'addon-ended', 'addon-failed', 'rega', 'arch', 'legacy-session', 'addon-update', 'addon-ownership', 'addon-parents', 'crash-loop', 'occulited-crash-loop', 'meta', 'unclean', 'backup-target', 'backup-userfs', 'backup-unencrypted', 'backup-delivery', 'backup-age', 'certificate', 'storage', 'security-key', 'hmip-local-key', 'hmip-key-declined', 'hmip-pairing-failed', 'hmip-adapter', 'hmip-local-swap', 'hmip-module-missing', 'devices-import', 'hmip-security-counter', 'rpc-stalled', 'radio-load', 'radio-writes', 'radio-writes-duty-cycle', 'firewall', 'hmip-port-open', 'classic-rpc-open', 'app-public', 'radio-firmware', 'radio-module-unusable', 'hmip-clock-hold', 'hb-rf-eth', 'journal-target', 'journal-sync', 'store-target', 'trust-ca', 'system-update-available', 'device-update-ready', 'soc-hot', 'disk-hot']) {
             expect(known, id).toContain(id);
         }
     });

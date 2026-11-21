@@ -75,6 +75,12 @@ type Config struct {
 	// writes - the acknowledgement of a sticky service message, occulited B-46 - so whoever
 	// keeps such a value reads it again. nil = nobody.
 	Wrote func(iface string, c Call)
+	// Writing is told every setValue and putParamset before it goes to the interface (a
+	// multicall's inner calls one by one) and returns what is called with the call's outcome,
+	// or nil (occulited task 163: the radio writes per client - who writes is in the context,
+	// ClientOf; whether the write changes anything has to be asked before the interface's event
+	// can answer it). nil = nobody.
+	Writing func(ctx context.Context, iface string, c Call) func(err error)
 	// Descriptions answers getParamsetDescription from the paramset description cache (task
 	// 108): the process is asked once per device model, firmware and channel type, every later
 	// call is served here. nil = every call goes to the process.
@@ -99,6 +105,40 @@ type source struct{ who, enc string }
 // address and the token's or account's name, never the credential - and the encoding.
 func WithSource(ctx context.Context, who, enc string) context.Context {
 	return context.WithValue(ctx, sourceKey{}, source{who: who, enc: enc})
+}
+
+// clientKey carries who calls as a kind and a name (occulited task 163).
+type clientKey struct{}
+
+type client struct{ kind, name string }
+
+// WithClient marks a request's context with the caller: kind "token" with the token's name, or
+// "user" with the account's.
+func WithClient(ctx context.Context, kind, name string) context.Context {
+	return context.WithValue(ctx, clientKey{}, client{kind: kind, name: name})
+}
+
+// ClientOf is the caller WithClient set; ok false for a call of the system's own.
+func ClientOf(ctx context.Context) (kind, name string, ok bool) {
+	c, ok := ctx.Value(clientKey{}).(client)
+	return c.kind, c.name, ok
+}
+
+// TookWrite says whether a write with this outcome went out to its device: an answer without a
+// fault did, and so did the general fault -1, which is what the interfaces answer when the device
+// did not acknowledge - after sending, and repeating. A process that did not answer took nothing,
+// and the other faults refuse the call before anything is sent: -2 to -6 (unknown device,
+// paramset, parameter or value) and hmipserver's -10, "Transmission is pending" - a device that
+// sleeps still has an earlier transmission waiting, and this call is not queued behind it (seen
+// on a lab system: CONFIG_PENDING stayed false). -1 is also the interfaces' answer to some
+// malformed calls, which are then counted although nothing was sent: the code does not tell the
+// two apart, and a program that hammers a device that is out of reach must not go uncounted.
+func TookWrite(err error) bool {
+	if err == nil {
+		return true
+	}
+	var f *Fault
+	return errors.As(err, &f) && f.Code == -1
 }
 
 func (s *Service) tracing() bool { return s.cfg.Trace != nil && s.cfg.Trace.On() }
@@ -316,8 +356,21 @@ func Address(c Call) (string, bool) {
 // answer is decoded by its declared charset.
 func (s *Service) Forward(ctx context.Context, i Interface, c Call) (v *xmlrpc.Value, err error) {
 	answer := s.traceCall(ctx, i, c)
+	var written []func(error)
+	if s.cfg.Writing != nil {
+		for _, ic := range Calls(c) {
+			if ic.Method == "setValue" || ic.Method == "putParamset" {
+				if done := s.cfg.Writing(ctx, i.Name, ic); done != nil {
+					written = append(written, done)
+				}
+			}
+		}
+	}
 	defer func() {
 		answer(v, err)
+		for _, done := range written {
+			done(err)
+		}
 		if err == nil && s.cfg.Wrote != nil {
 			for _, ic := range Calls(c) {
 				if ic.Method == "setValue" || ic.Method == "putParamset" {

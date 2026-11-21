@@ -19,6 +19,7 @@ import (
 	"github.com/hobbyquaker/occulited/internal/devstate"
 	"github.com/hobbyquaker/occulited/internal/literpc"
 	"github.com/hobbyquaker/occulited/internal/paramsets"
+	"github.com/hobbyquaker/occulited/internal/radiowrites"
 	"github.com/hobbyquaker/occulited/internal/rpcsub"
 	"github.com/mdzio/go-hmccu/v2/itf/xmlrpc"
 )
@@ -38,6 +39,9 @@ type liteRig struct {
 	valid bool
 	state *devstate.Store
 	hist  *devstate.History
+	// occulited task 163: the radio writes, fed by the service's Writing hook
+	writes *radiowrites.Tracker
+	api    *SystemAPI
 }
 
 func newLiteRig(t *testing.T) *liteRig {
@@ -144,8 +148,9 @@ func newLiteRig(t *testing.T) *liteRig {
 		}
 		return rig.svc.Forward(ctx, i, literpc.Call{Method: method, Params: params})
 	}}
-	rig.svc = literpc.New(literpc.Config{Sub: sub, Heartbeat: 40 * time.Millisecond, Descriptions: rig.cache})
-	api := &SystemAPI{Root: fakeRoot(t), LiteRPC: rig.svc, State: rig.state, History: rig.hist, RPC: sub, Paramsets: rig.cache, Revalidate: func(*http.Request) *auth.Session {
+	rig.writes = &radiowrites.Tracker{}
+	rig.svc = literpc.New(literpc.Config{Sub: sub, Heartbeat: 40 * time.Millisecond, Descriptions: rig.cache, Writing: RadioWriting(rig.writes, rig.state)})
+	api := &SystemAPI{Root: fakeRoot(t), RadioWrites: rig.writes, LiteRPC: rig.svc, State: rig.state, History: rig.hist, RPC: sub, Paramsets: rig.cache, Revalidate: func(*http.Request) *auth.Session {
 		rig.mu.Lock()
 		defer rig.mu.Unlock()
 		if !rig.valid {
@@ -153,6 +158,7 @@ func newLiteRig(t *testing.T) *liteRig {
 		}
 		return rig.sess
 	}}
+	rig.api = api
 	mux := http.NewServeMux()
 	api.Register(mux)
 	// the middleware stand-in: the rig's session into the context

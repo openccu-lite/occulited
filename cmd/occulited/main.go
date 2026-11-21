@@ -71,6 +71,7 @@ import (
 	"github.com/hobbyquaker/occulited/internal/pairing"
 	"github.com/hobbyquaker/occulited/internal/paramsets"
 	"github.com/hobbyquaker/occulited/internal/radio"
+	"github.com/hobbyquaker/occulited/internal/radiowrites"
 	"github.com/hobbyquaker/occulited/internal/syshist"
 	"github.com/hobbyquaker/occulited/internal/system"
 	"github.com/hobbyquaker/occulited/internal/sysupdate"
@@ -1221,7 +1222,34 @@ func run(opts daemonOptions) error {
 	} else if n := paramsetCache.Len(); n > 0 {
 		log.Info("paramsets: the description cache read", "file", paramsetCache.File, "descriptions", n)
 	}
+	// occulited task 163: the radio writes per client - every setValue and putParamset that goes
+	// to a radio device through lite-rpc, counted per minute in memory; the wired and virtual
+	// devices of the radio interfaces are left out by their type, read from the device lists
+	radioWrites := &radiowrites.Tracker{}
+	radioWriteDevices := &radiowrites.DeviceWatch{Tracker: radioWrites, Log: area("rpc"), Types: func(ctx context.Context, iface string) (map[string]string, error) {
+		var one []interfaces.Interface
+		for _, i := range radioIfs() {
+			if i.Name == iface {
+				one = append(one, i)
+			}
+		}
+		devices, errs := interfaces.Devices(ctx, one, 30*time.Second)
+		if err := errs[iface]; err != nil {
+			return nil, err
+		}
+		types := map[string]string{}
+		for _, d := range devices {
+			types[d.Address] = d.Type
+		}
+		return types, nil
+	}}
+	rpcSub.Attach(radioWriteDevices)
+	for _, i := range radioIfs() {
+		radioWriteDevices.Refresh(i.Name)
+	}
+	sysAPI.RadioWrites = radioWrites
 	liteSvc = literpc.New(literpc.Config{Sub: rpcSub, Log: area("rpc"), Trace: tracer, PerSubject: streamsPerSession, Descriptions: paramsetCache,
+		Writing: httpapi.RadioWriting(radioWrites, devState),
 		// B-46: a write to a maintenance channel that passed through here (the acknowledgement of
 		// a sticky message) is read back a second later, as no event will tell
 		Wrote: func(iface string, c literpc.Call) {

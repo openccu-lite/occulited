@@ -932,3 +932,70 @@ func TestFilterMatchesFirmware(t *testing.T) {
 		}
 	}
 }
+
+// occulited task 163: Writing is told every setValue and putParamset before it goes out, a
+// multicall's one by one, with the caller in the context, and its answer is called with the
+// outcome - a fault included, which Wrote never sees.
+func TestWritingIsToldBeforeAndAfter(t *testing.T) {
+	var got []string
+	_, svc, _ := rig(t, Config{Writing: func(ctx context.Context, iface string, c Call) func(error) {
+		a, _ := Address(c)
+		kind, name, ok := ClientOf(ctx)
+		line := fmt.Sprintf("%s %s %s by %s:%s/%v", iface, c.Method, a, kind, name, ok)
+		got = append(got, "before "+line)
+		if a == "SKIP000001:1" {
+			return nil
+		}
+		return func(err error) { got = append(got, fmt.Sprintf("after %s took=%v", a, TookWrite(err))) }
+	}})
+	i, _ := svc.Lookup("HmIP-RF")
+	str := xmlrpc.NewString
+	ctx := WithClient(context.Background(), "token", "nodered-1")
+	if _, err := svc.Forward(ctx, i, Call{Method: "setValue", Params: []*xmlrpc.Value{str("ABC0000001:1"), str("STATE"), xmlrpc.NewBool(false)}}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := svc.Forward(ctx, i, Call{Method: "getValue", Params: []*xmlrpc.Value{str("ABC0000001:1"), str("STATE")}}); err != nil {
+		t.Fatal(err)
+	}
+	inner := func(m string, ps ...interface{}) *xmlrpc.Value {
+		v, _ := xmlrpc.NewMap(map[string]interface{}{"methodName": m, "params": ps})
+		return v
+	}
+	// the system's own call: no client in the context
+	if _, err := svc.Forward(context.Background(), i, Call{Method: "system.multicall", Params: []*xmlrpc.Value{{Array: &xmlrpc.Array{Data: []*xmlrpc.Value{inner("getValue", "ABC0000002:1", "STATE"), inner("setValue", "ABC0000002:1", "STATE", true), inner("setValue", "SKIP000001:1", "STATE", true)}}}}}); err != nil {
+		t.Fatal(err)
+	}
+	// the fake has no putParamset and answers the general fault -1 - what an interface answers
+	// when the device did not acknowledge: the outcome is handed over as it is
+	if _, err := svc.Forward(ctx, i, Call{Method: "putParamset", Params: []*xmlrpc.Value{str("ABC0000001:1"), str("VALUES")}}); err == nil {
+		t.Fatal("a fault was expected")
+	}
+	want := []string{
+		"before HmIP-RF setValue ABC0000001:1 by token:nodered-1/true", "after ABC0000001:1 took=true",
+		"before HmIP-RF setValue ABC0000002:1 by :/false", "before HmIP-RF setValue SKIP000001:1 by :/false", "after ABC0000002:1 took=true",
+		"before HmIP-RF putParamset ABC0000001:1 by token:nodered-1/true", "after ABC0000001:1 took=true",
+	}
+	if fmt.Sprint(got) != fmt.Sprint(want) {
+		t.Fatalf("got\n%s\nwant\n%s", strings.Join(got, "\n"), strings.Join(want, "\n"))
+	}
+}
+
+// occulited task 163: which outcomes mean the write went out to its device.
+func TestTookWrite(t *testing.T) {
+	for _, c := range []struct {
+		err  error
+		want bool
+	}{
+		{nil, true},
+		{&Fault{Code: -1, Message: "Failure"}, true},                    // the device did not acknowledge: sent, and repeated
+		{&Fault{Code: -10, Message: "Transmission is pending."}, false}, // hmipserver: not queued behind an earlier one
+		{&Fault{Code: -2, Message: "Unknown instance"}, false},
+		{&Fault{Code: -5, Message: "Unknown parameter or value"}, false},
+		{fmt.Errorf("%w: HmIP-RF", ErrDown), false},
+		{Refuse("no"), false},
+	} {
+		if got := TookWrite(c.err); got != c.want {
+			t.Errorf("TookWrite(%v) = %v, want %v", c.err, got, c.want)
+		}
+	}
+}

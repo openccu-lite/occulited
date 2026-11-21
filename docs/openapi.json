@@ -8388,6 +8388,267 @@
         ],
         "type": "object"
       },
+      "RadioWritesView": {
+        "properties": {
+          "at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "available": {
+            "type": "boolean"
+          },
+          "classic_rpc": {
+            "type": "boolean"
+          },
+          "clients": {
+            "items": {
+              "$ref": "#/components/schemas/RadiowritesClientView"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "duty_cycle": {
+            "items": {
+              "$ref": "#/components/schemas/RadiowritesDutyView"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "thresholds": {
+            "$ref": "#/components/schemas/RadiowritesThresholds"
+          }
+        },
+        "required": [
+          "at",
+          "available",
+          "classic_rpc",
+          "clients",
+          "duty_cycle",
+          "thresholds"
+        ],
+        "type": "object"
+      },
+      "RadiowritesCause": {
+        "properties": {
+          "address": {
+            "type": "string"
+          },
+          "from": {
+            "type": "integer"
+          },
+          "interface": {
+            "type": "string"
+          },
+          "share_percent": {
+            "type": "integer"
+          },
+          "to": {
+            "type": "integer"
+          },
+          "total": {
+            "type": "integer"
+          },
+          "writes": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "address",
+          "from",
+          "interface",
+          "share_percent",
+          "to",
+          "total",
+          "writes"
+        ],
+        "type": "object"
+      },
+      "RadiowritesClientView": {
+        "properties": {
+          "cause": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RadiowritesCause"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "hint": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RadiowritesHint"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "hour": {
+            "type": "integer"
+          },
+          "interfaces": {
+            "items": {
+              "$ref": "#/components/schemas/RadiowritesInterfaceCount"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "kind": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "level": {
+            "type": "string"
+          },
+          "minutes": {
+            "items": {
+              "type": "integer"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "name": {
+            "type": "string"
+          },
+          "noop": {
+            "type": "integer"
+          },
+          "per_minute": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "hour",
+          "interfaces",
+          "kind",
+          "minutes",
+          "name",
+          "noop",
+          "per_minute"
+        ],
+        "type": "object"
+      },
+      "RadiowritesDutyView": {
+        "properties": {
+          "address": {
+            "type": "string"
+          },
+          "interface": {
+            "type": "string"
+          },
+          "minutes": {
+            "items": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "address",
+          "interface",
+          "minutes"
+        ],
+        "type": "object"
+      },
+      "RadiowritesHint": {
+        "properties": {
+          "average": {
+            "type": "boolean"
+          },
+          "burst": {
+            "type": "boolean"
+          },
+          "peak_average": {
+            "type": "number"
+          },
+          "peak_minute": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "average",
+          "burst",
+          "peak_average",
+          "peak_minute"
+        ],
+        "type": "object"
+      },
+      "RadiowritesInterfaceCount": {
+        "properties": {
+          "hour": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "noop": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "hour",
+          "name",
+          "noop"
+        ],
+        "type": "object"
+      },
+      "RadiowritesThresholds": {
+        "properties": {
+          "average_minutes": {
+            "type": "integer"
+          },
+          "average_per_minute": {
+            "type": "integer"
+          },
+          "burst_per_minute": {
+            "type": "integer"
+          },
+          "duty_cycle_minutes": {
+            "type": "integer"
+          },
+          "duty_cycle_rise": {
+            "type": "integer"
+          },
+          "hold_minutes": {
+            "type": "integer"
+          },
+          "min_writes": {
+            "type": "integer"
+          },
+          "share": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "average_minutes",
+          "average_per_minute",
+          "burst_per_minute",
+          "duty_cycle_minutes",
+          "duty_cycle_rise",
+          "hold_minutes",
+          "min_writes",
+          "share"
+        ],
+        "type": "object"
+      },
       "RegaimportResult": {
         "properties": {
           "channels": {
@@ -37007,6 +37268,51 @@
           }
         ],
         "summary": "The interface processes held by a stalled callback listener",
+        "tags": [
+          "system/radio"
+        ],
+        "x-occulite-scopes": [
+          "system:read"
+        ]
+      }
+    },
+    "/api/system/v1/radio/writes": {
+      "get": {
+        "operationId": "getSystemRadioWrites",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RadioWritesView"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": [
+              "system:read"
+            ]
+          },
+          {
+            "cookie": [
+              "system:read"
+            ]
+          }
+        ],
+        "summary": "The radio writes per lite-rpc client, with the duty cycle beside them",
         "tags": [
           "system/radio"
         ],

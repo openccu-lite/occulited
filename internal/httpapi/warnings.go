@@ -262,6 +262,8 @@ func (a *SystemAPI) warningSources() []warnings.Source {
 		{IDs: []string{"hb-rf-eth"}, Eval: a.hbRFETHWarning},
 		// openccu-lite task 316: the radio's load high, separate from the LED's levels
 		{IDs: []string{"radio-load"}, Eval: a.radioLoadWarning},
+		// occulited task 163: a client that sends many radio writes, or is behind a duty cycle's rise
+		{IDs: []string{RadioWritesID, RadioWritesDutyID}, Eval: a.radioWritesWarnings},
 		{IDs: []string{"radio-module-unusable", "radio-firmware"}, Eval: a.radioFirmwareWarnings},
 		{IDs: []string{"addon-update"}, Eval: a.addonUpdateWarning},
 		{IDs: []string{warnings.SystemUpdateID}, Eval: a.systemUpdateWarning},               // occulited task 123

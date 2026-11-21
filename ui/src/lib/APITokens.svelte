@@ -16,6 +16,9 @@
     import CopyButton from './CopyButton.svelte';
     import {scrollToAnchor} from './anchor';
     import {bringIntoView} from './intoview';
+    import {link} from './router.svelte';
+    import Sparkline from './Sparkline.svelte';
+    import {minutesAgo, tokenClient, writesTop, type RWView} from './radiowrites';
 
     // ---- the API tokens (from the Metadata page, task 29; scopes since task 66) ------------
     // A token carries scopes, an optional expiry and optional allowed address ranges; the box
@@ -67,6 +70,22 @@
         if (s.startsWith('addon:')) return t('Addon {name}: its pages through the system', {name: s.slice(6)});
         return s;
     };
+    // occulited task 163: each token's radio writes - the rate now and the last 60 minutes, marked
+    // when the token is the cause of a hint or a warning; the Status page has the whole panel
+    let writes = $state<RWView | null>(null);
+    async function loadWrites() {
+        try {
+            const v = await api.get<RWView>('/api/system/v1/radio/writes');
+            writes = v.available ? v : null;
+        } catch {
+            writes = null; // a system without the counter: no column
+        }
+    }
+    const writesScale = $derived(writes ? writesTop(writes.clients) : 10);
+    function ago(i: number, n: number): string {
+        const m = minutesAgo(i, n);
+        return m === 0 ? t('this minute') : m === 1 ? t('1 minute ago') : t('{n} minutes ago', {n: m});
+    }
     async function loadTokens() {
         try {
             const r = await api.get<{tokens: Token[]; scopes?: string[]; addons?: AddonScope[]}>('/api/auth/v1/tokens');
@@ -148,10 +167,12 @@
         }
     }
 
-    onMount(async () => {
+    onMount(() => {
         void loadPairing();
-        await loadTokens();
-        scrollToAnchor('api-tokens');
+        void loadWrites();
+        void loadTokens().then(() => scrollToAnchor('api-tokens'));
+        const poll = setInterval(() => void loadWrites(), 15000);
+        return () => clearInterval(poll);
     });
 </script>
 
@@ -168,7 +189,7 @@
     <!-- eight columns: on a phone the table scrolls in its own box, never the page sideways -->
     <div class="ol-scroll">
     <table class="ol-table ol-tokens">
-        <thead><tr><th>{t('Name')}</th><th>{t('Permissions (scopes)')}</th><th>{t('Prefix')}</th><th>{t('Created')}</th><th>{t('Last used')}</th><th>{t('Expires')}</th><th>{t('Allowed from')}</th><th></th></tr></thead>
+        <thead><tr><th>{t('Name')}</th>{#if writes}<th class="ol-tok-writes" title={t('Commands to radio devices through the system in the last 60 minutes: now per minute, and each minute as a bar.')}>{t('Radio writes')}</th>{/if}<th>{t('Permissions (scopes)')}</th><th>{t('Prefix')}</th><th>{t('Created')}</th><th>{t('Last used')}</th><th>{t('Expires')}</th><th>{t('Allowed from')}</th><th></th></tr></thead>
         <tbody>
             {#each tokens as tk (tk.name)}
                 <tr>
@@ -178,6 +199,17 @@
                             <div class="ol-muted ol-paired" data-paired={tk.name}>{tk.client.label} · {t('paired by {user}', {user: tk.client.paired_by})}{#if tk.client.last_address}{' · '}{t('last from {address}', {address: tk.client.last_address})}{/if}</div>
                         {/if}
                     </td>
+                    {#if writes}
+                        {@const rw = tokenClient(writes, tk.name)}
+                        <td class="ol-tok-writes" data-token-writes={tk.name} data-level={rw?.level ?? ''}>
+                            {#if rw}
+                                <div class="ol-tok-rate"><span class="ol-tok-num">{t('{n}/min', {n: rw.per_minute})}</span>{#if rw.level === 'warning'}<a class="ol-badge bad" href="/#radio-writes" use:link data-radio-level="warning" title={t('This program is behind a rise of the duty cycle: see the Status page.')}>{t('Warning')}</a>{:else if rw.level === 'hint'}<a class="ol-badge warn" href="/#radio-writes" use:link data-radio-level="hint" title={t('This program sends many radio writes: see the Status page.')}>{t('Hint')}</a>{/if}</div>
+                                <Sparkline values={rw.minutes} top={writesScale} threshold={writes.thresholds.burst_per_minute} width={120} height={20} label={t('Radio writes of {name} per minute, last 60 minutes', {name: tk.name})} tip={(i, v) => `${ago(i, rw.minutes.length)}: ${v ?? 0}`} />
+                            {:else}
+                                <span class="ol-muted">–</span>
+                            {/if}
+                        </td>
+                    {/if}
                     <td class="ol-scopes">
                         {#if (tk.scopes ?? []).includes('*')}
                             <span class="ol-badge good" title={scopeLabel('*')}>{t('Full access')}</span>
@@ -245,4 +277,9 @@
     .ol-pairing-switch { display: flex; align-items: center; gap: 6px; margin: 0 0 8px; }
     .ol-paired { font-size: 0.9em; }
     .ol-tok-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+    /* occulited task 163: a column of a fixed width - the rate, the badge's place beside it, the bars below */
+    .ol-tok-writes { width: 136px; min-width: 136px; }
+    .ol-tok-rate { display: flex; align-items: center; justify-content: space-between; height: 1.6em; }
+    .ol-tok-num { font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .ol-tok-rate .ol-badge { margin-left: 6px; text-decoration: none; }
 </style>
