@@ -22,6 +22,11 @@
      * uploaded archive's job and an uninstall as well as a catalogue run, in every tab; `job` is
      * the detail, bindable, so the Addons page follows an upload it did not start. An upload or an
      * uninstall another tab started has a status line of its own here.
+     *
+     * occulited task 165: a run that has ended does not stay a notice for ever. One that ended while
+     * the page is open stays until the page is left or reloaded; one that had ended before is shown
+     * by the rule in installprogress.ts (a done run within a minute, a failed one until it is closed
+     * or a day old); the close button removes an ended run's notice at once.
      */
     import {onMount} from 'svelte';
     import {api} from './api';
@@ -29,6 +34,8 @@
     import {askStartStopped} from './install';
     import {releasesProblemKind} from './catalog';
     import ReleasesProblem from './ReleasesProblem.svelte';
+    import Icon from './Icon.svelte';
+    import {readDismissed, runKey, shownAtOpen, writeDismissed} from './installprogress';
 
     interface Props {
         /** true while the install slot is held - a catalogue run, an upload's job or an uninstall; the pages read it */
@@ -36,9 +43,9 @@
         /** what holds it (B-113), null when nothing runs */
         job?: InstallBusy | null;
         /**
-         * whether a run that had already ended when the page opened is shown. The Catalogue
-         * shows the last run as it always did; the Installed addons page shows only what
-         * happens while it is open, so an install of last week is not a notice on every visit.
+         * whether a run that had already ended when the page opened may be shown at all. The
+         * Addons page shows it by the rule of task 165 (installprogress.ts); the welcome page
+         * shows only what happens while it is open.
          */
         showEnded?: boolean;
         /** called once when a run has ended (done or failed) since the page opened */
@@ -47,12 +54,13 @@
     let {busy = $bindable(false), job = $bindable(null), showEnded = true, onfinished}: Props = $props();
 
     let progress = $state<Progress | null>(null);
-    const keyOf = (p: Progress | null) => (p ? `${p.addon_id}@${p.started}` : '');
+    const keyOf = runKey;
     // the run whose end was already reported, so a finished run that stays in the answer (it
     // does, until the next one starts) fires `onfinished` once and not on every poll
     let reported = '';
-    // the run that had ended before the page opened
-    let endedAtMount = $state('');
+    // the ended run whose notice is not shown: one that had ended before the page opened and is
+    // history by the rule, or one the close button removed
+    let closed = $state('');
 
     interface Answer { progress: Progress | null; busy?: InstallBusy | null }
     // the poll's time, so an upload's or an uninstall's status line counts its seconds
@@ -84,7 +92,10 @@
         void (async () => {
             try {
                 const p = take(await api.get<Answer>('/api/system/v1/catalog/progress'));
-                if (p?.finished) reported = endedAtMount = keyOf(p);
+                if (p?.finished) {
+                    reported = keyOf(p);
+                    if (!showEnded || !shownAtOpen(p, Date.now(), readDismissed())) closed = reported;
+                }
             } catch {
                 /* the interval tries again */
             }
@@ -95,7 +106,13 @@
     // B-21: a run refused because the release list could not be read says so in the reader's language
     const refused = $derived(progress?.phase === 'failed' && releasesProblemKind(progress.error, progress.retry_minutes) !== '');
     const pct = $derived(progress?.percent ?? (progress?.total ? Math.round(((progress.bytes ?? 0) / progress.total) * 100) : 0));
-    const visible = $derived(!!progress && (showEnded || !progress.finished || keyOf(progress) !== endedAtMount));
+    const visible = $derived(!!progress && (!progress.finished || keyOf(progress) !== closed));
+    /** the close button: the ended run's notice goes, and a reload does not bring it back */
+    function close() {
+        if (!progress?.finished) return;
+        closed = keyOf(progress);
+        writeDismissed(closed);
+    }
     // B-113: an upload's job or an uninstall holds the slot - shown here, so a tab that did not
     // start it sees why the install controls are disabled (a catalogue run has the bar below)
     const other = $derived(job && job.kind !== 'catalog' ? job : null);
@@ -112,7 +129,10 @@
     </div>
 {/if}
 {#if progress && visible}
-    <div class="ol-notice ol-install-progress" class:error={progress.phase === 'failed'} data-phase={progress.phase} role="status">
+    <div class="ol-notice ol-install-progress ip-run" class:error={progress.phase === 'failed'} data-phase={progress.phase} role="status">
+        {#if progress.finished}
+            <button type="button" class="ip-close" aria-label={t('Close')} title={t('Close')} onclick={close} data-install-progress-close><Icon name="x" size={14} /></button>
+        {/if}
         {#if refused}
             <strong>{progress.addon_id}</strong>: {t(progress.phase)} — <span data-refused={progress.error}><ReleasesProblem code={progress.error} minutes={progress.retry_minutes} /> {t('Nothing was installed.')}</span>
         {:else}
@@ -126,3 +146,12 @@
         {/if}
     </div>
 {/if}
+
+<style>
+    /* the close button sits in the corner; its room is reserved while the run is on, so the text
+       does not move when the run ends and the button appears */
+    .ip-run { position: relative; padding-right: 40px; }
+    .ip-close { position: absolute; top: 4px; right: 4px; width: 28px; height: 28px; padding: 0; display: inline-flex; align-items: center; justify-content: center; border: 1px solid transparent; border-radius: var(--hmm-radius); background: none; color: var(--hmm-fg-muted); cursor: pointer; }
+    .ip-close:hover { background: var(--hmm-control-bg-hover); color: var(--hmm-fg); }
+    .ip-close:focus-visible { border-color: var(--hmm-accent); outline: none; }
+</style>

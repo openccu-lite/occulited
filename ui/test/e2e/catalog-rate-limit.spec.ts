@@ -15,8 +15,9 @@ async function refusedRun(page: Page, error: string, minutes?: number): Promise<
                     addon_id: 'redmatic',
                     phase: 'failed',
                     message: 'GitHub rate limit, try again in 23 min: the release list of rdmtc/RedMatic cannot be read now; nothing was installed',
-                    started: '2026-09-26T21:10:00Z',
-                    finished: '2026-09-26T21:10:01Z',
+                    // task 165: a failed run older than a day is no notice any more - this one is recent
+                    started: new Date(Date.now() - 2000).toISOString(),
+                    finished: new Date(Date.now() - 1000).toISOString(),
                     percent: 2,
                     error,
                     ...(minutes ? {retry_minutes: minutes} : {}),
