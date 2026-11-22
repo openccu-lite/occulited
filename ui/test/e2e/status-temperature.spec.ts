@@ -24,7 +24,7 @@ test('a Pi: one ring, the processor in words and figures, the firmware normal, t
     await page.goto('/');
     const p = panel(page);
     await expect(p).toBeVisible();
-    // among the Utilisation panels, after the disks
+    // among the Utilisation panels
     await expect(page.locator('.ol-gauges [data-temp-panel]')).toHaveCount(1);
     await expect(p.locator('.ol-card-title')).toHaveText('Temperature');
     await expect(p.locator('circle.arc')).toHaveCount(1);
@@ -45,6 +45,27 @@ test('a Pi: one ring, the processor in words and figures, the firmware normal, t
     // the processor's history in the foot, with its peak over the span
     await expect(p.locator('.ol-card-foot svg').first()).toBeVisible();
     await expect(p.locator('[data-temp-peak]')).toContainText('Processor: max');
+});
+
+// openccu-lite task 490 (the maintainer, 2026-11-22): Memory, Load, Temperature, then the disks and
+// the rest as before - in the grid's order on a desktop and on a phone, where the grid is one column
+test('the panel order: memory, load, temperature, then the disks', async ({page, baseURL}) => {
+    await thermal(page, baseURL!, 'ssd');
+    await page.goto('/');
+    await expect(panel(page)).toBeVisible();
+    const order = await page.locator('.ol-gauges > .ol-card').evaluateAll((cs) =>
+        cs.map((c) => (c.hasAttribute('data-load-card') ? 'load' : c.hasAttribute('data-temp-panel') ? 'temp' : c.querySelector('[data-storage-device]') || c.hasAttribute('data-storage-device') ? 'disk' : c.querySelector('.ol-card-title')?.textContent?.trim())),
+    );
+    expect(order.slice(0, 4)).toEqual(['Memory', 'load', 'temp', 'disk']);
+    // what the eye reads: each one after the one before (left to right, then down)
+    const boxes = await page.locator('.ol-gauges > .ol-card').evaluateAll((cs) => cs.slice(0, 4).map((c) => c.getBoundingClientRect()).map((r) => ({x: r.x, y: r.y})));
+    for (let i = 1; i < boxes.length; i++) {
+        const a = boxes[i - 1]!, b = boxes[i]!;
+        expect(b.y > a.y + 1 || (Math.abs(b.y - a.y) <= 1 && b.x > a.x)).toBe(true);
+    }
+    // the anchor still leads to the panel
+    await page.goto('/#temperature');
+    await expect(panel(page)).toBeInViewport();
 });
 
 test('a Pi with a USB SSD: two rings, the disk by its model, undervoltage since the boot', async ({page, baseURL}) => {

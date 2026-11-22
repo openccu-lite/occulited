@@ -714,6 +714,11 @@
                 <div class="ol-card-foot"><HistoryChart samples={loadHist} label={t('load history')} unit="" steps={LOAD_STEPS} format={fmtLoadTick} mark={status.cpus || undefined} bind:span={() => view.span, setChartSpan} /></div>
             </div>
         {/if}
+        <!-- occulited task 148: the temperatures - none on a system without a sensor (the VM); third,
+             after memory and load (openccu-lite task 490, the maintainer 2026-11-22), the disks after it -->
+        {#if status.thermal?.readings?.length}
+            <TemperaturePanel thermal={status.thermal} history={socHist} span={view.span} setSpan={setChartSpan} warnAttrs={warnFor(['soc-hot', 'disk-hot'])} />
+        {/if}
         <!-- occulited task 78: one panel per disk with a ring per partition; a daemon without
              `storage` (an older one, a container whose disks are the host's) keeps the mount gauges -->
         <!-- task 111 (the maintainer's variant B): each disk's health in its own panel - joined by
@@ -731,10 +736,6 @@
                 reasonText={(r) => reasonText(r)}
                 deviceName={deviceName(d.name, storage?.devices ?? [])} />
         {/each}
-        <!-- occulited task 148: the temperatures beside the disks - none on a system without a sensor (the VM) -->
-        {#if status.thermal?.readings?.length}
-            <TemperaturePanel thermal={status.thermal} history={socHist} span={view.span} setSpan={setChartSpan} warnAttrs={warnFor(['soc-hot', 'disk-hot'])} />
-        {/if}
         {#each status.storage?.length ? [] : status.disks as d (d.mount)}
             <Gauge
                 label={t('Disk')}
