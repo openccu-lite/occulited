@@ -1944,6 +1944,10 @@ const CATALOGUE: Record<string, {de: string; en?: string}> = {
     // occulited B-111: the one busy state of the system update, in every tab
     'Downloading {name}…': {de: '{name} wird heruntergeladen…'},
     'The download was cancelled.': {de: 'Der Download wurde abgebrochen.'},
+    // occulited task 170: the download's progress bar
+    'Starting…': {de: 'Startet…'},
+    'Checking the file…': {de: 'Die Datei wird geprüft…'},
+    'no data for {n} s': {de: 'seit {n} s keine Daten'},
     'The last download failed: {e}': {de: 'Der letzte Download ist fehlgeschlagen: {e}'},
     'Another update is in progress: {what}': {de: 'Ein anderes Update läuft gerade: {what}'},
     'a download of {file}': {de: 'ein Download von {file}'},

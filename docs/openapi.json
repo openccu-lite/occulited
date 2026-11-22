@@ -15221,6 +15221,38 @@
         ],
         "type": "object"
       },
+      "SystemUpdateDownloadView": {
+        "properties": {
+          "busy": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/UpdateBusy"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "download": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SysupdateProgress"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "file": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "busy",
+          "download"
+        ],
+        "type": "object"
+      },
       "SystemUpdateInfo": {
         "properties": {
           "available": {
@@ -15448,6 +15480,72 @@
         ],
         "type": "object"
       },
+      "SysupdateProgress": {
+        "properties": {
+          "ended": {
+            "format": "date-time",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "error": {
+            "type": "string"
+          },
+          "error_code": {
+            "type": "string"
+          },
+          "error_detail": {
+            "additionalProperties": {},
+            "type": [
+              "object",
+              "null"
+            ]
+          },
+          "file": {
+            "type": "string"
+          },
+          "idle_s": {
+            "type": "integer"
+          },
+          "last_data": {
+            "format": "date-time",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "phase": {
+            "type": "string"
+          },
+          "rate": {
+            "type": "integer"
+          },
+          "received": {
+            "type": "integer"
+          },
+          "started": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "total": {
+            "type": "integer"
+          },
+          "warning": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "file",
+          "idle_s",
+          "phase",
+          "rate",
+          "received",
+          "started",
+          "total"
+        ],
+        "type": "object"
+      },
       "SysupdateRelease": {
         "properties": {
           "direction": {
@@ -15542,6 +15640,16 @@
           },
           "checked": {
             "type": "string"
+          },
+          "download": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SysupdateProgress"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "download_error": {
             "type": "string"
@@ -41186,6 +41294,49 @@
       }
     },
     "/api/system/v1/system-update/download": {
+      "get": {
+        "operationId": "getSystemSystemUpdateDownload",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SystemUpdateDownloadView"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": [
+              "system:read"
+            ]
+          },
+          {
+            "cookie": [
+              "system:read"
+            ]
+          }
+        ],
+        "summary": "The download's progress: bytes, total, rate, the phase, the outcome",
+        "tags": [
+          "system/system-update"
+        ],
+        "x-occulite-scopes": [
+          "system:read"
+        ]
+      },
       "post": {
         "operationId": "postSystemSystemUpdateDownload",
         "requestBody": {
@@ -41193,6 +41344,9 @@
             "application/json": {
               "schema": {
                 "properties": {
+                  "background": {
+                    "type": "boolean"
+                  },
                   "version": {
                     "type": "string"
                   }
@@ -41221,6 +41375,16 @@
             },
             "description": "OK"
           },
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SystemUpdateDownloadView"
+                }
+              }
+            },
+            "description": "Accepted"
+          },
           "401": {
             "$ref": "#/components/responses/Unauthorized"
           },
@@ -41243,7 +41407,7 @@
             ]
           }
         ],
-        "summary": "Downloads the available release, or a named version",
+        "summary": "Downloads the available release, or a named version; with background a job that answers 202 at once",
         "tags": [
           "system/system-update"
         ],

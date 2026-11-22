@@ -660,6 +660,7 @@ func (a *SystemAPI) Register(mux *http.ServeMux) {
 	route(mux, auth.ScopePower, "POST "+p+"/system-update/check", a.systemUpdateCheck)
 	route(mux, auth.ScopePower, "PUT "+p+"/system-update/settings", a.systemUpdateSettings)
 	route(mux, auth.ScopePower, "POST "+p+"/system-update/download", a.systemUpdateDownload)
+	route(mux, auth.ScopeSystemRead, "GET "+p+"/system-update/download", a.systemUpdateDownloadProgress)
 	route(mux, auth.ScopePower, "GET "+p+"/system-update/releases", a.systemUpdateReleases)
 	route(mux, auth.ScopeSystemRead, "GET "+p+"/hmipserver/settings", a.hmipServerSettings)
 	route(mux, auth.ScopeAddonsWrite, "POST "+p+"/addons/{id}/remove-rc-entry", a.addonRemoveRCEntry)
@@ -3253,15 +3254,23 @@ func (a *SystemAPI) systemUpdateDownload(w http.ResponseWriter, r *http.Request)
 		return
 	}
 	// occulited task 22: {"version"} downloads that published version (a downgrade among them),
-	// {"version": "latest"} the newest of the default channel; no body is the available release
+	// {"version": "latest"} the newest of the default channel; no body is the available release.
+	// occulited task 170: {"background": true} starts the download of the available release as a
+	// job and answers 202 at once; its progress is GET /system-update/download (and the feed's
+	// `download` in GET /system-update), its end the staged file or the feed's download_error.
 	var b struct {
-		Version string `json:"version"`
+		Version    string `json:"version"`
+		Background bool   `json:"background"`
 	}
 	if r.ContentLength != 0 {
 		if err := readJSON(r, &b); err != nil {
 			badBody(w, err)
 			return
 		}
+	}
+	if b.Background && b.Version != "" {
+		writeJSON(w, http.StatusUnprocessableEntity, apiError{Error: "invalid", Message: "background downloads the available release: no version with it"})
+		return
 	}
 	// B-111: one update at a time - a download while another runs, or while an upload or the
 	// install does, is 409 busy
@@ -3274,6 +3283,21 @@ func (a *SystemAPI) systemUpdateDownload(w http.ResponseWriter, r *http.Request)
 	release, taken := a.upd.take("download", file)
 	if taken != nil {
 		updateBusyError(w, taken)
+		return
+	}
+	if b.Background {
+		if a.Feed.State().Available == nil {
+			release()
+			writeJSON(w, http.StatusConflict, apiError{Error: "no-update", Message: "the feed offers no release to download"})
+			return
+		}
+		go func() {
+			defer release()
+			if _, err := a.Feed.Download(context.Background()); err != nil && !errors.Is(err, sysupdate.ErrDownloadCancelled) {
+				slog.Warn("system update: the download failed", "file", file, "err", err)
+			}
+		}()
+		writeJSON(w, http.StatusAccepted, systemUpdateDownloadView{File: file, Download: &sysupdate.Progress{File: file, Phase: sysupdate.PhaseDownloading, Started: time.Now()}, Busy: &updateBusy{Phase: "download", File: file}})
 		return
 	}
 	defer release()
@@ -3309,6 +3333,30 @@ func (a *SystemAPI) systemUpdateDownload(w http.ResponseWriter, r *http.Request)
 		return
 	}
 	writeJSON(w, 200, u)
+}
+
+// systemUpdateDownloadView is GET /system-update/download and POST's 202 (occulited task 170).
+type systemUpdateDownloadView struct {
+	// File is the release being fetched (the 202) or the progress's.
+	File string `json:"file,omitempty"`
+	// Download is the running download's progress, or the last one's since occulited started;
+	// null before the first.
+	Download *sysupdate.Progress `json:"download"`
+	// Busy is the update in flight (B-111), null when none.
+	Busy *updateBusy `json:"busy"`
+}
+
+// systemUpdateDownloadProgress is GET /system-update/download: the download's progress.
+func (a *SystemAPI) systemUpdateDownloadProgress(w http.ResponseWriter, _ *http.Request) {
+	if a.Feed == nil {
+		writeJSON(w, http.StatusNotImplemented, apiError{Error: "unsupported", Message: "no release feed configured"})
+		return
+	}
+	v := systemUpdateDownloadView{Download: a.Feed.Progress(), Busy: a.upd.view()}
+	if v.Download != nil {
+		v.File = v.Download.File
+	}
+	writeJSON(w, 200, v)
 }
 
 // feedError is the 502 of a failed feed request; a host that did not answer in time (B-56) is

@@ -38,8 +38,10 @@
     // way_back (task 96): not an openccu-lite release by its name; staging one switches HSTS off (max-age=0)
     interface Staged { file: string; size: number; kind: string; version?: string; board?: string; warning?: string; recovery_armed: boolean; way_back?: boolean }
     let staged = $state<Staged | null>(null);
-    interface Feed { enabled: boolean; channel?: string; none_in_channel?: boolean; feed_url?: string; checked?: string; error?: string; error_host?: string; error_timeout?: number; installed_newer?: boolean; downloading?: string; download_error?: string; available: {version: string; name: string; size: number; newer: boolean; notes_url?: string; published?: string} | null }
+    interface Feed { enabled: boolean; channel?: string; none_in_channel?: boolean; feed_url?: string; checked?: string; error?: string; error_host?: string; error_timeout?: number; installed_newer?: boolean; downloading?: string; download_error?: string; download?: DownloadProgress; available: {version: string; name: string; size: number; newer: boolean; notes_url?: string; published?: string} | null }
     let feed = $state<Feed | null>(null);
+    // occulited task 170: the download's progress as GET /system-update's feed carries it
+    interface DownloadProgress { file: string; phase: 'downloading' | 'checking' | 'done' | 'failed' | 'cancelled'; received: number; total: number; rate: number; idle_s: number; error?: string; error_code?: string; error_detail?: Record<string, unknown>; warning?: string }
     // task 256 (the maintainer): the installed version is named here, beside the release check - no
     // longer in the top bar or on Settings. The image's version from this route, occulited's build
     // from the open health route; the API keeps both for clients. On openccu-lite its version alone
@@ -97,6 +99,13 @@
             running = r.running ?? null;
             staged = r.staged;
             feed = r.feed;
+            // occulited task 170: this tab's download ended - its note, or its failure in words
+            const d = r.feed?.download;
+            if (watching && d && d.phase !== 'downloading' && d.phase !== 'checking') {
+                watching = false;
+                if (d.phase === 'done') updNotice = d.warning ?? '';
+                else if (d.phase === 'failed') updNotice = updateError(d.error_code, d.error ?? '', d.error_detail);
+            }
             apiBusy = r.busy ?? null;
             // B-111: the install started from another tab (or before a reload): take its countdown over
             if (apiBusy?.phase === 'install' && !installing) void resumeInstallWatch();
@@ -275,14 +284,19 @@
             return u ?? '';
         }
     };
+    // occulited task 170 (the maintainer, 2026-11-22: a 299 MB download said nothing for 76 s): the
+    // download is a job - the POST answers at once, the page's poll follows its bytes, and the end
+    // shows the staged file's note or the failure in words
+    let watching = $state(false);
     async function downloadRelease() {
         if (!feed?.available) return;
         updBusy = true;
         localPhase = 'download';
         updNotice = '';
         try {
-            const u = await api.post<Staged>('/api/system/v1/system-update/download');
-            updNotice = u.warning ?? '';
+            const r = await api.post<{busy?: Busy | null}>('/api/system/v1/system-update/download', {background: true});
+            apiBusy = r.busy ?? {phase: 'download', file: feed.available.name};
+            watching = true;
         } catch (err) {
             updNotice = errText(err);
         } finally {
@@ -291,6 +305,13 @@
             await loadUpdate();
         }
     }
+    // the bar: the bytes of the total, the rate, and how long nothing came when the transfer stalls
+    const STALL_S = 10;
+    const mbNum = (n: number) => (n / 1048576).toFixed(n >= 100 * 1048576 ? 0 : 1);
+    const mbText = (n: number) => `${mbNum(n)} MB`;
+    const rateText = (n: number) => (n >= 1048576 ? `${(n / 1048576).toFixed(1)} MB/s` : `${Math.round(n / 1024)} KB/s`);
+    const progress = $derived(busy?.phase === 'download' && feed?.download && (feed.download.phase === 'downloading' || feed.download.phase === 'checking') ? feed.download : null);
+    const pct = $derived(progress && progress.total > 0 ? Math.min(100, Math.floor((progress.received * 100) / progress.total)) : null);
     async function discardUpdate() {
         updBusy = true;
         localPhase = 'discard';
@@ -350,6 +371,18 @@
         <div class="ol-notice ol-updbusy" role="status" data-update-busy={busy.phase}>
             <span class="ol-updbusy-text">{busyLine(busy)}</span>
             {#if busy.phase === 'download'}<button type="button" class="hmm-button" disabled={cancelling || apiBusy?.phase !== 'download'} onclick={cancelDownload} data-update-cancel>{t('Cancel')}</button>{/if}
+            <!-- occulited task 170: a determinate bar with the bytes, the percent and the rate, from the
+                 first moment (empty until the first poll) to the end; one line whatever the state -->
+            {#if busy.phase === 'download'}
+                <div class="ol-updprog" data-download-progress={progress?.phase ?? 'starting'}>
+                    <div class="ol-updprog-bar" role="progressbar" aria-label={t('Download')} aria-valuemin={0} aria-valuemax={100} aria-valuenow={pct ?? undefined}><span class:checking={progress?.phase === 'checking'} style:width={`${progress?.phase === 'checking' ? 100 : (pct ?? 0)}%`}></span></div>
+                    <span class="ol-updprog-text" data-download-figures>
+                        {#if progress?.phase === 'checking'}{t('Checking the file…')}
+                        {:else if progress}{progress.total > 0 ? `${mbNum(progress.received)} / ${mbText(progress.total)} · ${pct} %` : mbText(progress.received)}{' · '}{#if progress.idle_s >= STALL_S}<span class="ol-warn" data-download-stalled>{t('no data for {n} s', {n: progress.idle_s})}</span>{:else}<span data-download-rate>{rateText(progress.rate)}</span>{/if}
+                        {:else}{t('Starting…')}{/if}
+                    </span>
+                </div>
+            {/if}
         </div>
     {/if}
     {#if installing}
@@ -421,6 +454,14 @@
     /* B-111: the running download or upload and its Cancel on one line */
     .ol-updbusy { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 12px; }
     .ol-updbusy-text { flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; }
+    /* occulited task 170: the bar and its figures take the notice's whole width, one line high */
+    /* the figures have a width of their own, so the bar keeps its length whatever they say; where
+       both do not fit on one line (a phone) the figures take the line below */
+    .ol-updprog { flex: 1 1 100%; display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 4px 10px; min-width: 0; }
+    .ol-updprog-bar { flex: 1 1 120px; height: 8px; border-radius: 4px; background: var(--hmm-border); overflow: hidden; }
+    .ol-updprog-bar span { display: block; height: 100%; background: var(--hmm-accent); transition: width 0.4s ease; }
+    .ol-updprog-bar span.checking { opacity: 0.6; }
+    .ol-updprog-text { flex: 0 0 23em; max-width: 100%; font-size: var(--hmm-font-size-small); font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: right; }
     .ol-installed { margin: 0 0 8px; overflow-wrap: anywhere; }
     .ol-installed .ol-muted { font-size: var(--hmm-font-size-small); }
 </style>

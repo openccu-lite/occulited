@@ -88,6 +88,9 @@ type State struct {
 	InstalledNewer bool `json:"installed_newer,omitempty"`
 	// Downloading is set while a release is being fetched and staged.
 	Downloading string `json:"downloading,omitempty"`
+	// Download is the running download's progress, or the last one's since occulited started
+	// (occulited task 170); absent before the first.
+	Download *Progress `json:"download,omitempty"`
 	// DownloadError is why the last download failed (occulited B-111), kept until the next
 	// download starts or the staged update is discarded - so a page that did not start the
 	// download (a reload, a second tab) can say why the controls are back. A cancelled download
@@ -126,6 +129,10 @@ type Service struct {
 	// when none runs. downloadErr is the last download's failure, see State.DownloadError.
 	cancel      context.CancelFunc
 	downloadErr string
+	// progress is the running download's, or the last one's of this process (occulited task 170)
+	progress *counter
+	// now is the progress's clock; nil = time.Now
+	now func() time.Time
 }
 
 // New returns a service for the feed; enabled decides whether the daily check runs.
@@ -138,6 +145,10 @@ func (s *Service) State() State {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	st := State{Enabled: s.Enabled, Channel: NormalChannel(s.Channel), FeedURL: s.FeedURL, Error: s.err, Available: s.available, NoneInChannel: s.none, Downloading: s.downloading, DownloadError: s.downloadErr}
+	if s.progress != nil {
+		p := s.progress.view()
+		st.Download = &p
+	}
 	if av := s.available; av != nil && !av.Newer && s.Root != "" {
 		if v := s.Root.ReadVersion(); v.Variant == "lite" {
 			st.InstalledNewer = semverNewer(v.Full(), av.Version)
@@ -653,6 +664,18 @@ func (s *Service) CancelDownload() bool {
 	return true
 }
 
+// Progress is the running download's progress, or the last one's; nil before the first.
+func (s *Service) Progress() *Progress {
+	s.mu.Lock()
+	c := s.progress
+	s.mu.Unlock()
+	if c == nil {
+		return nil
+	}
+	p := c.view()
+	return &p
+}
+
 // ForgetDownloadError drops the remembered failure of the last download (a discard, B-111).
 func (s *Service) ForgetDownloadError() {
 	s.mu.Lock()
@@ -667,13 +690,22 @@ func (s *Service) download(ctx context.Context, av *Available) (staged *system.S
 		return nil, ErrDownloadRunning
 	}
 	ctx, cancel := context.WithCancel(ctx)
-	s.downloading, s.cancel, s.downloadErr = av.Name, cancel, ""
+	prog := newCounter(av.Name, av.Size, s.now)
+	s.downloading, s.cancel, s.downloadErr, s.progress = av.Name, cancel, "", prog
 	s.mu.Unlock()
 	defer func() {
 		// a cancelled download is no failure to remember (B-111); any other error is, until the
 		// next download starts. ctx.Err() is read before cancel() below sets it.
 		if err != nil && ctx.Err() != nil {
 			err = ErrDownloadCancelled
+		}
+		switch {
+		case errors.Is(err, ErrDownloadCancelled):
+			prog.end(PhaseCancelled, "", "")
+		case err != nil:
+			prog.fail(err)
+		default:
+			prog.end(PhaseDone, "", staged.Warning)
 		}
 		cancel()
 		s.mu.Lock()
@@ -703,8 +735,9 @@ func (s *Service) download(ctx context.Context, av *Available) (staged *system.S
 	if res.StatusCode != 200 {
 		return nil, fmt.Errorf("download: HTTP %d", res.StatusCode)
 	}
+	prog.setTotal(res.ContentLength)
 	h := sha256.New()
-	staged, err = s.Root.StageSystemUpdate(ctx, path.Base(av.Name), av.Size, io.TeeReader(res.Body, h))
+	staged, err = s.Root.StageSystemUpdate(ctx, path.Base(av.Name), av.Size, io.TeeReader(prog.reader(res.Body), h))
 	if err != nil {
 		return nil, err
 	}
