@@ -2637,7 +2637,8 @@ function storageWritesRoute(req, u, res, jar) {
 
 // occulited task 163: the radio writes per lite-rpc client, per browser (stub-radio-writes). No
 // variant: nobody wrote. "busy": hm2mqtt behind a rise of HmIP-RF's duty cycle (the warning),
-// ci-nightly with a burst (the hint), the account admin quiet; "busy-classic" adds the classic RPC
+// ci-nightly with a burst (the hint), the account admin quiet; "quiet" (B-165) wrote nothing in the
+// last hour; "busy-classic" adds the classic RPC
 // note; "off" is a system without the counter. openccu-lite task 489: ?span=60|360|1440 - 60
 // minutes, 72 five-minute or 96 quarter-hour buckets; the token nightly-backup wrote only in the
 // morning (in 24 h, not in 6 h); "busy" has one radio module shared by BidCos-RF and HmIP-RF (one
@@ -2647,9 +2648,17 @@ function radioWritesView(variant, span = 60) {
     const bm = span === 360 ? 5 : span === 1440 ? 15 : 1;
     const n = span / bm;
     const base = {at: new Date().toISOString(), span, bucket_minutes: bm, available: !variant.startsWith('off'), classic_rpc: variant.startsWith('busy-classic'), thresholds, clients: [], duty_cycle: []};
-    if (!variant.startsWith('busy')) return base;
     const minutes = (fill) => Array.from({length: 60}, (_, i) => fill(i));
     const buckets = (fill) => Array.from({length: n}, (_, i) => fill(i));
+    // occulited B-165: "quiet" - nothing written in the last hour, one account's two writes earlier
+    // in the 6 h and 24 h; the radio's duty cycle is there in every span
+    if (variant === 'quiet') {
+        const radio = {interface: 'BidCos-RF', address: 'JEQ0000001', interfaces: ['BidCos-RF', 'HmIP-RF'], radio: 'local', name: 'RPI-RF-MOD 1F0000000A03', minutes: minutes(() => 2), buckets: buckets(() => 2)};
+        const b = buckets((i) => (i === 3 || i === 9 ? 1 : 0));
+        const clients = span === 60 ? [] : [{kind: 'user', name: 'admin', per_minute: 0, hour: 0, noop: 0, minutes: minutes(() => 0), interfaces: [{name: 'HmIP-RF', hour: 0, noop: 0, writes: 2}], buckets: b, writes: 2, writes_noop: 0}];
+        return {...base, clients, duty_cycle: [radio]};
+    }
+    if (!variant.startsWith('busy')) return base;
     const sum = (m) => m.reduce((a, b) => a + b, 0);
     const mqtt = minutes((i) => (i < 40 ? 4 : i < 52 ? 45 + (i % 3) * 5 : 6));
     const ci = minutes((i) => (i === 50 ? 84 : i === 51 ? 12 : 0));

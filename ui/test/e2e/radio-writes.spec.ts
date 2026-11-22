@@ -181,9 +181,10 @@ test('the panel says so when nobody wrote, and is not there on a system that doe
     await open(page, baseURL, '/', '', 60);
     await expect(page.getByRole('heading', {level: 2, name: 'Radio writes'})).toBeVisible();
     await expect(page.locator('[data-radio-writes-none]')).toHaveText('No program has sent a radio write in the last 1 h.');
-    await expect(page.locator('[data-radio-writes] table')).toHaveCount(0);
-    // the span switch is there without a table as well
-    await page.locator('[data-radio-writes] [data-radio-span="1440"]').click();
+    // occulited B-165: the line stands in the table, where a client row would be; the span switch under it
+    await expect(page.locator('[data-radio-writes] tbody [data-radio-writes-none]')).toHaveCount(1);
+    await expect(page.locator('[data-radio-client]')).toHaveCount(0);
+    await page.locator('[data-radio-writes] [data-radio-axis] [data-radio-span="1440"]').click();
     await expect(page.locator('[data-radio-writes-none]')).toHaveText('No program has sent a radio write in the last 24 h.');
 
     await open(page, baseURL, '/', 'off');
@@ -245,4 +246,69 @@ test('a token that sent nothing has a dash, and a system that does not count has
     await expect(page.locator('.ol-tokens tbody tr').first()).toBeVisible();
     await expect(page.locator('[data-token-writes]')).toHaveCount(0);
     await expect(page.locator('.ol-tokens thead')).not.toContainText('Radio writes');
+});
+
+// occulited B-165 (rc.2 on rpi3-2): the panel was 179 px with a client and 69 px without one, and
+// the span switch jumped from under the chart column to the end of the empty line. Now the panel,
+// the switch and the duty-cycle row keep their boxes across 1 h (nothing written), 6 h and 24 h
+// (one client), and the same holds on a system that wrote nothing at all.
+for (const variant of ['quiet', 'busy']) {
+    test(`the panel and its span switch keep their boxes across the spans (${variant})`, async ({page, baseURL}) => {
+        await open(page, baseURL, '/', variant, 60);
+        const panel = page.locator('[data-radio-writes]');
+        await expect(panel).toHaveAttribute('data-span', '60');
+        // measured from the panel: a click may scroll the page
+        const box = async (l: import('@playwright/test').Locator) => {
+            await panel.locator('.rw-scroll').evaluate((e) => (e.scrollLeft = 0));
+            const b = (await l.boundingBox())!;
+            const p = (await panel.boundingBox())!;
+            return `${Math.round(b.x - p.x)} ${Math.round(b.y - p.y)} ${Math.round(b.width)} ${Math.round(b.height)}`;
+        };
+        const panelBox = async () => {
+            const b = (await panel.boundingBox())!;
+            return `${Math.round(b.width)} ${Math.round(b.height)}`;
+        };
+        const first = await panelBox();
+        const sw = await box(panel.locator('[data-radio-spans]'));
+        const duty = await box(panel.locator('[data-radio-duty]').first());
+        if (variant === 'quiet') await expect(panel.locator('[data-radio-writes-none]')).toBeVisible();
+        for (const span of ['360', '1440', '60']) {
+            await panel.locator(`[data-radio-span="${span}"]`).click();
+            await expect(panel).toHaveAttribute('data-span', span);
+            if (variant === 'quiet') await expect(panel.locator('[data-radio-writes-none]')).toHaveCount(span === '60' ? 1 : 0);
+            if (variant === 'busy') continue; // more clients in the longer spans: more rows
+            expect(await panelBox()).toBe(first);
+            expect(await box(panel.locator('[data-radio-spans]'))).toBe(sw);
+            expect(await box(panel.locator('[data-radio-duty]').first())).toBe(duty);
+        }
+        // the switch sits under the chart column in every state
+        const spark = (await panel.locator('thead th.rw-spark').boundingBox())!;
+        const s = (await panel.locator('[data-radio-spans]').boundingBox())!;
+        expect(s.x).toBeGreaterThanOrEqual(spark.x - 1);
+        expect(s.x + s.width).toBeLessThanOrEqual(spark.x + spark.width + 1);
+    });
+}
+
+test('the line without a write is a client row\'s height, and stays in sight on a phone', async ({page, baseURL}) => {
+    await open(page, baseURL, '/', 'quiet', 360);
+    const panel = page.locator('[data-radio-writes]');
+    await expect(panel.locator('[data-radio-client]')).toHaveCount(1);
+    const withClient = (await panel.locator('[data-radio-client]').boundingBox())!.height;
+    await panel.locator('[data-radio-span="60"]').click();
+    const empty = panel.locator('[data-radio-writes-empty]');
+    await expect(empty).toBeVisible();
+    expect(Math.round((await empty.boundingBox())!.height)).toBe(Math.round(withClient));
+    // the line starts inside the visible part of the panel and ends there
+    const line = (await panel.locator('[data-radio-writes-none]').boundingBox())!;
+    const card = (await panel.boundingBox())!;
+    expect(line.x).toBeGreaterThanOrEqual(card.x);
+    expect(line.x + line.width).toBeLessThanOrEqual(card.x + card.width);
+});
+
+test('a system without a radio and without a write: the table with the line and the switch', async ({page, baseURL}) => {
+    await open(page, baseURL, '/', '', 60);
+    const panel = page.locator('[data-radio-writes]');
+    await expect(panel.locator('[data-radio-writes-none]')).toBeVisible();
+    await expect(panel.locator('[data-radio-duty]')).toHaveCount(0);
+    await expect(panel.locator('[data-radio-axis] [data-radio-spans]')).toBeVisible();
 });
