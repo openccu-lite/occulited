@@ -1,10 +1,60 @@
 {
   "format": 1,
-  "generated_at": "2026-11-22T15:28:40Z",
+  "generated_at": "2026-11-22T19:37:25Z",
   "catalog": "file:///home/runner/work/occulited/occulited/catalog/catalog.json",
   "repos": {
     "SukramJ/openccu-loom": {
       "releases": [
+        {
+          "tag_name": "v0.106.2",
+          "name": "v0.106.2",
+          "draft": false,
+          "prerelease": false,
+          "html_url": "https://github.com/SukramJ/openccu-loom/releases/tag/v0.106.2",
+          "published_at": "2026-11-22T16:45:50Z",
+          "assets": [
+            {
+              "name": "checksums.txt",
+              "size": 530,
+              "browser_download_url": "https://github.com/SukramJ/openccu-loom/releases/download/v0.106.2/checksums.txt"
+            },
+            {
+              "name": "hmcli_0.106.2_linux_amd64.tar.gz",
+              "size": 5735450,
+              "browser_download_url": "https://github.com/SukramJ/openccu-loom/releases/download/v0.106.2/hmcli_0.106.2_linux_amd64.tar.gz"
+            },
+            {
+              "name": "openccu-loom-ccu-0.106.2.tar.gz",
+              "size": 86206268,
+              "browser_download_url": "https://github.com/SukramJ/openccu-loom/releases/download/v0.106.2/openccu-loom-ccu-0.106.2.tar.gz"
+            },
+            {
+              "name": "openccu-loom-ccu-0.106.2.tar.gz.sha256",
+              "size": 98,
+              "browser_download_url": "https://github.com/SukramJ/openccu-loom/releases/download/v0.106.2/openccu-loom-ccu-0.106.2.tar.gz.sha256"
+            },
+            {
+              "name": "openccu-loom-remote_0.106.2_linux_amd64.tar.gz",
+              "size": 4150488,
+              "browser_download_url": "https://github.com/SukramJ/openccu-loom/releases/download/v0.106.2/openccu-loom-remote_0.106.2_linux_amd64.tar.gz"
+            },
+            {
+              "name": "openccu-loom_0.106.2_linux_amd64.tar.gz",
+              "size": 30410824,
+              "browser_download_url": "https://github.com/SukramJ/openccu-loom/releases/download/v0.106.2/openccu-loom_0.106.2_linux_amd64.tar.gz"
+            },
+            {
+              "name": "openccu-loom_0.106.2_linux_arm64.tar.gz",
+              "size": 28452263,
+              "browser_download_url": "https://github.com/SukramJ/openccu-loom/releases/download/v0.106.2/openccu-loom_0.106.2_linux_arm64.tar.gz"
+            },
+            {
+              "name": "openccu-loom_0.106.2_linux_armv7.tar.gz",
+              "size": 28686917,
+              "browser_download_url": "https://github.com/SukramJ/openccu-loom/releases/download/v0.106.2/openccu-loom_0.106.2_linux_armv7.tar.gz"
+            }
+          ]
+        },
         {
           "tag_name": "v0.106.1",
           "name": "v0.106.1",
@@ -452,56 +502,6 @@
               "name": "openccu-loom_0.101.0_linux_armv7.tar.gz",
               "size": 28161177,
               "browser_download_url": "https://github.com/SukramJ/openccu-loom/releases/download/v0.101.0/openccu-loom_0.101.0_linux_armv7.tar.gz"
-            }
-          ]
-        },
-        {
-          "tag_name": "v0.100.0",
-          "name": "v0.100.0",
-          "draft": false,
-          "prerelease": false,
-          "html_url": "https://github.com/SukramJ/openccu-loom/releases/tag/v0.100.0",
-          "published_at": "2026-11-12T01:26:24Z",
-          "assets": [
-            {
-              "name": "checksums.txt",
-              "size": 530,
-              "browser_download_url": "https://github.com/SukramJ/openccu-loom/releases/download/v0.100.0/checksums.txt"
-            },
-            {
-              "name": "hmcli_0.100.0_linux_amd64.tar.gz",
-              "size": 5734819,
-              "browser_download_url": "https://github.com/SukramJ/openccu-loom/releases/download/v0.100.0/hmcli_0.100.0_linux_amd64.tar.gz"
-            },
-            {
-              "name": "openccu-loom-ccu-0.100.0.tar.gz",
-              "size": 84460742,
-              "browser_download_url": "https://github.com/SukramJ/openccu-loom/releases/download/v0.100.0/openccu-loom-ccu-0.100.0.tar.gz"
-            },
-            {
-              "name": "openccu-loom-ccu-0.100.0.tar.gz.sha256",
-              "size": 98,
-              "browser_download_url": "https://github.com/SukramJ/openccu-loom/releases/download/v0.100.0/openccu-loom-ccu-0.100.0.tar.gz.sha256"
-            },
-            {
-              "name": "openccu-loom-remote_0.100.0_linux_amd64.tar.gz",
-              "size": 4106856,
-              "browser_download_url": "https://github.com/SukramJ/openccu-loom/releases/download/v0.100.0/openccu-loom-remote_0.100.0_linux_amd64.tar.gz"
-            },
-            {
-              "name": "openccu-loom_0.100.0_linux_amd64.tar.gz",
-              "size": 29808411,
-              "browser_download_url": "https://github.com/SukramJ/openccu-loom/releases/download/v0.100.0/openccu-loom_0.100.0_linux_amd64.tar.gz"
-            },
-            {
-              "name": "openccu-loom_0.100.0_linux_arm64.tar.gz",
-              "size": 27873414,
-              "browser_download_url": "https://github.com/SukramJ/openccu-loom/releases/download/v0.100.0/openccu-loom_0.100.0_linux_arm64.tar.gz"
-            },
-            {
-              "name": "openccu-loom_0.100.0_linux_armv7.tar.gz",
-              "size": 28106806,
-              "browser_download_url": "https://github.com/SukramJ/openccu-loom/releases/download/v0.100.0/openccu-loom_0.100.0_linux_armv7.tar.gz"
             }
           ]
         }
@@ -1174,6 +1174,46 @@
     "hobbyquaker/ccu-addon-battery": {
       "releases": [
         {
+          "tag_name": "v1.5.2",
+          "name": "v1.5.2",
+          "draft": false,
+          "prerelease": false,
+          "html_url": "https://github.com/hobbyquaker/ccu-addon-battery/releases/tag/v1.5.2",
+          "published_at": "2026-11-22T16:59:40Z",
+          "assets": [
+            {
+              "name": "battery-aarch64-1.5.2.tar.gz",
+              "size": 5014554,
+              "browser_download_url": "https://github.com/hobbyquaker/ccu-addon-battery/releases/download/v1.5.2/battery-aarch64-1.5.2.tar.gz"
+            },
+            {
+              "name": "battery-aarch64-1.5.2.tar.gz.sha256",
+              "size": 95,
+              "browser_download_url": "https://github.com/hobbyquaker/ccu-addon-battery/releases/download/v1.5.2/battery-aarch64-1.5.2.tar.gz.sha256"
+            },
+            {
+              "name": "battery-armv7l-1.5.2.tar.gz",
+              "size": 5108665,
+              "browser_download_url": "https://github.com/hobbyquaker/ccu-addon-battery/releases/download/v1.5.2/battery-armv7l-1.5.2.tar.gz"
+            },
+            {
+              "name": "battery-armv7l-1.5.2.tar.gz.sha256",
+              "size": 94,
+              "browser_download_url": "https://github.com/hobbyquaker/ccu-addon-battery/releases/download/v1.5.2/battery-armv7l-1.5.2.tar.gz.sha256"
+            },
+            {
+              "name": "battery-x86_64-1.5.2.tar.gz",
+              "size": 5367774,
+              "browser_download_url": "https://github.com/hobbyquaker/ccu-addon-battery/releases/download/v1.5.2/battery-x86_64-1.5.2.tar.gz"
+            },
+            {
+              "name": "battery-x86_64-1.5.2.tar.gz.sha256",
+              "size": 94,
+              "browser_download_url": "https://github.com/hobbyquaker/ccu-addon-battery/releases/download/v1.5.2/battery-x86_64-1.5.2.tar.gz.sha256"
+            }
+          ]
+        },
+        {
           "tag_name": "v1.5.1",
           "name": "v1.5.1",
           "draft": false,
@@ -1532,46 +1572,6 @@
               "browser_download_url": "https://github.com/hobbyquaker/ccu-addon-battery/releases/download/v1.0.3/battery-x86_64-1.0.3.tar.gz.sha256"
             }
           ]
-        },
-        {
-          "tag_name": "v1.0.2",
-          "name": "v1.0.2",
-          "draft": false,
-          "prerelease": false,
-          "html_url": "https://github.com/hobbyquaker/ccu-addon-battery/releases/tag/v1.0.2",
-          "published_at": "2026-10-28T08:29:26Z",
-          "assets": [
-            {
-              "name": "battery-aarch64-1.0.2.tar.gz",
-              "size": 5203422,
-              "browser_download_url": "https://github.com/hobbyquaker/ccu-addon-battery/releases/download/v1.0.2/battery-aarch64-1.0.2.tar.gz"
-            },
-            {
-              "name": "battery-aarch64-1.0.2.tar.gz.sha256",
-              "size": 95,
-              "browser_download_url": "https://github.com/hobbyquaker/ccu-addon-battery/releases/download/v1.0.2/battery-aarch64-1.0.2.tar.gz.sha256"
-            },
-            {
-              "name": "battery-armv7l-1.0.2.tar.gz",
-              "size": 5365828,
-              "browser_download_url": "https://github.com/hobbyquaker/ccu-addon-battery/releases/download/v1.0.2/battery-armv7l-1.0.2.tar.gz"
-            },
-            {
-              "name": "battery-armv7l-1.0.2.tar.gz.sha256",
-              "size": 94,
-              "browser_download_url": "https://github.com/hobbyquaker/ccu-addon-battery/releases/download/v1.0.2/battery-armv7l-1.0.2.tar.gz.sha256"
-            },
-            {
-              "name": "battery-x86_64-1.0.2.tar.gz",
-              "size": 5609169,
-              "browser_download_url": "https://github.com/hobbyquaker/ccu-addon-battery/releases/download/v1.0.2/battery-x86_64-1.0.2.tar.gz"
-            },
-            {
-              "name": "battery-x86_64-1.0.2.tar.gz.sha256",
-              "size": 94,
-              "browser_download_url": "https://github.com/hobbyquaker/ccu-addon-battery/releases/download/v1.0.2/battery-x86_64-1.0.2.tar.gz.sha256"
-            }
-          ]
         }
       ],
       "per_page": 10,
@@ -1825,6 +1825,46 @@
     },
     "hobbyquaker/hm2mqtt.js": {
       "releases": [
+        {
+          "tag_name": "v3.11.0",
+          "name": "v3.11.0",
+          "draft": false,
+          "prerelease": false,
+          "html_url": "https://github.com/hobbyquaker/hm2mqtt.js/releases/tag/v3.11.0",
+          "published_at": "2026-11-22T18:49:47Z",
+          "assets": [
+            {
+              "name": "hm2mqtt-ccu-aarch64-3.11.0.tar.gz",
+              "size": 47299845,
+              "browser_download_url": "https://github.com/hobbyquaker/hm2mqtt.js/releases/download/v3.11.0/hm2mqtt-ccu-aarch64-3.11.0.tar.gz"
+            },
+            {
+              "name": "hm2mqtt-ccu-aarch64-3.11.0.tar.gz.sha256",
+              "size": 100,
+              "browser_download_url": "https://github.com/hobbyquaker/hm2mqtt.js/releases/download/v3.11.0/hm2mqtt-ccu-aarch64-3.11.0.tar.gz.sha256"
+            },
+            {
+              "name": "hm2mqtt-ccu-armv7l-3.11.0.tar.gz",
+              "size": 27722477,
+              "browser_download_url": "https://github.com/hobbyquaker/hm2mqtt.js/releases/download/v3.11.0/hm2mqtt-ccu-armv7l-3.11.0.tar.gz"
+            },
+            {
+              "name": "hm2mqtt-ccu-armv7l-3.11.0.tar.gz.sha256",
+              "size": 99,
+              "browser_download_url": "https://github.com/hobbyquaker/hm2mqtt.js/releases/download/v3.11.0/hm2mqtt-ccu-armv7l-3.11.0.tar.gz.sha256"
+            },
+            {
+              "name": "hm2mqtt-ccu-x86_64-3.11.0.tar.gz",
+              "size": 47613845,
+              "browser_download_url": "https://github.com/hobbyquaker/hm2mqtt.js/releases/download/v3.11.0/hm2mqtt-ccu-x86_64-3.11.0.tar.gz"
+            },
+            {
+              "name": "hm2mqtt-ccu-x86_64-3.11.0.tar.gz.sha256",
+              "size": 99,
+              "browser_download_url": "https://github.com/hobbyquaker/hm2mqtt.js/releases/download/v3.11.0/hm2mqtt-ccu-x86_64-3.11.0.tar.gz.sha256"
+            }
+          ]
+        },
         {
           "tag_name": "v3.10.3",
           "name": "v3.10.3",
@@ -2182,46 +2222,6 @@
               "name": "hm2mqtt-ccu-x86_64-3.8.2.tar.gz.sha256",
               "size": 98,
               "browser_download_url": "https://github.com/hobbyquaker/hm2mqtt.js/releases/download/v3.8.2/hm2mqtt-ccu-x86_64-3.8.2.tar.gz.sha256"
-            }
-          ]
-        },
-        {
-          "tag_name": "v3.8.1",
-          "name": "v3.8.1",
-          "draft": false,
-          "prerelease": false,
-          "html_url": "https://github.com/hobbyquaker/hm2mqtt.js/releases/tag/v3.8.1",
-          "published_at": "2026-10-02T17:30:38Z",
-          "assets": [
-            {
-              "name": "hm2mqtt-ccu-aarch64-3.8.1.tar.gz",
-              "size": 46970337,
-              "browser_download_url": "https://github.com/hobbyquaker/hm2mqtt.js/releases/download/v3.8.1/hm2mqtt-ccu-aarch64-3.8.1.tar.gz"
-            },
-            {
-              "name": "hm2mqtt-ccu-aarch64-3.8.1.tar.gz.sha256",
-              "size": 99,
-              "browser_download_url": "https://github.com/hobbyquaker/hm2mqtt.js/releases/download/v3.8.1/hm2mqtt-ccu-aarch64-3.8.1.tar.gz.sha256"
-            },
-            {
-              "name": "hm2mqtt-ccu-armv7l-3.8.1.tar.gz",
-              "size": 28947810,
-              "browser_download_url": "https://github.com/hobbyquaker/hm2mqtt.js/releases/download/v3.8.1/hm2mqtt-ccu-armv7l-3.8.1.tar.gz"
-            },
-            {
-              "name": "hm2mqtt-ccu-armv7l-3.8.1.tar.gz.sha256",
-              "size": 98,
-              "browser_download_url": "https://github.com/hobbyquaker/hm2mqtt.js/releases/download/v3.8.1/hm2mqtt-ccu-armv7l-3.8.1.tar.gz.sha256"
-            },
-            {
-              "name": "hm2mqtt-ccu-x86_64-3.8.1.tar.gz",
-              "size": 47286862,
-              "browser_download_url": "https://github.com/hobbyquaker/hm2mqtt.js/releases/download/v3.8.1/hm2mqtt-ccu-x86_64-3.8.1.tar.gz"
-            },
-            {
-              "name": "hm2mqtt-ccu-x86_64-3.8.1.tar.gz.sha256",
-              "size": 98,
-              "browser_download_url": "https://github.com/hobbyquaker/hm2mqtt.js/releases/download/v3.8.1/hm2mqtt-ccu-x86_64-3.8.1.tar.gz.sha256"
             }
           ]
         }
@@ -21272,7 +21272,7 @@
         }
       ],
       "per_page": 10,
-      "stars": 527
+      "stars": 528
     }
   },
   "entries": [
@@ -21313,7 +21313,7 @@
       "git": "https://github.com/hobbyquaker/hm2mqtt.js",
       "manifest": "addon/files/openccu-lite.json",
       "id": "hm2mqtt",
-      "tag": "v3.10.3",
+      "tag": "v3.11.0",
       "release_repo": "hobbyquaker/hm2mqtt.js",
       "images": {
         "icon": "ok",
@@ -21336,7 +21336,7 @@
       "git": "https://github.com/hobbyquaker/ccu-addon-battery",
       "manifest": "addon/openccu-lite.json",
       "id": "battery",
-      "tag": "v1.5.1",
+      "tag": "v1.5.2",
       "release_repo": "hobbyquaker/ccu-addon-battery",
       "images": {
         "icon": "ok",
@@ -21451,7 +21451,7 @@
       "git": "https://github.com/SukramJ/openccu-loom",
       "manifest": "packaging/ccu-addon/ccu/openccu-lite.json",
       "id": "openccu-loom",
-      "tag": "v0.106.1",
+      "tag": "v0.106.2",
       "release_repo": "SukramJ/openccu-loom",
       "images": {
         "icon": "ok",
