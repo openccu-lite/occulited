@@ -489,7 +489,10 @@ const CATALOGUE: Record<string, {de: string; en?: string}> = {
     // task 56: the wider cards - the stars as the link to the repository, the pills, the logo tile
     Repository: {de: 'Repository'},
     'GitHub stars: {n}': {de: 'GitHub-Sterne: {n}'},
-    prerelease: {de: 'Vorabversion'},
+    // occulited task 171: the orange pill beside a pre-release version, its help and the install question's line
+    'Pre-release': {de: 'Vorabversion'},
+    'Pre-release: not all functions have been tested yet.': {de: 'Vorabversion: noch nicht alle Funktionen sind getestet.'},
+    '{version} is a pre-release: not all functions have been tested yet.': {de: '{version} ist eine Vorabversion: noch nicht alle Funktionen sind getestet.'},
     // task 56: the update on the Installed addons page, and the download an addon's own check names
     Download: {de: 'Herunterladen'},
     'Update to {version}': {de: 'Auf {version} aktualisieren'},

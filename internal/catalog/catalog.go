@@ -178,6 +178,9 @@ type Latest struct {
 	Asset   string `json:"asset"`
 	// Notes is the release's page (GitHub's html_url) - the release notes of this version (task 26)
 	Notes string `json:"notes_url,omitempty"`
+	// Prerelease marks a pre-release (occulited task 171): GitHub's flag, or a version with a
+	// prerelease part (1.0.0-beta.0). The Addons page shows it as a pill.
+	Prerelease bool `json:"prerelease,omitempty"`
 }
 
 // Resolved is one release asset, ready to download.
@@ -189,6 +192,8 @@ type Resolved struct {
 	Size    int64  `json:"size"`
 	SHA256  string `json:"sha256_url,omitempty"`
 	Release string `json:"release_url,omitempty"`
+	// Prerelease: GitHub's flag, or a version with a prerelease part (task 171)
+	Prerelease bool `json:"prerelease,omitempty"`
 }
 
 // Progress is the state of one install.
@@ -950,7 +955,7 @@ func rawURLs(rawGitHub, git, file, tag string) []string {
 }
 
 // latestTag is the repository's latest release tag: for GitHub from the releases list (the first
-// stable release, else the first prerelease; conditional, so a repeat is free of the rate
+// stable release - not flagged, no prerelease part in its version -, else the first prerelease; conditional, so a repeat is free of the rate
 // limit), "" for a repository without releases and for every other host.
 func (s *Service) latestTag(ctx context.Context, git string) (string, error) {
 	u, err := url.Parse(git)
@@ -962,7 +967,7 @@ func (s *Service) latestTag(ctx context.Context, git string) (string, error) {
 		return "", err
 	}
 	for _, r := range rels {
-		if !r.Draft && !r.Prerelease {
+		if !r.Draft && !isPrerelease(r) {
 			return r.TagName, nil
 		}
 	}
@@ -1044,8 +1049,9 @@ func (s *Service) RefreshReleases(ctx context.Context) {
 		if s.cache.Latest == nil {
 			s.cache.Latest = map[string]Latest{}
 		}
-		if cur, ok := s.cache.Latest[it.ID]; !ok || cur.Version != r.Version || cur.Asset != r.Asset || cur.Notes != r.Release {
-			s.cache.Latest[it.ID], changed = Latest{Version: r.Version, Asset: r.Asset, Notes: r.Release}, true
+		l := Latest{Version: r.Version, Asset: r.Asset, Notes: r.Release, Prerelease: r.Prerelease}
+		if cur, ok := s.cache.Latest[it.ID]; !ok || cur != l {
+			s.cache.Latest[it.ID], changed = l, true
 		}
 		s.mu.Unlock()
 	}
@@ -1259,6 +1265,12 @@ func (s *Service) clock() time.Time {
 }
 
 // Resolve picks the release and the asset for this architecture from a manifest's release source.
+// Drafts never count. A pre-release - GitHub's flag, or a prerelease part in the version, as the
+// system update reads them - counts only when the manifest says release.prerelease, and then only
+// while no stable release has a package for this architecture (occulited task 171): the
+// key is for a project without a stable release yet, so its first stable release is what a
+// system installs from then on, and the manifest read at that tag (latestTag) is the one that
+// describes it. Within each group GitHub's order decides, the newest first.
 func (s *Service) Resolve(ctx context.Context, rel *manifest.Release) (*Resolved, error) {
 	if rel == nil || !repoRe.MatchString(rel.GitHub) {
 		return nil, errors.New("the manifest has no usable release source")
@@ -1267,30 +1279,61 @@ func (s *Service) Resolve(ctx context.Context, rel *manifest.Release) (*Resolved
 	if err != nil {
 		return nil, err
 	}
-	for _, r := range rels {
-		if r.Draft || (r.Prerelease && !rel.Prerelease) {
-			continue
-		}
-		version := strings.TrimPrefix(r.TagName, "v")
-		for _, pattern := range []string{rel.Assets[s.Arch], rel.Asset, rel.Fallback} {
-			if pattern == "" {
+	stable := func(r ghRelease) bool { return !isPrerelease(r) }
+	passes := []func(ghRelease) bool{stable}
+	if rel.Prerelease {
+		passes = append(passes, func(ghRelease) bool { return true })
+	}
+	for _, take := range passes {
+		for _, r := range rels {
+			if r.Draft || !take(r) {
 				continue
 			}
-			re := patternRe(pattern, s.Arch)
-			for _, a := range r.Assets {
-				if re.MatchString(a.Name) {
-					out := &Resolved{Tag: r.TagName, Version: version, Asset: a.Name, URL: a.URL, Size: a.Size, Release: r.HTMLURL}
-					for _, b := range r.Assets {
-						if b.Name == a.Name+".sha256" {
-							out.SHA256 = b.URL
-						}
-					}
-					return out, nil
-				}
+			if out := s.assetOf(r, rel); out != nil {
+				return out, nil
 			}
 		}
 	}
 	return nil, fmt.Errorf("no release of %s has a package for %s", rel.GitHub, s.Arch)
+}
+
+// assetOf is the release's package for this architecture (the per-architecture pattern, the
+// asset, the fallback, in this order) with its sha256 sidecar, nil when it has none.
+func (s *Service) assetOf(r ghRelease, rel *manifest.Release) *Resolved {
+	version := strings.TrimPrefix(r.TagName, "v")
+	for _, pattern := range []string{rel.Assets[s.Arch], rel.Asset, rel.Fallback} {
+		if pattern == "" {
+			continue
+		}
+		re := patternRe(pattern, s.Arch)
+		for _, a := range r.Assets {
+			if re.MatchString(a.Name) {
+				out := &Resolved{Tag: r.TagName, Version: version, Asset: a.Name, URL: a.URL, Size: a.Size, Release: r.HTMLURL, Prerelease: isPrerelease(r)}
+				for _, b := range r.Assets {
+					if b.Name == a.Name+".sha256" {
+						out.SHA256 = b.URL
+					}
+				}
+				return out
+			}
+		}
+	}
+	return nil
+}
+
+// isPrerelease: GitHub flags the release as one, or its version has a prerelease part
+// (1.0.0-beta.0, v2.0.0-rc.1) - a tag nobody flagged is still a pre-release (task 171).
+func isPrerelease(r ghRelease) bool {
+	return r.Prerelease || IsPrereleaseVersion(r.TagName)
+}
+
+// IsPrereleaseVersion says whether a version has a SemVer prerelease part: "1.0.0-beta.0",
+// "v2.0.0-rc.1", "3.0.0-rc1" are, "2.1.2", "2.1.2+1" (build metadata) and versions that are no
+// dotted numbers of at least two parts ("2026-05-01", a git hash) are not.
+func IsPrereleaseVersion(v string) bool {
+	v, _, _ = strings.Cut(strings.TrimPrefix(strings.TrimSpace(v), "v"), "+")
+	core, pre := splitPrerelease(v)
+	return pre != "" && strings.Contains(core, ".") && dottedRe.MatchString(core)
 }
 
 // patternRe turns "mosquitto-{arch}-{version}.tar.gz" into a regexp; {version} matches anything

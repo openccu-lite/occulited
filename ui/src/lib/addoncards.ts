@@ -30,7 +30,7 @@ export interface Entry {
     /** openccu-lite task 100: the manifest's images as the check fetched them, kind → URL on this origin */
     images?: AddonImages;
     tag?: string; fetched?: string; error?: string; stars?: number;
-    latest?: {version: string; asset?: string; notes_url?: string}; update_available?: boolean;
+    latest?: {version: string; asset?: string; notes_url?: string; prerelease?: boolean}; update_available?: boolean;
     /** task 26: the release notes of the offered version (the manifest's changelog, else the release's page) */
     release_notes?: string;
 }
@@ -94,7 +94,7 @@ export function readEntry(x: unknown): Entry | BrokenWhy {
     const id = str(x.id);
     const git = str(x.git) ?? '';
     if (!id && !git) return 'no-id-no-repo';
-    const latest = isObj(x.latest) && typeof x.latest.version === 'string' ? {version: x.latest.version, asset: str(x.latest.asset), notes_url: str(x.latest.notes_url)} : undefined;
+    const latest = isObj(x.latest) && typeof x.latest.version === 'string' ? {version: x.latest.version, asset: str(x.latest.asset), notes_url: str(x.latest.notes_url), prerelease: yes(x.latest.prerelease)} : undefined;
     const images = isObj(x.images) ? (Object.fromEntries(Object.entries(x.images).filter(([, v]) => typeof v === 'string')) as AddonImages) : undefined;
     return {
         ...x,

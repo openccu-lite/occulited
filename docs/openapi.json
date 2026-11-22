@@ -3177,6 +3177,9 @@
           "notes_url": {
             "type": "string"
           },
+          "prerelease": {
+            "type": "boolean"
+          },
           "version": {
             "type": "string"
           }

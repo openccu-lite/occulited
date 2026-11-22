@@ -52,7 +52,10 @@ test('confined and starts early are green, untested and own updater orange, in b
     await painted(page, mh.locator('.ad-early'), 'ok', '--hmm-ok');
     await painted(page, row(page, 'TM Devices').locator('.ad-untested'), 'warn', '--hmm-warn');
     await painted(page, row(page, 'XML-API').locator('.ol-badge', {hasText: 'own updater'}), 'warn', '--hmm-warn');
+    // occulited task 171: a pre-release is the orange pill of its own token
+    await painted(page, row(page, 'TM Devices').locator('.ad-pre'), 'pre', '--ol-pre');
     // a neutral one stays the sunken pill
-    const pre = row(page, 'TM Devices').locator('.ol-badge', {hasText: 'prerelease'});
-    expect(await pre.evaluate((el) => getComputedStyle(el).backgroundColor)).toBe(await token(page, '--hmm-bg-sunken'));
+    const neutral = row(page, 'Homematic-Manager').locator('.ad-scopes');
+    await expect(neutral).toHaveCount(1);
+    expect(await neutral.evaluate((el) => getComputedStyle(el).backgroundColor)).toBe(await token(page, '--hmm-bg-sunken'));
 });

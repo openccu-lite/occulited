@@ -35,7 +35,8 @@ test('the cards: installed first with the update on top, then by stars; logos on
     await expect(red.locator('a.cat-stars')).toHaveAttribute('href', 'https://github.com/rdmtc/RedMatic');
     await expect(card(page, 'tm-devices').locator('a.cat-stars')).toHaveText(/^Repository/);
     // task 255: an entry the catalogue marks untested says so; there is no verified mark any more
-    await expect(card(page, 'tm-devices').locator('.ol-badge')).toHaveText(['untested', 'prerelease']);
+    // occulited task 171: its offered 0.9.0-rc.1 carries the RC pill beside the version
+    await expect(card(page, 'tm-devices').locator('.ol-badge')).toHaveText(['RC', 'untested']);
     await expect(card(page, 'tm-devices').locator('.ad-untested')).toHaveCount(1);
     await expect(card(page, 'repo-SukramJ-openccu-loom').locator('.ad-untested')).toHaveText('untested');
     await expect(card(page, 'mosquitto').locator('.ad-untested')).toHaveCount(0);

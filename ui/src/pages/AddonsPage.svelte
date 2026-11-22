@@ -38,6 +38,7 @@
     import {isDark} from '../lib/theme.svelte';
     import {formatStars, httpURL, releasesProblemKind, repoURL} from '../lib/catalog';
     import {declarationMark} from '../lib/addonbadges';
+    import {prereleaseKind, prereleaseLabel} from '../lib/prerelease';
     import {buildCards, readAddons, readEntries, repoName, textIn, type Broken, type BrokenWhy, type Card, type Entry, type Text} from '../lib/addoncards';
     import {askStartStopped, installError, installFromCatalog, liteRefusal, type StoppedAddon} from '../lib/install';
     import ReleasesProblem from '../lib/ReleasesProblem.svelte';
@@ -323,9 +324,14 @@
         if (r) notice = r;
         else await progressView?.poll();
     }
+    // occulited task 171: " (Beta)" behind a pre-release in a list the dialog shows
+    const preNote = (v: string, flagged?: boolean) => {
+        const k = prereleaseKind(v, flagged);
+        return k ? ` (${prereleaseLabel(k, t('Pre-release'))})` : '';
+    };
     // task 139: every update, one after another, after one question that lists them
     async function updateAll() {
-        const list = pending.map((c) => `${c.name}: ${c.addon?.version ?? ''} → ${c.update}`).join('\n');
+        const list = pending.map((c) => `${c.name}: ${c.addon?.version ?? ''} → ${c.update}${preNote(c.update, c.entry?.latest?.prerelease)}`).join('\n');
         if (!(await ask({title: t('Update all'), message: t('Update these addons, one after another? Each replaces its own installation; the configuration is kept.') + '\n\n' + list, confirm: t('Update all')}))) return;
         notice = '';
         for (const c of pending) {
@@ -585,6 +591,11 @@
         <span class={cls}>{text}</span>
     {/if}
 {/snippet}
+<!-- occulited task 171: the orange pill beside a version that is a pre-release (Beta, RC, Alpha) -->
+{#snippet pre(version: string | undefined, flagged: boolean | undefined)}
+    {@const k = prereleaseKind(version, flagged)}
+    {#if k}{@render badge(`ol-badge pre ad-pre ad-pre-${k}`, prereleaseLabel(k, t('Pre-release')), t('Pre-release: not all functions have been tested yet.'))}{/if}
+{/snippet}
 
 <h1>{t('Addons')}<Help>{t('Every addon the catalogue knows and every one installed on this system, on one page. Installed with one click from their GitHub releases through the same installer a manual upload uses; the catalogue is fetched on demand only, and this system makes no other outbound call for it.')}</Help></h1>
 <TokenNotice />
@@ -733,12 +744,12 @@
                                 <span class="ad-needs-reinstall" data-addon-reinstall>{t('Needs reinstalling')}</span>
                                 {#if !a.reinstall_dismissed}{' · '}<a href="#reinstall" data-addon-reinstall-link>{t('Reinstall')}</a>{/if}
                             {:else if a}
-                                <span class="ad-version">{a.version}</span>
-                                {#if c.update}<span class="ol-upd"> → {c.update}</span>{/if}
+                                <span class="ad-version">{a.version}</span>{@render pre(a.version, false)}
+                                {#if c.update}<span class="ol-upd"> → {c.update}</span>{@render pre(c.update, e?.latest?.prerelease)}{/if}
                                 <span class="ad-state" data-addon-state>· {stateWord(a)}</span>
                                 {#if a.stray}{' · '}<Help class="ol-warn">{#snippet trigger()}{t('outside its unit')}{/snippet}{t('Runs outside its unit (started by an installer or by hand). Restart puts it back into the unit.')}</Help>{/if}
                             {:else if e?.latest}
-                                <span class="ad-version" title={t('Latest release')}>{e.latest.version}</span> <span>· {t('Not installed')}</span>
+                                <span class="ad-version" title={t('Latest release')}>{e.latest.version}</span>{@render pre(e.latest.version, e.latest.prerelease)} <span>· {t('Not installed')}</span>
                             {:else if e && !e.id}
                                 <span>{t('Not checked yet')}</span>
                             {:else}
@@ -758,7 +769,6 @@
                 <div class="ad-badges">
                     {#if e?.untested}{@render badge('ol-badge warn ad-untested', t('untested'), t('Not tested on openccu-lite yet: install it at your own risk. Every addon declares what it needs itself; the label neither grants nor refuses anything.'))}{/if}
                     {#if e?.root_access}{@render badge('ol-badge warn ad-root-access', t('root access'), t('This addon gives whoever uses it a root shell on the system. Its own process runs confined; root is what its user signs in as. Install it only if you want that, and switch it off when you do not need it.'))}{/if}
-                    {#if e?.release?.prerelease}<span class="ol-badge">{t('prerelease')}</span>{/if}
                     {#if e?.ui?.own_updater}{@render badge('ol-badge warn', t('own updater'), t('This addon still carries an update mechanism of its own. On openccu-lite the system installs its updates; what the addon\'s own updater does bypasses that.'))}{/if}
                     {#if a}
                         {#if a.rega_dependent}
@@ -842,7 +852,7 @@
                 {/if}
                 {#if u}
                     {#if u.error}<p class="ol-muted ad-check">{u.error}</p>
-                    {:else if u.update_available}<p class="ad-check"><span class="ol-upd">→ {u.available}</span>{#if httpURL(u.url)}{' '}<a href={u.url} target="_blank" rel="noopener">{t('Download')}</a>{/if}</p>
+                    {:else if u.update_available}<p class="ad-check"><span class="ol-upd">→ {u.available}</span>{@render pre(u.available, false)}{#if httpURL(u.url)}{' '}<a href={u.url} target="_blank" rel="noopener">{t('Download')}</a>{/if}</p>
                     {:else}<p class="ol-muted ad-check">{t('up to date')}</p>{/if}
                 {/if}
                 <div class="ol-muted ad-meta-line">

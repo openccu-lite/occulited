@@ -74,9 +74,12 @@
     --hmm-warn: #a06800;
     --hmm-error: #cd3131;
     --hmm-focus: #0070c1;
-    /* occulited task 103: Control's boost (an orange-red of its own, so a boost does not look like plain
+    /* occulited task 171: --ol-pre is the pre-release pill's orange, its text --hmm-bg (5.2:1 light, 6.6:1 dark).
+       occulited task 103: Control's boost (an orange-red of its own, so a boost does not look like plain
        heating) and the humidity row's blue, light and dark */
     --ol-boost: #d9622b;
+
+    --ol-pre: #c2410c;
     --ol-hum: #2a8fb8;
     /* occulited task 112: a thermostat's manual mode - a violet of its own, neither heating nor boost */
     --ol-manual: #7a5cc4;
@@ -147,6 +150,8 @@
         --hmm-error: #f48771;
         --hmm-focus: #569cd6;
         --ol-boost: #f08a52;
+
+        --ol-pre: #f0883e;
         --ol-hum: #5bb8de;
         --ol-manual: #b39af0;
         --ol-series-1: #3987e5;
@@ -197,6 +202,8 @@
     --hmm-error: #f48771;
     --hmm-focus: #569cd6;
         --ol-boost: #f08a52;
+
+        --ol-pre: #f0883e;
         --ol-hum: #5bb8de;
         --ol-manual: #b39af0;
     --ol-series-1: #3987e5;
@@ -729,6 +736,8 @@ a.ol-badge-accent:hover { background: var(--hmm-accent); color: var(--hmm-bg); }
 .ol-badge.ok { background: var(--hmm-ok); color: var(--hmm-bg); border-color: transparent; }
 .ol-badge.warn { background: var(--hmm-warn); color: var(--hmm-bg); border-color: transparent; }
 .ol-badge.bad { background: var(--hmm-error); color: var(--hmm-bg); border-color: transparent; }
+/* occulited task 171: a pre-release (Beta, RC, Alpha) - orange, bold, so it is seen beside the version */
+.ol-badge.pre { background: var(--ol-pre); color: var(--hmm-bg); border-color: transparent; font-weight: 600; }
 /* 30.2: the catalogue's one bar */
 .ol-progress { height: 8px; border-radius: 4px; background: var(--hmm-bg-sunken); border: 1px solid var(--hmm-border-muted); overflow: hidden; margin: 6px 0 2px; }
 .ol-progress > div { height: 100%; background: var(--hmm-accent); transition: width 0.4s linear; }

@@ -82,11 +82,11 @@ Read by the update check and by the catalogue install. An addon that is only eve
 
 | Key | Rules |
 | --- | --- |
-| `github` | `owner/repo`. Releases are listed through the GitHub API; drafts are skipped, prereleases too unless `prerelease` is true. |
+| `github` | `owner/repo`. Releases are listed through the GitHub API; drafts are skipped, pre-releases too unless `prerelease` is true. A pre-release is a release GitHub flags as one **or** whose version has a prerelease part (`1.0.0-beta.0`, `v2.0.0-rc.1`), whatever the flag says. |
 | `asset` | The asset name with the placeholders `{arch}` (`uname -m`: `armv7l`, `aarch64`, `x86_64`) and `{version}` (the tag without a leading `v`; matches anything, so `3.5.2-beta` resolves). |
 | `assets` | A map architecture → pattern, for projects that do not name packages by `uname -m`. Tried before `asset`. |
 | `fallback_asset` | Tried when nothing else matches: a package for every architecture (scripts, device descriptions). It must be genuinely architecture-independent. |
-| `prerelease` | `true` for a project without a stable release yet. |
+| `prerelease` | `true` for a project without a stable release yet: its newest pre-release is offered and installed. **A stable release still wins:** as soon as one has a package for the architecture, the newest stable release is offered, even when a newer pre-release exists - the key lets users install a project's betas before its first release, not instead of its releases. The Addons page marks a pre-release (offered or installed) with a pill: *Beta*, *RC*, *Alpha*, else *Pre-release*. |
 
 A `<asset>.sha256` beside the asset is checked when it exists; without one the download is trusted on HTTPS alone.
 

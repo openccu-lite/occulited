@@ -7,6 +7,7 @@
 import {api, ApiError} from './api';
 import {ask} from './dialog.svelte';
 import {t} from './i18n.svelte';
+import {prereleaseKind} from './prerelease';
 
 /**
  * occulited B-113: the message for a refused start. The system's one install slot answers 409
@@ -79,7 +80,7 @@ export interface Installable {
     id: string;
     name: string;
     status?: string;
-    latest?: {version: string};
+    latest?: {version: string; prerelease?: boolean};
 }
 
 /**
@@ -94,7 +95,9 @@ export async function installFromCatalog(e: Installable, installed?: string): Pr
         : e.status === 'incompatible'
           ? t('This addon is known not to work without ReGa. Install anyway?')
           : t('Install {name}? It runs as root and can do anything on this system.', {name: e.name});
-    if (!(await ask({message: warn, confirm: installed ? t('Update') : t('Install')}))) return null;
+    // occulited task 171: the question says it when what comes is a pre-release
+    const pre = prereleaseKind(e.latest?.version, e.latest?.prerelease) ? '\n\n' + t('{version} is a pre-release: not all functions have been tested yet.', {version: e.latest?.version ?? ''}) : '';
+    if (!(await ask({message: warn + pre, confirm: installed ? t('Update') : t('Install')}))) return null;
     try {
         await api.post(`/api/system/v1/catalog/${encodeURIComponent(e.id)}/install`);
         return '';
