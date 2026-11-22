@@ -129,14 +129,15 @@ test('two entries naming one addon still show a list', async ({page}) => {
     await expect(page.locator('#addon-row-hmm')).toBeVisible();
 });
 
-test('a card that cannot render does not blank the list without a word', async ({page}) => {
+test('a card with a field of the wrong type does not blank the list', async ({page}) => {
     const broken = [{...checkedEntries[0], images: {logo: 5}}, checkedEntries[1]];
     const view = {format: 1, addons: broken, source: 'published', checked: '2026-10-06T14:35:00Z'};
     await freshSystem(page, view, view);
     await page.goto('/addons');
-    // B-157: the broken card says so on its own, the other card stays
-    await expect(page.locator('[data-card-error]')).toContainText("This addon's card could not be shown:");
-    await expect(page.locator('[data-addon-card]:not([data-card-error])')).toHaveCount(1);
+    // B-157: the logo that is no URL is dropped (lib/addoncards.ts) and the card shows its letter;
+    // a card that throws anyway stands as a notice of its own (addons-card-error.spec.ts)
+    await expect(page.locator('[data-addon-card]:not([data-card-error])')).toHaveCount(2);
+    await expect(page.locator('[data-card-error]')).toHaveCount(0);
     await expect(page.locator('[data-cards-error]')).toHaveCount(0);
     // the rest of the page is there
     await expect(page.locator('[data-addons-toolbar]')).toBeVisible();

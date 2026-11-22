@@ -459,7 +459,18 @@ const CATALOGUE: Record<string, {de: string; en?: string}> = {
     'Load the catalogue now': {de: 'Katalog jetzt laden'},
     'The list of addons could not be shown: {error}': {de: 'Die Liste der Zusatzsoftware konnte nicht angezeigt werden: {error}'},
     // B-157: one card's own failure; the other cards stay
+    // B-163: an adopted addon whose own manifest declares what it needs
+    'Until then the system has stored no declaration of it.': {de: 'Bis dahin hat das System keine Deklaration von ihm gespeichert.'},
+    'not installed from its package': {de: 'nicht aus seinem Paket installiert'},
+    'It came along from before openccu-lite: the manifest in its own directory declares what it needs, but the system has stored no declaration of it. Installing it again from its package (a file below, or the catalogue) stores it.': {de: 'Es stammt aus der Zeit vor openccu-lite: Das Manifest in seinem eigenen Verzeichnis deklariert, was es braucht, aber das System hat keine Deklaration von ihm gespeichert. Es erneut aus seinem Paket zu installieren (eine Datei unten oder der Katalog), speichert sie.'},
     "This addon's card could not be shown: {error}": {de: 'Die Karte dieser Zusatzsoftware konnte nicht angezeigt werden: {error}'},
+    // B-157: an entry of the system's answer the page cannot read, and an install run it cannot draw
+    'the system sent an entry that is not an object': {de: 'das System hat einen Eintrag geschickt, der kein Objekt ist'},
+    'the system sent an installed addon without an id': {de: 'das System hat eine installierte Zusatzsoftware ohne ID geschickt'},
+    'its id is not text': {de: 'ihre ID ist kein Text'},
+    'it names neither an id nor a repository': {de: 'sie nennt weder eine ID noch ein Repository'},
+    'the system sent no list': {de: 'das System hat keine Liste geschickt'},
+    'The install progress could not be shown: {error}': {de: 'Der Fortschritt der Installation konnte nicht angezeigt werden: {error}'},
     'The addon catalogue could not be loaded from GitHub {n} times in a row since {since}: {detail}. The Addons page shows the list the system holds; load the catalogue there once the connection works.': {de: 'Der Katalog der Zusatzsoftware konnte {n}-mal in Folge seit {since} nicht von GitHub geladen werden: {detail}. Die Seite Zusatzsoftware zeigt die Liste, die das System hat; laden Sie den Katalog dort, sobald die Verbindung funktioniert.'},
     'Its description arrives with the next check for updates, which reads the addon\'s manifest from its repository.': {
         de: 'Seine Beschreibung kommt mit der nächsten Suche nach Updates, die das Manifest des Addons aus seinem Repository liest.',

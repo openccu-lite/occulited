@@ -36,7 +36,9 @@
     import {imageCandidates, type AddonImages} from '../lib/addonimages';
     import AddonImage from '../lib/AddonImage.svelte';
     import {isDark} from '../lib/theme.svelte';
-    import {compareEntries, formatStars, httpURL, releasesProblemKind, repoURL} from '../lib/catalog';
+    import {formatStars, httpURL, releasesProblemKind, repoURL} from '../lib/catalog';
+    import {declarationMark} from '../lib/addonbadges';
+    import {buildCards, readAddons, readEntries, repoName, textIn, type Broken, type BrokenWhy, type Card, type Entry, type Text} from '../lib/addoncards';
     import {askStartStopped, installError, installFromCatalog, liteRefusal, type StoppedAddon} from '../lib/install';
     import ReleasesProblem from '../lib/ReleasesProblem.svelte';
     import {statusDot, statusKind} from '../lib/units';
@@ -46,21 +48,6 @@
 
     interface InstallResult { exit: number; meaning: string; reboot_required: boolean; output?: string; seconds: number; stopped_addons?: StoppedAddon[] }
     interface UpdateInfo { installed: string; available: string; update_available: boolean; url: string; error?: string }
-    // a catalogue item (D-119): the entry - repository, manifest path, untested - and the addon's
-    // manifest flattened into it once the user's check has fetched it (id, name, description, ...)
-    interface Text { de?: string; en?: string }
-    interface Entry {
-        git: string; manifest_path: string; untested?: boolean; root_access?: boolean; adapter?: boolean;
-        id?: string; name?: Text; description?: Text; homepage?: string; licence?: string;
-        release?: {github?: string; prerelease?: boolean}; requires?: {architectures?: string[]; lite?: string}; lite_unmet?: boolean;
-        ui?: {own_updater?: boolean}; runtime?: {note?: Text};
-        /** openccu-lite task 100: the manifest's images as the check fetched them, kind → URL on this origin */
-        images?: AddonImages;
-        tag?: string; fetched?: string; error?: string; stars?: number;
-        latest?: {version: string; asset?: string; notes_url?: string}; update_available?: boolean;
-        /** task 26: the release notes of the offered version (the manifest's changelog, else the release's page) */
-        release_notes?: string;
-    }
     interface FwAddon { id: string; ports: {port: number}[] }
 
     // releases_error (B-21): a release list the last check could not read - the versions shown are from before it
@@ -74,6 +61,9 @@
         source?: 'published' | 'bundled'; bundled_date?: string; check_error?: CheckError;
     }
     let catalogue = $state<CatalogView | null>(null);
+    // B-157: the answers' entries the page cannot use - each becomes a card that says why
+    let brokenEntries = $state<Broken[]>([]);
+    let brokenAddons = $state<Broken[]>([]);
     // B-52: what went wrong reading the catalogue - never silent. catalogError: the system did not
     // answer the list (the page shows the installed addons alone); checkError: the check's request
     // itself failed (the system's check_error says why when it got that far)
@@ -129,7 +119,9 @@
 
     async function load(refresh = false) {
         try {
-            addons = (await api.get<{addons: Addon[]}>('/api/system/v1/addons')).addons;
+            const r = readAddons((await api.get<{addons: unknown}>('/api/system/v1/addons')).addons ?? []);
+            addons = r.ok;
+            brokenAddons = r.broken;
             error = '';
         } catch (e) {
             error = (e as Error).message;
@@ -137,12 +129,12 @@
         await loadCatalogue(refresh);
         try {
             const r = await api.get<{services: Service[]}>('/api/system/v1/services');
-            services = Object.fromEntries(r.services.filter((s) => s.kind === 'addon').map((s) => [s.id, s]));
+            services = Object.fromEntries(r.services.filter((s) => s && s.kind === 'addon').map((s) => [s.id, s]));
         } catch {
             services = {};
         }
         try {
-            nav = (await api.get<{entries: NavEntry[]}>('/api/system/v1/nav')).entries;
+            nav = (await api.get<{entries: NavEntry[]}>('/api/system/v1/nav')).entries.filter((n) => n && typeof n === 'object');
         } catch {
             nav = [];
         }
@@ -155,9 +147,12 @@
     async function loadCatalogue(refresh: boolean): Promise<void> {
         try {
             const r = await api.get<{catalog: CatalogView; installed: Record<string, string>; arch: string; daily?: boolean}>(`/api/system/v1/catalog${refresh ? '?refresh=1' : ''}`);
-            catalogue = r.catalog;
+            const c = r.catalog && typeof r.catalog === 'object' ? r.catalog : {addons: []};
+            const read = readEntries(c.addons ?? []);
+            catalogue = {...c, addons: read.ok};
+            brokenEntries = read.broken;
             daily = r.daily ?? null;
-            installedVersions = r.installed;
+            installedVersions = r.installed ?? {};
             arch = r.arch;
             catalogError = '';
             if (refresh) checkError = '';
@@ -180,42 +175,21 @@
     });
 
     // ---- the cards ------------------------------------------------------------------------------
-    interface Card { id: string; name: string; entry: Entry | null; addon: Addon | null; update: string }
     const lang = $derived(i18n.language);
     const admin = $derived(auth.role === 'admin');
-    const byId = $derived(new Map((addons ?? []).map((a) => [a.id, a])));
     // a manifest text in the user's language, else English, else German
-    const tx = (x?: Text): string => x?.[lang] ?? x?.en ?? x?.de ?? '';
-    // an entry whose manifest is not fetched yet is known by its repository alone
-    const repoName = (e: Entry): string => e.git.replace(/^https?:\/\/[^/]+\//, '').replace(/\/+$/, '');
-    const cardId = (e: Entry): string => e.id ?? `repo-${repoName(e).replace(/[^A-Za-z0-9_.-]+/g, '-')}`;
+    const tx = (x?: Text): string => textIn(x, lang);
     const entryOf = (id: string): Entry | null => catalogue?.addons.find((e) => e.id && (e.id === id || e.id === id.replace(/^hm-/, ''))) ?? null;
-    const cards = $derived.by((): Card[] => {
-        const out: Card[] = [];
-        const seen = new Set<string>();
-        for (const e of catalogue?.addons ?? []) {
-            const a = e.id ? byId.get(e.id) ?? null : null;
-            const id = cardId(e);
-            // B-52: two entries whose manifests name one id would be one key twice - the list would
-            // not render at all; the first entry wins, as the system's merge does for a repository
-            if (seen.has(id)) continue;
-            seen.add(id);
-            if (a) seen.add(a.id);
-            out.push({id, name: tx(e.name) || e.id || repoName(e), entry: e, addon: a, update: a && e.update_available && e.latest ? e.latest.version : ''});
-        }
-        for (const a of addons ?? []) {
-            if (seen.has(a.id) || seen.has(a.id.replace(/^hm-/, ''))) continue;
-            out.push({id: a.id, name: a.name || a.id, entry: null, addon: a, update: ''});
-        }
-        // installed first - those with an update at the top, then by name - then the rest by stars
-        return out.sort((x, y) => {
-            const ix = x.addon ? (x.update ? 0 : 1) : 2;
-            const iy = y.addon ? (y.update ? 0 : 1) : 2;
-            if (ix !== iy) return ix - iy;
-            if (ix < 2) return x.name.localeCompare(y.name, undefined, {sensitivity: 'base'}) || x.id.localeCompare(y.id);
-            return compareEntries({id: x.id, name: x.name, stars: x.entry?.stars, git: x.entry?.git}, {id: y.id, name: y.name, stars: y.entry?.stars, git: y.entry?.git});
-        });
-    });
+    // B-157: lib/addoncards.ts - an entry that cannot be a card becomes one that says why, and
+    // the list is built so that one entry cannot throw for all of them
+    const brokenText = (why: BrokenWhy): string =>
+        why === 'not-object' ? t('the system sent an entry that is not an object')
+            : why === 'no-id' ? t('the system sent an installed addon without an id')
+            : why === 'id-not-text' ? t('its id is not text')
+            : why === 'no-id-no-repo' ? t('it names neither an id nor a repository')
+            : why === 'not-a-list' ? t('the system sent no list')
+            : why;
+    const cards = $derived(buildCards(catalogue?.addons ?? [], addons ?? [], [...brokenEntries, ...brokenAddons], lang));
     const shown = $derived(cards.filter((c) => {
         if (installedOnly && !c.addon) return false;
         if (!filter) return true;
@@ -625,7 +599,13 @@
     </div>
 {/if}
 <!-- one bar for a catalogue run, wherever it was started -->
+<!-- B-157: a run the page cannot draw says so; the list below stays -->
+<svelte:boundary onerror={(e) => console.error('addons: the install progress could not be rendered', e)}>
 <InstallProgress bind:this={progressView} bind:busy={installBusy} bind:job={installJob} onfinished={() => { void load(); addonsChanged(); }} />
+    {#snippet failed(err)}
+        <div class="ol-notice error" data-progress-error>{t('The install progress could not be shown: {error}', {error: (err as Error)?.message ?? String(err)})}</div>
+    {/snippet}
+</svelte:boundary>
 {#if !addons || !catalogue}
     <Loading {error} />
 {:else}
@@ -724,6 +704,13 @@
         {#each shown as c (c.id)}
             <!-- B-157: one card that cannot render stands as a notice of its own; the others stay -->
             <svelte:boundary onerror={(e) => console.error(`addons: the card of ${c.id} could not be rendered`, e)}>
+            {#if c.broken}
+                <!-- B-157: an entry of the system's answer the page cannot read; the console names it too -->
+                <div class="ol-card ad-card err" id={`addon-row-${c.id}`} data-addon-card={c.id} data-card-error="read">
+                    <h3 class="ad-name">{c.name}</h3>
+                    <p class="ol-warn">{t('This addon\'s card could not be shown: {error}', {error: brokenText(c.broken)})}</p>
+                </div>
+            {:else}
             {@const a = c.addon}
             {@const e = c.entry}
             {@const repo = e ? repoURL({id: e.id, name: c.name, git: e.git, release: e.release}) : ''}
@@ -786,14 +773,19 @@
                         {/if}
                         {#if a.policy_mode === 'root' && a.adopted_confinable}
                             <!-- openccu-lite #23: the same badge, its reason the way out the Status page names -->
-                            {@render badge('ol-badge warn ad-adopted', t('root (unsafe)'), t('This addon runs as root: it can change anything on the system. It came along from before openccu-lite, and its manifest says it can run as its own user: installing it again from its package gives it one.'))}
+                            {@render badge('ol-badge warn ad-adopted', t('root (unsafe)'), t('This addon runs as root: it can change anything on the system. It came along from before openccu-lite, and its manifest says it can run as its own user: installing it again from its package gives it one.') + ' ' + t('Until then the system has stored no declaration of it.'))}
                         {:else if a.policy_mode === 'root'}
                             {@render badge('ol-badge warn', t('root (unsafe)'), t('This addon runs as root: it can change anything on the system. The Services page switches it to its own user.'))}
                         {:else if a.policy_mode === 'confined'}
                             {@render badge('ol-badge ok ad-confined', t('confined'), t('This addon runs as its own user and cannot write outside its own directories.'))}
                         {/if}
-                        {#if a.undeclared}
-                            {@render badge('ol-badge', t('undeclared'), t('This addon declared no compatibility: its manifest carries no runtime block, so nobody has said what it needs.'))}
+                        <!-- B-163: an adopted addon whose own manifest declares what it needs is not
+                             "undeclared" - the system has only not stored that manifest yet. With the
+                             root badge above its hint says so; confined already, its badge names the way -->
+                        {#if declarationMark(a) === 'not-from-package'}
+                            {@render badge('ol-badge ad-not-from-package', t('not installed from its package'), t('It came along from before openccu-lite: the manifest in its own directory declares what it needs, but the system has stored no declaration of it. Installing it again from its package (a file below, or the catalogue) stores it.'))}
+                        {:else if declarationMark(a) === 'undeclared'}
+                            {@render badge('ol-badge ad-undeclared', t('undeclared'), t('This addon declared no compatibility: its manifest carries no runtime block, so nobody has said what it needs.'))}
                         {/if}
                         <!-- D-66: no root addon may remount the system partition; the two marks say
                              who kept the right (the entry declares CAP_SYS_ADMIN) and whose remount
@@ -923,6 +915,7 @@
                     {/if}
                 </div>
             </div>
+            {/if}
                 {#snippet failed(err, reset)}
                     <div class="ol-card ad-card err" id={`addon-row-${c.id}`} data-addon-card={c.id} data-card-error>
                         <h3 class="ad-name">{c.name}</h3>

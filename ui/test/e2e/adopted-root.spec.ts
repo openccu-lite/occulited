@@ -78,3 +78,67 @@ test('the root badge keeps its box with and without the hint', async ({page}) =>
     await marked.click();
     await expect(page.getByText('It came along from before openccu-lite, and its manifest says it can run as its own user')).toBeVisible();
 });
+
+// occulited B-163: "undeclared" beside the root badge whose hint says the manifest declares read as a
+// contradiction. The badge sets: adopted with a manifest that declares (root, and confined on the
+// Services page), adopted without any manifest, installed from the catalogue.
+async function addonAs(page: Page, id: string, fields: object) {
+    await page.route('**/api/system/v1/addons', async (route: Route) => {
+        if (route.request().method() !== 'GET') return route.fallback();
+        const response = await route.fetch();
+        const j = await response.json();
+        for (const a of j.addons ?? []) if (a.id === id) Object.assign(a, fields);
+        await route.fulfill({response, json: j});
+    });
+}
+const ADOPTED = {policy_source: 'migrated', undeclared: true, from_ccu: true};
+
+test('adopted, its manifest declares, root: the root badge alone, its hint says why', async ({page}) => {
+    await only(page, []);
+    await addonAs(page, 'mosquitto', {...ADOPTED, policy_mode: 'root', adopted_confinable: true});
+    await page.goto('/addons');
+    const card = page.locator('#addon-row-mosquitto');
+    await expect(card.locator('.ad-adopted')).toHaveText('root (unsafe)');
+    await expect(card.getByText('undeclared', {exact: true})).toHaveCount(0);
+    await expect(card.locator('.ad-not-from-package')).toHaveCount(0);
+    await card.locator('.ad-adopted').click();
+    await expect(page.getByText('Until then the system has stored no declaration of it.')).toBeVisible();
+});
+
+test('adopted, its manifest declares, confined: not installed from its package', async ({page}) => {
+    await only(page, []);
+    await addonAs(page, 'mosquitto', {...ADOPTED, policy_mode: 'confined', adopted_confinable: true});
+    await page.goto('/addons');
+    const card = page.locator('#addon-row-mosquitto');
+    await expect(card.locator('.ad-not-from-package')).toHaveText('not installed from its package');
+    await expect(card.locator('.ad-undeclared')).toHaveCount(0);
+    await card.locator('.ad-not-from-package').click();
+    await expect(page.getByText('the manifest in its own directory declares what it needs, but the system has stored no declaration of it')).toBeVisible();
+});
+
+test('adopted without any manifest: undeclared, beside the plain root badge', async ({page}) => {
+    await only(page, []);
+    await addonAs(page, 'mosquitto', {...ADOPTED, policy_mode: 'root'});
+    await page.goto('/addons');
+    const card = page.locator('#addon-row-mosquitto');
+    await expect(card.locator('.ad-undeclared')).toHaveText('undeclared');
+    await expect(card.locator('.ad-adopted')).toHaveCount(0);
+    await expect(card.locator('.ad-not-from-package')).toHaveCount(0);
+});
+
+test('installed from the catalogue: neither mark', async ({page}) => {
+    await only(page, []);
+    await page.goto('/addons');
+    const card = page.locator('#addon-row-mosquitto');
+    await expect(card.locator('.ad-confined')).toBeVisible();
+    await expect(card.locator('.ad-undeclared')).toHaveCount(0);
+    await expect(card.locator('.ad-not-from-package')).toHaveCount(0);
+});
+
+test('German: nicht aus seinem Paket installiert', async ({page}) => {
+    await page.addInitScript(() => localStorage.setItem('ol.language', 'de'));
+    await only(page, []);
+    await addonAs(page, 'mosquitto', {...ADOPTED, policy_mode: 'confined', adopted_confinable: true});
+    await page.goto('/addons');
+    await expect(page.locator('#addon-row-mosquitto .ad-not-from-package')).toHaveText('nicht aus seinem Paket installiert');
+});

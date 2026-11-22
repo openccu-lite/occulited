@@ -16,6 +16,7 @@
 // page is shown again. The list runs every addon's rc.d `info`, so it is not polled.
 import {api, type Addon} from './api';
 import {compare, leaving, MAX_KEPT, overflow, addonState} from './framekeep';
+import {readAddons} from './addoncards';
 
 export interface KeptFrame {
     key: string;
@@ -118,7 +119,7 @@ export function recheck(force: boolean): Promise<void> {
             again = false;
             lastAt = Date.now();
             try {
-                noteAddons((await api.get<{addons: Addon[]}>('/api/system/v1/addons')).addons);
+                noteAddons(readAddons((await api.get<{addons: unknown}>('/api/system/v1/addons')).addons).ok);
             } catch {
                 /* the next check */
             }

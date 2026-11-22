@@ -61,6 +61,7 @@
     import {auth, refresh} from './lib/auth.svelte';
     import {answerThemeRequests} from './lib/theme.svelte';
     import {onMount} from 'svelte';
+    import {readAddons} from './lib/addoncards';
 
     let extra = $state<NavEntry[]>([]);
     // Task 55: the addon dropdown lists every installed addon, not only the ones with a frontend,
@@ -242,8 +243,9 @@
                 .finally(() => (navLoaded = true));
             api.get<{addons: Addon[]}>('/api/system/v1/addons')
                 .then((r) => {
-                    installed = r.addons;
-                    noteAddons(r.addons); // task 39: the kept pages learn their addons' state from it
+                    // B-157: an installed addon the shell cannot read is left out of the menu, not the menu with it
+                    installed = readAddons(r.addons).ok;
+                    noteAddons(installed); // task 39: the kept pages learn their addons' state from it
                     writeMenuCache(user);
                 })
                 .catch(() => (installed = []))
@@ -282,8 +284,8 @@
                 if (!auth.authenticated || (auth.user ?? '') !== user) break;
                 if (n.status === 'fulfilled') extra = n.value.entries;
                 if (a.status === 'fulfilled') {
-                    installed = a.value.addons;
-                    noteAddons(a.value.addons);
+                    installed = readAddons(a.value.addons).ok;
+                    noteAddons(installed);
                 }
                 if (n.status === 'fulfilled' || a.status === 'fulfilled') writeMenuCache(user);
             } while (menuAgain);
