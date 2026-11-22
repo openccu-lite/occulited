@@ -3674,6 +3674,13 @@ const CATALOGUE: Record<string, {de: string; en?: string}> = {
     'Processor: max {temp} ({span})': {de: 'Prozessor: max. {temp} ({span})'},
     'processor temperature history': {de: 'Verlauf der Prozessortemperatur'},
     'Throttling from {temp}': {de: 'Drosselung ab {temp}'},
+    // occulited B-162: the kernel's undervoltage episodes, and a short dip at the start that is no warning
+    '{what} since the boot ({n}×, last at {time})': {de: '{what} seit dem Start ({n}×, zuletzt um {time})'},
+    'Brief undervoltage at start-up ({time}, normalised)': {de: 'Kurze Unterspannung beim Start ({time}, normalisiert)'},
+    '{n} brief undervoltages at start-up ({time}, normalised)': {de: '{n} kurze Unterspannungen beim Start ({time}, normalisiert)'},
+    'Undervoltage episodes since the boot: {n}, {time} together': {de: 'Unterspannungen seit dem Start: {n}, zusammen {time}'},
+    'the last at {time}': {de: 'die letzte um {time}'},
+    'the supply dipped in the load peak of the start and recovered at once; no warning': {de: 'die Versorgung ist in der Lastspitze des Starts kurz eingebrochen und hat sich sofort erholt; keine Warnung'},
     'The processor is at {temp}, at its limit of {max}: it is slowed down hard to cool off. Give the system more air, a heat sink or a fan.': {de: 'Der Prozessor hat {temp} und damit seine Grenze von {max} erreicht: Er wird stark gebremst, um abzukühlen. Geben Sie dem System mehr Luft, einen Kühlkörper oder einen Lüfter.'},
     'The processor is hot at {temp}: from {warn} it is slowed down to cool off. Give the system more air, a heat sink or a fan.': {de: 'Der Prozessor ist mit {temp} heiß: Ab {warn} wird er gebremst, um abzukühlen. Geben Sie dem System mehr Luft, einen Kühlkörper oder einen Lüfter.'},
     '{disk} at {temp} (rated up to {warn})': {de: '{disk} mit {temp} (ausgelegt bis {warn})'},

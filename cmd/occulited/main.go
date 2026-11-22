@@ -663,6 +663,23 @@ func run(opts daemonOptions) error {
 	// occulited task 37: the system's load and memory, once a minute, the same ring and file
 	// task 148: and the processor's temperature where there is a sensor
 	thermal := &system.ThermalReader{Root: root, Platform: dataStoreMgr.Platform, Log: log}
+	// B-162: the supply's undervoltage episodes from rpi_volt's kernel lines - the journal (the unit's
+	// systemd-journal group), the ring buffer where the journal holds no kernel line of this boot
+	thermal.Kernel = func(context.Context) ([]system.LogLine, error) {
+		if journal == nil {
+			return system.Dmesg{Root: root}.Read(system.VoltageQuery)
+		}
+		lines, err := journal.Read(system.VoltageQuery)
+		if err != nil || len(lines) > 0 {
+			return lines, err
+		}
+		// none in the journal: there was none, or its kernel lines are gone - the ring buffer
+		// where dmesg is allowed, else the journal's answer stands
+		if ring, err := (system.Dmesg{Root: root}).Read(system.VoltageQuery); err == nil {
+			return ring, nil
+		}
+		return lines, nil
+	}
 	sysHist := &syshist.Sampler{Read: func() (syshist.Reading, bool) {
 		load, mem, ok := root.ReadUsage()
 		soc, hasSoC := system.SoCTemperature(root.ReadTemperatures(thermal.Platform))

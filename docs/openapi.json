@@ -14769,6 +14769,31 @@
       },
       "SystemThrottle": {
         "properties": {
+          "episodes": {
+            "items": {
+              "$ref": "#/components/schemas/SystemVoltageEpisode"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "events": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "last": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SystemVoltageEpisode"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "now": {
             "$ref": "#/components/schemas/SystemThrottleFlags"
           },
@@ -14784,12 +14809,19 @@
           },
           "source": {
             "type": "string"
+          },
+          "state": {
+            "type": "string"
+          },
+          "undervoltage_s": {
+            "type": "number"
           }
         },
         "required": [
           "now",
           "since_boot",
-          "source"
+          "source",
+          "state"
         ],
         "type": "object"
       },
@@ -15178,6 +15210,26 @@
           "platform",
           "product",
           "version"
+        ],
+        "type": "object"
+      },
+      "SystemVoltageEpisode": {
+        "properties": {
+          "duration_s": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "start": {
+            "type": "string"
+          },
+          "start_s": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "start_s"
         ],
         "type": "object"
       },

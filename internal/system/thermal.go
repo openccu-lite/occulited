@@ -85,6 +85,15 @@ type Throttle struct {
 	Raw       *uint32       `json:"raw,omitempty"`
 	Now       ThrottleFlags `json:"now"`
 	SinceBoot ThrottleFlags `json:"since_boot"`
+	// State is what the panel says (B-162): normal, boot_dip, earlier, throttled or undervoltage
+	State string `json:"state"`
+	// Events is the number of undervoltage episodes of this boot by the kernel's messages (rpi_volt),
+	// UnderVoltageS their seconds together, Last the newest and Episodes the newest voltageKept;
+	// all absent when the kernel log was not read (nothing to explain) or could not be
+	Events        *int             `json:"events,omitempty"`
+	UnderVoltageS float64          `json:"undervoltage_s,omitempty"`
+	Last          *VoltageEpisode  `json:"last,omitempty"`
+	Episodes      []VoltageEpisode `json:"episodes,omitempty"`
 }
 
 // ThrottleFlags are the four conditions of the firmware's word.
@@ -360,10 +369,19 @@ type ThermalReader struct {
 	// real box (Root "/") and nothing anywhere else
 	Throttled func(ctx context.Context) (string, error)
 	Log       *slog.Logger
+	// Kernel reads this boot's kernel lines about the supply voltage (VoltageQuery: the journal, or
+	// the ring buffer without one); nil = no history, the sticky bits alone (B-162)
+	Kernel func(ctx context.Context) ([]LogLine, error)
 
 	mu       sync.Mutex
 	at       time.Time
 	word     *uint32
+	prev     *uint32 // the word before, to see a sticky bit appear
+	late     bool    // a sticky bit appeared, or a condition held, after the boot phase (B-162)
+	vmu      sync.Mutex
+	vat      time.Time
+	eps      []VoltageEpisode
+	vok      bool
 	noVcgen  bool // the helper said vcgencmd is not installed: not asked again
 	reported bool // a failed read is logged once
 }
@@ -385,14 +403,50 @@ func (t *ThermalReader) throttle(ctx context.Context) *Throttle {
 	if !isPi(t.Platform) {
 		return nil
 	}
+	var th Throttle
 	if w, ok := t.firmwareWord(ctx); ok {
-		th := ThrottleFromWord(w)
-		return &th
+		th = ThrottleFromWord(w)
+	} else if under, ok := t.Root.UnderVoltageNow(); ok {
+		th = Throttle{Source: "hwmon", Now: ThrottleFlags{UnderVoltage: under}}
+		if under {
+			t.markLate()
+		}
+	} else {
+		return nil
 	}
-	if under, ok := t.Root.UnderVoltageNow(); ok {
-		return &Throttle{Source: "hwmon", Now: ThrottleFlags{UnderVoltage: under}}
+	// the kernel's episodes only when there is something to explain; the alarm alone says nothing
+	// of the past, so with it they are always read
+	var eps []VoltageEpisode
+	read := false
+	if th.Source == "hwmon" || th.SinceBoot.Any() || th.Now.Any() {
+		eps, read = t.voltage(ctx)
 	}
-	return nil
+	t.mu.Lock()
+	late := t.late
+	t.mu.Unlock()
+	up, _ := t.Root.Uptime()
+	th.assess(eps, read, late, up)
+	return &th
+}
+
+// markLate notes a condition that held after the boot phase.
+func (t *ThermalReader) markLate() {
+	if up, ok := t.Root.Uptime(); ok && up >= BootPhase {
+		t.mu.Lock()
+		t.late = true
+		t.mu.Unlock()
+	}
+}
+
+// seeLate compares a fresh word with the one before: past the boot phase, a condition that holds
+// now or a sticky bit that was not set before is not the boot's. Called with mu held.
+func (t *ThermalReader) seeLate(w uint32) {
+	up, ok := t.Root.Uptime()
+	if ok && up >= BootPhase && (w&0xf != 0 || (t.prev != nil && (w>>16)&^(*t.prev>>16)&0xf != 0)) {
+		t.late = true
+	}
+	p := w
+	t.prev = &p
 }
 
 func (t *ThermalReader) firmwareWord(ctx context.Context) (uint32, bool) {
@@ -439,5 +493,6 @@ func (t *ThermalReader) firmwareWord(ctx context.Context) (uint32, bool) {
 		return 0, false
 	}
 	t.word = &w
+	t.seeLate(w)
 	return w, true
 }

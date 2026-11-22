@@ -18,7 +18,7 @@
     import Icon from './Icon.svelte';
     import HistoryChart from './HistoryChart.svelte';
     import {i18n, t} from './i18n.svelte';
-    import {MAX_TEMP_RINGS, TEMP_STEPS, formatCelsius, formatLimit, panelLevel, ringFraction, tempColours, tempLevel, throttleFacts, throttleState, type Thermal, type ThrottleFlag, type ThrottleState, type TempReading} from './thermal';
+    import {MAX_TEMP_RINGS, TEMP_STEPS, bootDip, formatCelsius, formatSeconds, formatLimit, panelLevel, ringFraction, tempColours, tempLevel, throttleFacts, throttleState, type Thermal, type ThrottleFlag, type ThrottleState, type TempReading} from './thermal';
     import {clock, spanMax, type Sample} from './history';
     import {panelEdge} from './storage';
 
@@ -76,10 +76,37 @@
             case 'soft_temp_limit': return t('Soft temperature limit');
         }
     }
-    const factText = (f: {flag: ThrottleFlag; now: boolean}) => (f.now ? t('{what} now', {what: flagWord(f.flag)}) : t('{what} since the boot', {what: flagWord(f.flag)}));
+    // B-162: the kernel's episodes name how often and when; the last one on the clock
+    const lastAt = $derived(th?.last?.start ? clock(new Date(th.last.start), lang) : '');
+    function factText(f: {flag: ThrottleFlag; now: boolean}): string {
+        if (f.now) return t('{what} now', {what: flagWord(f.flag)});
+        if (f.flag === 'under_voltage' && th?.events && lastAt) return t('{what} since the boot ({n}×, last at {time})', {what: flagWord(f.flag), n: th.events, time: lastAt});
+        return t('{what} since the boot', {what: flagWord(f.flag)});
+    }
+    // B-162: a short undervoltage in the boot phase that normalised - an info line, no warning
+    const dip = $derived(th ? bootDip(th) : null);
+    const dipText = $derived(
+        dip
+            ? dip.n === 1
+                ? t('Brief undervoltage at start-up ({time}, normalised)', {time: formatSeconds(dip.seconds, lang)})
+                : t('{n} brief undervoltages at start-up ({time}, normalised)', {n: dip.n, time: formatSeconds(dip.seconds, lang)})
+            : '',
+    );
+    const episodesLine = $derived(
+        th?.events
+            ? t('Undervoltage episodes since the boot: {n}, {time} together', {n: th.events, time: formatSeconds(th.undervoltage_s ?? 0, lang)}) +
+                  (lastAt ? ' · ' + t('the last at {time}', {time: lastAt}) : '')
+            : '',
+    );
     const quiet = $derived(th?.source === 'hwmon' ? t('No undervoltage') : t('No undervoltage, no throttling since the boot'));
     const throttleTitle = $derived(
-        [facts.length ? facts.map(factText).join(' · ') : quiet, t("The Raspberry Pi's firmware slows the processor down when it gets hot and when the supply voltage drops; both are a common cause of radio trouble.")].join('\n'),
+        [
+            facts.length ? facts.map(factText).join(' · ') : dip ? `${dipText}: ${t('the supply dipped in the load peak of the start and recovered at once; no warning')}` : quiet,
+            episodesLine,
+            t("The Raspberry Pi's firmware slows the processor down when it gets hot and when the supply voltage drops; both are a common cause of radio trouble."),
+        ]
+            .filter(Boolean)
+            .join('\n'),
     );
 
     // the rings on a 100 × 100 grid: 8 wide with a 2.5 gap, the outermost at r 45 (the storage panel's)
@@ -131,6 +158,8 @@
                 {#each facts as f (f.flag)}
                     <span class="tp-fact" class:now={f.now} class:err={f.now && f.flag === 'under_voltage'} data-fact={f.flag} data-now={f.now}>{factText(f)}</span>
                 {/each}
+            {:else if dip}
+                <span class="tp-fact info" data-fact="boot_dip">{dipText}</span>
             {:else}
                 <span class="ol-muted tp-quiet">{quiet}</span>
             {/if}
@@ -169,6 +198,8 @@
     .tp-throttle { display: flex; gap: 6px; align-items: center; min-width: 0; height: 1.6em; overflow: hidden; white-space: nowrap; font-size: var(--hmm-font-size-small); }
     .tp-quiet { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
     .tp-fact { flex: 0 0 auto; display: inline-flex; align-items: center; box-sizing: border-box; height: 1.6em; padding: 0 8px; line-height: 1; border-radius: 999px; border: 1px solid var(--hmm-border-muted); color: var(--hmm-fg-muted); }
+    /* B-162: the boot dip says what happened and stays quiet - the muted outline, cut like the quiet line */
+    .tp-fact.info { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; display: block; line-height: calc(1.6em - 2px); }
     .tp-fact.now { border-color: var(--hmm-warn); color: var(--hmm-warn); }
     .tp-fact.err { border-color: var(--hmm-error); color: var(--hmm-error); font-weight: 600; }
     .tp-peak { font-size: var(--hmm-font-size-small); margin-bottom: 2px; }

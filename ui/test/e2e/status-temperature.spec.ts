@@ -100,6 +100,72 @@ test('hot: the warning above, its button to the panel, the panel amber; the pill
     await expect(p).toBeInViewport();
 });
 
+// occulited B-162 (the maintainer's Pi 3: one dip of 2 s at 9.66 s showed as "Unterspannung seit dem
+// Start" for the whole uptime): a short dip at the start that normalised is an info line, not a
+// warning; a dip that recurs is the warning with how often and when; undervoltage now is red - and
+// neither the pill nor the line changes its size between the three
+test('undervoltage: a boot dip is an info line, a recurring one a warning, one now red - each in the same box', async ({page, baseURL}) => {
+    const p = panel(page);
+    const pill = p.locator('.tp-pill');
+    const line = p.locator('[data-throttle-facts]');
+    const boxes: {pill: {width: number; height: number}; line: {height: number}; panel: {height: number}}[] = [];
+    for (const v of ['bootdip', 'recurring', 'crit'] as const) {
+        await thermal(page, baseURL!, v);
+        await page.goto('/');
+        await expect(p).toBeVisible();
+        if (v === 'bootdip') {
+            await expect(pill).toHaveText('normal');
+            await expect(pill).toHaveClass(/\bgood\b/);
+            const dip = p.locator('[data-fact="boot_dip"]');
+            await expect(dip).toHaveText('Brief undervoltage at start-up (2 s, normalised)');
+            await expect(p.locator('[data-fact="under_voltage"], [data-fact="throttled"]')).toHaveCount(0);
+            await expect(line).toHaveAttribute('title', /no warning/);
+            await expect(line).toHaveAttribute('title', /Undervoltage episodes since the boot: 1, 2 s together/);
+            // quiet: the muted outline, not the warning's colour
+            const [c, warn] = await dip.evaluate((e) => [getComputedStyle(e).color, getComputedStyle(e).getPropertyValue('--hmm-warn')]);
+            expect(c).not.toBe(warn.trim());
+            await expect(p).not.toHaveClass(/\b(warn|err)\b/);
+        } else if (v === 'recurring') {
+            await expect(pill).toHaveText('throttled earlier');
+            await expect(pill).toHaveClass(/\bwarn\b/);
+            await expect(p.locator('[data-fact="under_voltage"]')).toHaveText(/^Undervoltage since the boot \(3×, last at \d\d:\d\d\)$/);
+            await expect(p.locator('[data-fact="throttled"]')).toHaveText('Throttled since the boot');
+            await expect(p.locator('[data-fact="boot_dip"]')).toHaveCount(0);
+        } else {
+            await expect(pill).toHaveText('undervoltage');
+            await expect(pill).toHaveClass(/\bbad\b/);
+            await expect(p.locator('[data-fact="under_voltage"]')).toHaveText('Undervoltage now');
+        }
+        boxes.push({pill: (await pill.boundingBox())!, line: (await line.boundingBox())!, panel: (await p.boundingBox())!});
+    }
+    for (const b of boxes.slice(1)) {
+        expect(b.pill.width).toBeCloseTo(boxes[0]!.pill.width, 0);
+        expect(b.pill.height).toBeCloseTo(boxes[0]!.pill.height, 0);
+        expect(b.line.height).toBeCloseTo(boxes[0]!.line.height, 0);
+    }
+    // the two without a disk have the same panel
+    expect(boxes[1]!.panel.height).toBeCloseTo(boxes[0]!.panel.height, 0);
+});
+
+test('the boot dip in German, in both themes, on a phone', async ({page, baseURL}) => {
+    await page.addInitScript(() => localStorage.setItem('ol.language', 'de'));
+    await thermal(page, baseURL!, 'bootdip');
+    await page.setViewportSize({width: 360, height: 780});
+    for (const scheme of ['light', 'dark'] as const) {
+        await page.emulateMedia({colorScheme: scheme});
+        await page.goto('/');
+        const p = panel(page);
+        await expect(p.locator('.tp-pill')).toHaveText('normal');
+        await expect(p.locator('[data-fact="boot_dip"]')).toHaveText('Kurze Unterspannung beim Start (2 s, normalisiert)');
+        await expect(p.locator('[data-fact="boot_dip"]')).toBeVisible();
+        expect(await pageWidth(page)).toBeLessThanOrEqual(360);
+        expect((await p.locator('[data-throttle-facts]').boundingBox())!.height).toBeLessThan(30);
+    }
+    await thermal(page, baseURL!, 'recurring');
+    await page.goto('/');
+    await expect(panel(page).locator('[data-fact="under_voltage"]')).toHaveText(/^Unterspannung seit dem Start \(3×, zuletzt um \d\d:\d\d\)$/);
+});
+
 test('in German, on a phone, in both themes', async ({page, baseURL}) => {
     await page.addInitScript(() => localStorage.setItem('ol.language', 'de'));
     await thermal(page, baseURL!, 'crit');

@@ -3483,7 +3483,7 @@ function variant(req, u, res) {
         sendJSON(res, {...structuredClone(routes[key]), security_key_set: false});
         return true;
     }
-    // occulited task 148: the temperature panel (stub-thermal=pi|ssd|hot|crit) - a Pi 4's SoC, with a
+    // occulited task 148: the temperature panel (stub-thermal=pi|ssd|hot|crit|bootdip|recurring) - a Pi 4's SoC, with a
     // USB SSD's SMART temperature, hot (throttled), at the limit with a hot disk and undervoltage now;
     // and the processor's temperature in the history. Without the cookie the OVA has no sensor.
     if (jar['stub-thermal'] && THERMAL[jar['stub-thermal']] && (key === 'GET /api/system/v1/status' || key === 'GET /api/system/v1/status/history')) {
@@ -3686,7 +3686,12 @@ const THERMAL = {
     pi: {readings: [piSoC(54.8)], throttle: {source: 'firmware', raw: 0, now: flags(), since_boot: flags()}},
     ssd: {readings: [piSoC(61.2), t7(38)], throttle: {source: 'firmware', raw: 0x50000, now: flags(), since_boot: flags({under_voltage: true, throttled: true})}},
     hot: {readings: [piSoC(81.4)], throttle: {source: 'firmware', raw: 0xc000c, now: flags({throttled: true, soft_temp_limit: true}), since_boot: flags({throttled: true, soft_temp_limit: true})}},
-    crit: {readings: [piSoC(85.3), t7(72)], throttle: {source: 'firmware', raw: 0x50005, now: flags({under_voltage: true, throttled: true}), since_boot: flags({under_voltage: true, throttled: true})}},
+    crit: {readings: [piSoC(85.3), t7(72)], throttle: {source: 'firmware', raw: 0x50005, now: flags({under_voltage: true, throttled: true}), since_boot: flags({under_voltage: true, throttled: true}), state: 'undervoltage', events: 3, undervoltage_s: 17, last: {start: '2026-11-22T10:30:00Z', start_s: 9000}}},
+    // occulited B-162: the maintainer's Pi 3 - 0x50000 and one dip of 2 s at 9.66 s, normalised: an info line
+    bootdip: {readings: [piSoC(52.1)], throttle: {source: 'firmware', raw: 0x50000, now: flags(), since_boot: flags({under_voltage: true, throttled: true}), state: 'boot_dip', events: 1, undervoltage_s: 2, last: {start: '2026-11-22T08:00:09.66Z', start_s: 9.7, duration_s: 2}, episodes: [{start: '2026-11-22T08:00:09.66Z', start_s: 9.7, duration_s: 2}]}},
+    // ... and a supply that is not enough: the dip at the start, then two more under load
+    recurring: {readings: [piSoC(52.1)], throttle: {source: 'firmware', raw: 0x50000, now: flags(), since_boot: flags({under_voltage: true, throttled: true}), state: 'earlier', events: 3, undervoltage_s: 13, last: {start: '2026-11-22T10:30:00Z', start_s: 9000, duration_s: 6},
+        episodes: [{start: '2026-11-22T08:00:08Z', start_s: 8, duration_s: 1}, {start: '2026-11-22T10:00:00Z', start_s: 7200, duration_s: 6}, {start: '2026-11-22T10:30:00Z', start_s: 9000, duration_s: 6}]}},
 };
 
 const STORAGE = {

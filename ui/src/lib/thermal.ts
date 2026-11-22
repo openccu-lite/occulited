@@ -25,12 +25,28 @@ export interface ThrottleFlags {
     throttled: boolean;
     soft_temp_limit: boolean;
 }
+/** an undervoltage episode of this boot by rpi_volt's kernel lines (occulited B-162) */
+export interface VoltageEpisode {
+    /** when it began, on the wall clock */
+    start?: string;
+    /** when it began, seconds since the boot; -1 unknown */
+    start_s: number;
+    /** how long it lasted; absent while it has not normalised */
+    duration_s?: number;
+}
 export interface Throttle {
     /** firmware: the whole word; hwmon: the undervoltage now alone */
     source: 'firmware' | 'hwmon';
     raw?: number;
     now: ThrottleFlags;
     since_boot: ThrottleFlags;
+    /** the server's verdict (B-162); absent from an older occulited */
+    state?: ThrottleState | 'boot_dip';
+    /** the kernel's undervoltage episodes this boot; absent when the kernel log was not read */
+    events?: number;
+    undervoltage_s?: number;
+    last?: VoltageEpisode;
+    episodes?: VoltageEpisode[];
 }
 export interface Thermal {
     readings: TempReading[];
@@ -79,6 +95,9 @@ export function formatLimit(v: number, lang: string): string {
 /** the throttle's state in one word for the pill: undervoltage before throttling before normal; a flag since the boot alone is "earlier" */
 export type ThrottleState = 'normal' | 'earlier' | 'throttled' | 'undervoltage';
 export function throttleState(th: Throttle): ThrottleState {
+    // B-162: a short undervoltage in the boot phase that normalised is no warning - the pill says normal
+    if (th.state === 'boot_dip') return 'normal';
+    if (th.state) return th.state;
     if (th.now.under_voltage) return 'undervoltage';
     if (th.now.throttled || th.now.freq_capped || th.now.soft_temp_limit) return 'throttled';
     const s = th.since_boot;
@@ -91,11 +110,28 @@ export type ThrottleFlag = keyof ThrottleFlags;
 export const FLAG_ORDER: ThrottleFlag[] = ['under_voltage', 'throttled', 'freq_capped', 'soft_temp_limit'];
 export function throttleFacts(th: Throttle): {flag: ThrottleFlag; now: boolean}[] {
     const out: {flag: ThrottleFlag; now: boolean}[] = [];
+    // a boot dip's sticky bits are its own info line (bootDip), not conditions
+    const since = th.state !== 'boot_dip';
     for (const f of FLAG_ORDER) {
         if (th.now[f]) out.push({flag: f, now: true});
-        else if (th.source === 'firmware' && th.since_boot[f]) out.push({flag: f, now: false});
+        else if (since && ((th.source === 'firmware' && th.since_boot[f]) || (f === 'under_voltage' && (th.events ?? 0) > 0))) out.push({flag: f, now: false});
     }
     return out;
+}
+
+/** B-162: the boot dip's info line - how many episodes and how long together; null when it is none */
+export function bootDip(th: Throttle): {n: number; seconds: number} | null {
+    if (th.state !== 'boot_dip') return null;
+    return {n: Math.max(1, th.events ?? 1), seconds: th.undervoltage_s ?? 0};
+}
+
+/** a duration as the panel writes it: "2 s", "1,5 s", "2 min 5 s" */
+export function formatSeconds(v: number, lang: string): string {
+    const nf = new Intl.NumberFormat(lang === 'de' ? 'de-DE' : 'en-US', {maximumFractionDigits: v < 10 ? 1 : 0});
+    if (v < 60) return `${nf.format(v)} s`;
+    const m = Math.floor(v / 60);
+    const s = Math.round(v - m * 60);
+    return s ? `${m} min ${s} s` : `${m} min`;
 }
 
 /** a system sample of GET /status/history with the processor's temperature (task 148) */

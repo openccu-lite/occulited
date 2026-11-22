@@ -1,5 +1,5 @@
 import {describe, expect, it} from 'vitest';
-import {formatCelsius, formatLimit, panelLevel, ringFraction, socSeries, tempColours, tempLevel, throttleFacts, throttleState, type TempReading, type Throttle} from './thermal';
+import {bootDip, formatCelsius, formatLimit, formatSeconds, panelLevel, ringFraction, socSeries, tempColours, tempLevel, throttleFacts, throttleState, type TempReading, type Throttle} from './thermal';
 
 // occulited task 148: the temperature panel's figures and words
 const soc = (celsius: number): TempReading => ({id: 'thermal_zone0', kind: 'soc', name: 'cpu-thermal', celsius, warn_c: 80, max_c: 85});
@@ -47,6 +47,30 @@ describe('thermal', () => {
             {flag: 'throttled', now: true},
         ]);
         expect(throttleFacts(th({}))).toEqual([]);
+    });
+
+    // occulited B-162: the server's verdict - a boot dip is normal with an info line, a dip later is earlier
+    it('reads the server\'s verdict and the kernel\'s episodes', () => {
+        const prod: Throttle = {source: 'firmware', raw: 0x50000, now: flags(), since_boot: flags({under_voltage: true, throttled: true}), state: 'boot_dip', events: 1, undervoltage_s: 2};
+        expect(throttleState(prod)).toBe('normal');
+        expect(throttleFacts(prod)).toEqual([]);
+        expect(bootDip(prod)).toEqual({n: 1, seconds: 2});
+        const later: Throttle = {...prod, state: 'earlier', events: 3, undervoltage_s: 13};
+        expect(throttleState(later)).toBe('earlier');
+        expect(bootDip(later)).toBeNull();
+        expect(throttleFacts(later)).toEqual([
+            {flag: 'under_voltage', now: false},
+            {flag: 'throttled', now: false},
+        ]);
+        // hwmon's alarm with the kernel's episodes: the undervoltage since the boot is known
+        const hw: Throttle = {source: 'hwmon', now: flags(), since_boot: flags(), state: 'earlier', events: 2};
+        expect(throttleFacts(hw)).toEqual([{flag: 'under_voltage', now: false}]);
+        expect(throttleState({...prod, state: 'undervoltage', now: flags({under_voltage: true})})).toBe('undervoltage');
+        expect(formatSeconds(2, 'de')).toBe('2 s');
+        expect(formatSeconds(1.5, 'de')).toBe('1,5 s');
+        expect(formatSeconds(17, 'en')).toBe('17 s');
+        expect(formatSeconds(125, 'en')).toBe('2 min 5 s');
+        expect(formatSeconds(120, 'en')).toBe('2 min');
     });
 
     it('draws the processor history, breaking the line where a sample has none', () => {
