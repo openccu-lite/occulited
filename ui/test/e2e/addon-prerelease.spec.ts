@@ -5,7 +5,8 @@ import type {Page} from '@playwright/test';
 // an orange pill beside the version it belongs to - on a catalogue card, beside an installed
 // addon's version, beside the offered update - saying Beta, RC, Alpha or Pre-release, with its
 // meaning behind it; the install and update question and the Update all list say it too. The pill
-// keeps its box, and it stays inside the card at phone width.
+// keeps its box, and it stays inside the card at phone width. A version of major 0 (0.1.0) is not
+// declared stable yet and carries the Beta pill too (the maintainer, 2026-11-22).
 
 const card = (page: Page, id: string) => page.locator(`#addon-row-${id}`);
 
@@ -90,4 +91,15 @@ test('in German, and a release GitHub flags without a prerelease part is a Vorab
     await pill.click();
     await expect(card(page, 'tm-devices').getByText('Vorabversion: noch nicht alle Funktionen sind getestet.')).toBeVisible();
     await expect(card(page, 'hm2mqtt').locator('.ad-sub .ad-pre').first()).toHaveText('Beta');
+});
+
+test('a version of major 0 is a beta too; 10.x is not', async ({page}) => {
+    await catalogWith(page, (e) => {
+        if (e.id === 'tm-devices') e.latest = {version: '0.2.0', asset: 'tm-devices-0.2.0.tgz'};
+        if (e.id === 'xml-api') e.latest = {version: '10.1.0', asset: 'xml-api-10.1.0.tar.gz'};
+    });
+    await page.goto('/addons');
+    await expect(card(page, 'tm-devices').locator('.ad-sub .ad-pre')).toHaveText('Beta');
+    await expect(card(page, 'xml-api').locator('.ad-sub')).toContainText('10.1.0');
+    await expect(card(page, 'xml-api').locator('.ad-pre')).toHaveCount(0);
 });

@@ -13,6 +13,14 @@ describe('prereleaseKind (occulited task 171)', () => {
         ['1.0.0-preview.3', 'other'],
         ['1.0.0-rc.1+3', 'rc'],
         [' v1.0.0-beta.1 ', 'beta'],
+        ['0.1.0', 'beta'], // major 0: not stable yet
+        ['v0.2.0', 'beta'],
+        ['0.9', 'beta'],
+        ['0.3.0+1', 'beta'],
+        ['0.1.0-dev.28', 'other'], // the prerelease part decides
+        ['0.9.0-rc.1', 'rc'],
+        ['10.1.0', ''],
+        ['0', ''],
         ['2.1.2', ''],
         ['v9.19.0', ''],
         ['2.1.2+1', ''],
@@ -30,6 +38,7 @@ describe('prereleaseKind (occulited task 171)', () => {
         expect(prereleaseKind('1.0.0', true)).toBe('other');
         expect(prereleaseKind('1.0.0-beta.0', true)).toBe('beta');
         expect(prereleaseKind(undefined, true)).toBe('other');
+        expect(prereleaseKind('0.1.0', true)).toBe('beta');
     });
 });
 

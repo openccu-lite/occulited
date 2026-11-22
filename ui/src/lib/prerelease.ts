@@ -2,6 +2,7 @@
  * occulited task 171: a pre-release on the Addons page. A version with a SemVer prerelease part
  * (1.0.0-beta.0, v2.0.0-rc.1, 3.0.0-rc1) is one - the same rule as the system's
  * catalog.IsPrereleaseVersion -, and so is a release GitHub flags as one (`latest.prerelease`).
+ * A version of major 0 (0.1.0, 0.9) is marked as a beta too: SemVer says nothing in it is stable yet.
  * The page marks it with an orange pill; this is which word the pill says.
  */
 
@@ -15,7 +16,8 @@ const versionRe = /^\d+(\.\d+)+$/;
  * (case ignored, so `RC1` and `beta2` count), anything else - `dev.31`, `preview`, `snapshot` -
  * `other`. Build metadata (`2.1.2+1`) is no prerelease, nor is anything that is not a dotted
  * number of two parts or more before the `-` (a date, a git hash). `flagged` (GitHub's mark on a
- * version without a prerelease part) makes a stable-looking version `other`.
+ * version without a prerelease part) makes a stable-looking version `other`; a major-0 version
+ * without a prerelease part is `beta`.
  */
 export function prereleaseKind(version: string | undefined, flagged = false): PrereleaseKind {
     const v = (version ?? '').trim().replace(/^v/, '').split('+')[0] ?? '';
@@ -25,6 +27,8 @@ export function prereleaseKind(version: string | undefined, flagged = false): Pr
         for (const k of ['alpha', 'beta', 'rc'] as const) if (first.startsWith(k)) return k;
         return 'other';
     }
+    // major version 0 (0.1.0): not declared stable yet, so a beta too (the maintainer, 2026-11-22)
+    if (versionRe.test(v) && /^0\./.test(v)) return 'beta';
     return flagged ? 'other' : '';
 }
 
