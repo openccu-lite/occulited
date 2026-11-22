@@ -98,7 +98,7 @@ func TestCountsPerClientAndInterface(t *testing.T) {
 	if len(n.Minutes) != Minutes || n.Minutes[Minutes-3] != 5 || n.Minutes[Minutes-2] != 4 || n.Minutes[Minutes-1] != 0 {
 		t.Errorf("nodered-1: minutes end %v, want 5 4 0", n.Minutes[Minutes-3:])
 	}
-	if fmt.Sprint(n.Interfaces) != "[{BidCos-RF 4 4} {HmIP-RF 5 2}]" {
+	if fmt.Sprint(n.Interfaces) != "[{BidCos-RF 4 4 4} {HmIP-RF 5 2 5}]" {
 		t.Errorf("nodered-1: interfaces %v", n.Interfaces)
 	}
 	if n.Level != "" || n.Hint != nil || n.Cause != nil {
@@ -330,10 +330,15 @@ func TestClientLimit(t *testing.T) {
 	if v := c.viewAt(0, nil, nil); len(v.Clients) != maxClients {
 		t.Fatalf("clients = %d, want the limit %d", len(v.Clients), maxClients)
 	}
-	// once the old ones have gone quiet a new client is counted again
-	c.send("late", "HmIP-RF", 90, 1, false)
-	if v := c.viewAt(90, nil, nil); len(v.Clients) != 1 || v.Clients[0].Name != "late" {
+	// still full after the hour: the 24 hours keep them (openccu-lite task 489)
+	c.send("early", "HmIP-RF", 90, 1, false)
+	if v := c.viewAt(90, nil, nil); len(v.Clients) != 0 {
 		t.Fatalf("after the hour: %d clients", len(v.Clients))
+	}
+	// once the old ones have gone quiet for 24 hours a new client is counted again
+	c.send("late", "HmIP-RF", 24*60+10, 1, false)
+	if v := c.viewAt(24*60+10, nil, nil); len(v.Clients) != 1 || v.Clients[0].Name != "late" {
+		t.Fatalf("after 24 hours: %d clients", len(v.Clients))
 	}
 }
 

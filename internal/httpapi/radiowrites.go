@@ -8,6 +8,7 @@ package httpapi
 import (
 	"context"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/hobbyquaker/occulited/internal/auth"
@@ -38,24 +39,45 @@ type radioWritesView struct {
 	ClassicRPC bool `json:"classic_rpc"`
 }
 
-// radioWritesNow is the tracker's view with the radio sampler's duty cycles and the running
-// device firmware transfers.
-func (a *SystemAPI) radioWritesNow() radiowrites.View {
+// radioWritesNow is the tracker's view of the last hour, for the warnings.
+func (a *SystemAPI) radioWritesNow() radiowrites.View { return a.radioWritesSpan(60) }
+
+// radioWritesSpan is the tracker's view of a span with the radio sampler's duty cycles - each
+// series named by its physical radio from the radio plan, as GET /radio/health does (task 156),
+// so a module shared by BidCos-RF and HmIP-RF is one row (openccu-lite task 489) - and the
+// running device firmware transfers.
+func (a *SystemAPI) radioWritesSpan(span int) radiowrites.View {
 	var duty []radiowrites.DutySeries
 	if a.Health != nil {
-		for key, samples := range a.Health.Status().History {
+		st := a.Health.Status()
+		type radioOf struct{ key, name string }
+		radios := map[string]radioOf{}
+		if p, ok := a.RadioConnections.BootPlan(); ok {
+			hmip := 0
+			for _, ri := range st.Interfaces {
+				if ri.Interface == "HmIP-RF" {
+					hmip++
+				}
+			}
+			for _, ri := range st.Interfaces {
+				k, n := p.Transmitter(ri.Interface, ri.Address, ri.Type, hmip)
+				radios[ri.Interface+"/"+ri.Address] = radioOf{k, n}
+			}
+		}
+		for key, samples := range st.History {
 			iface, address, _ := strings.Cut(key, "/")
 			if !radiowrites.IsRadio(iface) {
 				continue
 			}
-			ds := radiowrites.DutySeries{Interface: iface, Address: address}
+			r := radios[key]
+			ds := radiowrites.DutySeries{Interface: iface, Address: address, Radio: r.key, RadioName: r.name}
 			for _, s := range samples {
 				ds.Samples = append(ds.Samples, radiowrites.DutySample{Time: s.Time, DutyCycle: s.DutyCycle, Connected: s.Connected})
 			}
 			duty = append(duty, ds)
 		}
 	}
-	v := a.RadioWrites.View(duty, a.transferringInterfaces())
+	v := a.RadioWrites.ViewSpan(duty, a.transferringInterfaces(), span)
 	if a.TokenClient != nil {
 		for i := range v.Clients {
 			if v.Clients[i].Kind == radiowrites.KindToken {
@@ -66,10 +88,20 @@ func (a *SystemAPI) radioWritesNow() radiowrites.View {
 	return v
 }
 
-func (a *SystemAPI) radioWrites(w http.ResponseWriter, _ *http.Request) {
-	out := radioWritesView{View: radiowrites.View{Thresholds: radiowrites.TheThresholds(), Clients: []radiowrites.ClientView{}, DutyCycle: []radiowrites.DutyView{}}}
+func (a *SystemAPI) radioWrites(w http.ResponseWriter, r *http.Request) {
+	// openccu-lite task 489: ?span=60|360|1440, the hour by default
+	span := 60
+	if q := r.URL.Query().Get("span"); q != "" {
+		n, err := strconv.Atoi(q)
+		if err != nil || radiowrites.SpanBucket(n) == 0 {
+			writeJSON(w, http.StatusBadRequest, apiError{Error: "invalid", Message: "span is 60, 360 or 1440 (minutes)"})
+			return
+		}
+		span = n
+	}
+	out := radioWritesView{View: radiowrites.View{Span: span, BucketMinutes: radiowrites.SpanBucket(span), Thresholds: radiowrites.TheThresholds(), Clients: []radiowrites.ClientView{}, DutyCycle: []radiowrites.DutyView{}}}
 	if a.RadioWrites != nil {
-		out.View, out.Available = a.radioWritesNow(), true
+		out.View, out.Available = a.radioWritesSpan(span), true
 	}
 	if a.ClassicRPC != nil {
 		c := a.Root.ReadClassicRPC()

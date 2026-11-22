@@ -63,7 +63,7 @@ func TestRadioWritesCountedPerClient(t *testing.T) {
 	if ha["kind"] != "token" || ha["name"] != "ha" || ha["label"] != "Home Assistant" || ha["hour"] != float64(6) || ha["noop"] != float64(3) || len(ha["minutes"].([]any)) != 60 {
 		t.Errorf("the token: %v", ha)
 	}
-	if fmt.Sprint(ha["interfaces"]) != "[map[hour:6 name:HmIP-RF noop:3]]" {
+	if fmt.Sprint(ha["interfaces"]) != "[map[hour:6 name:HmIP-RF noop:3 writes:6]]" {
 		t.Errorf("the token's interfaces: %v", ha["interfaces"])
 	}
 	if _, has := ha["level"]; has {
@@ -75,6 +75,20 @@ func TestRadioWritesCountedPerClient(t *testing.T) {
 	}
 	if len(out["duty_cycle"].([]any)) != 0 {
 		t.Errorf("duty cycle without a sampler: %v", out["duty_cycle"])
+	}
+
+	// openccu-lite task 489: the span's buckets - 6 h by five minutes, 24 h by a quarter hour
+	for span, want := range map[string][2]int{"": {60, 1}, "60": {60, 1}, "360": {360, 5}, "1440": {1440, 15}} {
+		st, out, raw := do(t, rig.srv, "GET", "/api/system/v1/radio/writes?span="+span, "", nil)
+		ha := out["clients"].([]any)[0].(map[string]any)
+		if st != 200 || out["span"] != float64(want[0]) || out["bucket_minutes"] != float64(want[1]) || len(ha["buckets"].([]any)) != want[0]/want[1] || ha["writes"] != float64(6) || ha["writes_noop"] != float64(3) {
+			t.Errorf("span %q: %d %s", span, st, raw)
+		}
+	}
+	for _, bad := range []string{"30", "x", "-60"} {
+		if st, _, raw := do(t, rig.srv, "GET", "/api/system/v1/radio/writes?span="+bad, "", nil); st != 400 {
+			t.Errorf("span %q: %d %s", bad, st, raw)
+		}
 	}
 
 	// a system without the counter answers an empty view

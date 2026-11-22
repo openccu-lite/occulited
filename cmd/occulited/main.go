@@ -686,6 +686,9 @@ func run(opts daemonOptions) error {
 		return syshist.Reading{Load: load, Mem: mem, SoC: soc, HasSoC: hasSoC}, ok
 	}, Polled: dataStoreMgr.Kick, Trusted: clockTrusted}
 	dataStoreMgr.Register(sysHist)
+	// openccu-lite task 489: the radio writes' 24 hours by five minutes, bucket radiowrites
+	radioWrites := &radiowrites.Tracker{}
+	dataStoreMgr.Register(radioWrites)
 	// occulited task 159: what is written to the disks and by which service, read every ten
 	// seconds from /proc and the cgroup tree and kept in memory (and in /run across a restart)
 	ioWatch := &iowatch.Sampler{Root: string(root), Enabled: ioAccounting.Enabled}
@@ -1258,8 +1261,9 @@ func run(opts daemonOptions) error {
 	}
 	// occulited task 163: the radio writes per client - every setValue and putParamset that goes
 	// to a radio device through lite-rpc, counted per minute in memory; the wired and virtual
-	// devices of the radio interfaces are left out by their type, read from the device lists
-	radioWrites := &radiowrites.Tracker{}
+	// devices of the radio interfaces are left out by their type, read from the device lists.
+	// The tracker (and its five-minute buckets in the database, openccu-lite task 489) is made
+	// before the store starts.
 	radioWriteDevices := &radiowrites.DeviceWatch{Tracker: radioWrites, Log: area("rpc"), Types: func(ctx context.Context, iface string) (map[string]string, error) {
 		var one []interfaces.Interface
 		for _, i := range radioIfs() {

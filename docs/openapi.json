@@ -8434,6 +8434,9 @@
           "available": {
             "type": "boolean"
           },
+          "bucket_minutes": {
+            "type": "integer"
+          },
           "classic_rpc": {
             "type": "boolean"
           },
@@ -8455,6 +8458,9 @@
               "null"
             ]
           },
+          "span": {
+            "type": "integer"
+          },
           "thresholds": {
             "$ref": "#/components/schemas/RadiowritesThresholds"
           }
@@ -8462,9 +8468,11 @@
         "required": [
           "at",
           "available",
+          "bucket_minutes",
           "classic_rpc",
           "clients",
           "duty_cycle",
+          "span",
           "thresholds"
         ],
         "type": "object"
@@ -8506,6 +8514,15 @@
       },
       "RadiowritesClientView": {
         "properties": {
+          "buckets": {
+            "items": {
+              "type": "integer"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
           "cause": {
             "anyOf": [
               {
@@ -8564,16 +8581,25 @@
           },
           "per_minute": {
             "type": "integer"
+          },
+          "writes": {
+            "type": "integer"
+          },
+          "writes_noop": {
+            "type": "integer"
           }
         },
         "required": [
+          "buckets",
           "hour",
           "interfaces",
           "kind",
           "minutes",
           "name",
           "noop",
-          "per_minute"
+          "per_minute",
+          "writes",
+          "writes_noop"
         ],
         "type": "object"
       },
@@ -8582,8 +8608,29 @@
           "address": {
             "type": "string"
           },
+          "buckets": {
+            "items": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
           "interface": {
             "type": "string"
+          },
+          "interfaces": {
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
           },
           "minutes": {
             "items": {
@@ -8596,11 +8643,19 @@
               "array",
               "null"
             ]
+          },
+          "name": {
+            "type": "string"
+          },
+          "radio": {
+            "type": "string"
           }
         },
         "required": [
           "address",
+          "buckets",
           "interface",
+          "interfaces",
           "minutes"
         ],
         "type": "object"
@@ -8638,12 +8693,16 @@
           },
           "noop": {
             "type": "integer"
+          },
+          "writes": {
+            "type": "integer"
           }
         },
         "required": [
           "hour",
           "name",
-          "noop"
+          "noop",
+          "writes"
         ],
         "type": "object"
       },
@@ -37486,6 +37545,17 @@
     "/api/system/v1/radio/writes": {
       "get": {
         "operationId": "getSystemRadioWrites",
+        "parameters": [
+          {
+            "description": "The span of `buckets` in minutes: `60` (by the minute, the default), `360` (by five minutes) or `1440` (by a quarter hour)",
+            "in": "query",
+            "name": "span",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "content": {

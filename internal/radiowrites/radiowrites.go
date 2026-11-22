@@ -25,6 +25,7 @@ package radiowrites
 
 import (
 	"math"
+	"slices"
 	"sort"
 	"strings"
 	"sync"
@@ -33,8 +34,12 @@ import (
 
 // The thresholds (occulited task 163).
 const (
-	// Minutes is the ring's length.
+	// Minutes is the minute ring's length: the levels and the 1 h view.
 	Minutes = 60
+	// BucketMinutes and Buckets are the longer ring (openccu-lite task 489): 24 hours in buckets of
+	// five minutes, for the 6 h and 24 h views, kept in occulited's database (history.go).
+	BucketMinutes = 5
+	Buckets       = 24 * 60 / BucketMinutes
 	// AvgPerMinute over AvgMinutes, or BurstPerMinute in one minute, raise the hint.
 	AvgPerMinute   = 20
 	AvgMinutes     = 5
@@ -100,49 +105,72 @@ func device(address string) string {
 
 type slot struct{ w, noop uint32 }
 
-// ring is 60 one-minute counts; slot m%Minutes holds minute m while last-Minutes < m <= last.
+// ring is a run of counts, one per bucket (a minute, or BucketMinutes): slot i%len holds bucket i
+// while last-len < i <= last.
 type ring struct {
 	last  int64
-	slots [Minutes]slot
+	slots []slot
 }
 
-func (r *ring) advance(min int64) {
-	if min <= r.last {
+func newRing(n int, last int64) *ring { return &ring{last: last, slots: make([]slot, n)} }
+
+func (r *ring) advance(i int64) {
+	if i <= r.last {
 		return
 	}
-	if min-r.last >= Minutes {
-		r.slots = [Minutes]slot{}
+	n := int64(len(r.slots))
+	if i-r.last >= n {
+		clear(r.slots)
 	} else {
-		for m := r.last + 1; m <= min; m++ {
-			r.slots[m%Minutes] = slot{}
+		for k := r.last + 1; k <= i; k++ {
+			r.slots[k%n] = slot{}
 		}
 	}
-	r.last = min
+	r.last = i
 }
 
-func (r *ring) add(min int64, noop bool) {
-	r.advance(min)
-	if min <= r.last-Minutes {
+// add counts w writes, noop of them changing nothing, into bucket i.
+func (r *ring) add(i int64, w, noop uint32) {
+	r.advance(i)
+	if i <= r.last-int64(len(r.slots)) || i < 0 {
 		return // older than the ring (the clock went back)
 	}
-	s := &r.slots[min%Minutes]
-	s.w++
-	if noop {
-		s.noop++
-	}
+	s := &r.slots[i%int64(len(r.slots))]
+	s.w += w
+	s.noop += noop
 }
 
-// series is the ring up to minute now, oldest first; the last entry is the running minute.
-func (r *ring) series(now int64) (w, noop [Minutes]int) {
-	for i := 0; i < Minutes; i++ {
-		m := now - int64(Minutes-1-i)
-		if m > r.last || m <= r.last-Minutes || m < 0 {
-			continue
-		}
-		s := r.slots[m%Minutes]
+// at is bucket i's counts; zero outside the ring.
+func (r *ring) at(i int64) slot {
+	if i > r.last || i <= r.last-int64(len(r.slots)) || i < 0 {
+		return slot{}
+	}
+	return r.slots[i%int64(len(r.slots))]
+}
+
+// series is the n buckets up to bucket now, oldest first; the last entry is the running one.
+func (r *ring) series(now int64, n int) (w, noop []int) {
+	w, noop = make([]int, n), make([]int, n)
+	for i := 0; i < n; i++ {
+		s := r.at(now - int64(n-1-i))
 		w[i], noop[i] = int(s.w), int(s.noop)
 	}
 	return w, noop
+}
+
+// counts are one client's writes to one interface: the last hour by the minute, for the levels
+// and the 1 h view, and the last 24 hours by BucketMinutes, for the longer views and the database.
+type counts struct {
+	min  *ring
+	long *ring
+	// the database (history.go): gen counts the writes recorded, synced is gen when the file
+	// last took them, flushed the newest bucket it has (sent again: the running bucket grows)
+	gen, synced uint64
+	flushed     int64
+}
+
+func newCounts(min int64) *counts {
+	return &counts{min: newRing(Minutes, min), long: newRing(Buckets, min/BucketMinutes), flushed: -1}
 }
 
 // Tracker keeps the counts.
@@ -151,8 +179,10 @@ type Tracker struct {
 	Now func() time.Time
 
 	mu       sync.Mutex
-	rings    map[Client]map[string]*ring
+	rings    map[Client]map[string]*counts
 	excluded map[string]map[string]bool
+	// gone are the database's series of clients no longer kept: the next write drops them
+	gone map[string]bool
 }
 
 func (t *Tracker) now() time.Time {
@@ -195,41 +225,69 @@ func (t *Tracker) Record(c Client, iface string, noop bool) {
 	min := minuteOf(t.now())
 	t.mu.Lock()
 	defer t.mu.Unlock()
+	k := t.countsLocked(c, iface, min)
+	if k == nil {
+		return
+	}
+	n := uint32(0)
+	if noop {
+		n = 1
+	}
+	k.min.add(min, 1, n)
+	k.long.add(min/BucketMinutes, 1, n)
+	k.gen++
+}
+
+// countsLocked is a client's counts on iface, made when missing; nil when maxClients are kept and
+// none of them has gone quiet.
+func (t *Tracker) countsLocked(c Client, iface string, min int64) *counts {
 	if t.rings == nil {
-		t.rings = map[Client]map[string]*ring{}
+		t.rings = map[Client]map[string]*counts{}
 	}
 	byIface := t.rings[c]
 	if byIface == nil {
 		if len(t.rings) >= maxClients {
 			t.pruneLocked(min)
 			if len(t.rings) >= maxClients {
-				return
+				return nil
 			}
 		}
-		byIface = map[string]*ring{}
+		byIface = map[string]*counts{}
 		t.rings[c] = byIface
 	}
-	r := byIface[iface]
-	if r == nil {
-		r = &ring{last: min}
-		byIface[iface] = r
+	k := byIface[iface]
+	if k == nil {
+		k = newCounts(min)
+		byIface[iface] = k
+		delete(t.gone, seriesName(c, iface))
 	}
-	r.add(min, noop)
+	return k
 }
 
-// pruneLocked forgets the clients that sent nothing within the ring.
+// pruneLocked forgets the clients that sent nothing within the 24 hours; the database's series
+// of them go with the next write.
 func (t *Tracker) pruneLocked(now int64) {
 	for c, byIface := range t.rings {
 		quiet := true
-		for _, r := range byIface {
-			if now-r.last < Minutes {
+		for _, k := range byIface {
+			if now/BucketMinutes-k.long.last < Buckets {
 				quiet = false
 			}
 		}
 		if quiet {
+			for iface := range byIface {
+				t.goneLocked(seriesName(c, iface))
+			}
 			delete(t.rings, c)
 		}
 	}
+}
+
+func (t *Tracker) goneLocked(name string) {
+	if t.gone == nil {
+		t.gone = map[string]bool{}
+	}
+	t.gone[name] = true
 }
 
 // DutySample is one reading of an interface's duty cycle.
@@ -244,6 +302,11 @@ type DutySample struct {
 type DutySeries struct {
 	Interface string
 	Address   string
+	// Radio is the physical transmitter (the radio plan's key, occulited task 156) and RadioName
+	// its name: the series of one radio - BidCos-RF and HmIP-RF on one module through multimacd -
+	// are one row of the view. Empty: the series is a radio of its own.
+	Radio     string
+	RadioName string
 	Samples   []DutySample
 }
 
@@ -283,11 +346,12 @@ type Cause struct {
 	SharePercent int `json:"share_percent"`
 }
 
-// InterfaceCount is a client's hour on one interface.
+// InterfaceCount is a client's hour on one interface, and its writes in the view's span.
 type InterfaceCount struct {
-	Name string `json:"name"`
-	Hour int    `json:"hour"`
-	Noop int    `json:"noop"`
+	Name   string `json:"name"`
+	Hour   int    `json:"hour"`
+	Noop   int    `json:"noop"`
+	Writes int    `json:"writes"`
 }
 
 // ClientView is one client as the API answers it.
@@ -302,7 +366,12 @@ type ClientView struct {
 	Hour int `json:"hour"`
 	Noop int `json:"noop"`
 	// Minutes are the writes per minute, oldest first; the last is the running minute.
-	Minutes    []int            `json:"minutes"`
+	Minutes []int `json:"minutes"`
+	// Buckets are the writes per bucket of the view's span (openccu-lite task 489), oldest first,
+	// the last the running one; Writes and WritesNoop their sums.
+	Buckets    []int            `json:"buckets"`
+	Writes     int              `json:"writes"`
+	WritesNoop int              `json:"writes_noop"`
 	Interfaces []InterfaceCount `json:"interfaces"`
 	// Level is empty, hint or warning.
 	Level string `json:"level,omitempty"`
@@ -310,20 +379,47 @@ type ClientView struct {
 	Cause *Cause `json:"cause,omitempty"`
 }
 
-// DutyView is one duty-cycle series on the ring's time axis: per minute the highest reading, nil
-// where there was none. A series without a reading in the hour is left out.
+// DutyView is the duty cycle of one physical radio on the ring's time axis: per minute (and per
+// bucket of the span) the highest reading of its series, nil where there was none. Interface and
+// Address are its first series'; a radio shared by BidCos-RF and HmIP-RF through multimacd is one
+// row with both in Interfaces (openccu-lite task 489). A radio without a reading in the span is
+// left out.
 type DutyView struct {
-	Interface string `json:"interface"`
-	Address   string `json:"address"`
-	Minutes   []*int `json:"minutes"`
+	Interface  string   `json:"interface"`
+	Address    string   `json:"address"`
+	Interfaces []string `json:"interfaces"`
+	Radio      string   `json:"radio,omitempty"`
+	Name       string   `json:"name,omitempty"`
+	Minutes    []*int   `json:"minutes"`
+	Buckets    []*int   `json:"buckets"`
 }
 
 // View is the whole answer.
 type View struct {
-	At         time.Time    `json:"at"`
-	Thresholds Thresholds   `json:"thresholds"`
-	Clients    []ClientView `json:"clients"`
-	DutyCycle  []DutyView   `json:"duty_cycle"`
+	At time.Time `json:"at"`
+	// Span is the minutes the buckets cover (Spans), BucketMinutes one bucket's.
+	Span          int          `json:"span"`
+	BucketMinutes int          `json:"bucket_minutes"`
+	Thresholds    Thresholds   `json:"thresholds"`
+	Clients       []ClientView `json:"clients"`
+	DutyCycle     []DutyView   `json:"duty_cycle"`
+}
+
+// Spans are the views offered, in minutes: 1 h by the minute, 6 h by five minutes, 24 h by a
+// quarter of an hour - 60, 72 and 96 bars.
+var Spans = []int{60, 360, 1440}
+
+// SpanBucket is the bucket of a span, in minutes; 0 for a span not offered.
+func SpanBucket(span int) int {
+	switch span {
+	case 60:
+		return 1
+	case 360:
+		return 5
+	case 1440:
+		return 15
+	}
+	return 0
 }
 
 // TheThresholds are the constants as the API states them.
@@ -336,36 +432,54 @@ func TheThresholds() Thresholds {
 // cycles (other interfaces' series are ignored); transfer names the interfaces on which a device
 // firmware transfer runs - it takes airtime by itself, so no client is blamed there meanwhile.
 func (t *Tracker) View(duty []DutySeries, transfer map[string]bool) View {
+	return t.ViewSpan(duty, transfer, 60)
+}
+
+// ViewSpan is View with the buckets of a span (Spans; another is 60): the levels are always the
+// last hour's.
+func (t *Tracker) ViewSpan(duty []DutySeries, transfer map[string]bool, span int) View {
+	bm := SpanBucket(span)
+	if bm == 0 {
+		span, bm = 60, 1
+	}
+	nb := span / bm
 	now := t.now()
 	min := minuteOf(now)
-	v := View{At: now, Thresholds: TheThresholds(), Clients: []ClientView{}, DutyCycle: []DutyView{}}
+	v := View{At: now, Span: span, BucketMinutes: bm, Thresholds: TheThresholds(), Clients: []ClientView{}, DutyCycle: []DutyView{}}
 
 	type counted struct {
 		view    ClientView
-		byIface map[string][Minutes]int
+		byIface map[string][]int
 	}
 	var list []counted
 	t.mu.Lock()
 	t.pruneLocked(min)
 	for c, byIface := range t.rings {
-		cv := counted{view: ClientView{Client: c, Minutes: make([]int, Minutes), Interfaces: []InterfaceCount{}}, byIface: map[string][Minutes]int{}}
-		for name, r := range byIface {
-			w, noop := r.series(min)
+		cv := counted{view: ClientView{Client: c, Minutes: make([]int, Minutes), Buckets: make([]int, nb), Interfaces: []InterfaceCount{}}, byIface: map[string][]int{}}
+		for name, k := range byIface {
+			w, noop := k.min.series(min, Minutes)
+			bw, bnoop := k.spanSeries(min, bm, nb)
 			ic := InterfaceCount{Name: name}
 			for i := range w {
 				cv.view.Minutes[i] += w[i]
 				ic.Hour += w[i]
 				ic.Noop += noop[i]
 			}
-			if ic.Hour == 0 {
+			for i := range bw {
+				cv.view.Buckets[i] += bw[i]
+				ic.Writes += bw[i]
+				cv.view.WritesNoop += bnoop[i]
+			}
+			if ic.Hour == 0 && ic.Writes == 0 {
 				continue
 			}
 			cv.byIface[name] = w
 			cv.view.Hour += ic.Hour
 			cv.view.Noop += ic.Noop
+			cv.view.Writes += ic.Writes
 			cv.view.Interfaces = append(cv.view.Interfaces, ic)
 		}
-		if cv.view.Hour == 0 {
+		if cv.view.Hour == 0 && cv.view.Writes == 0 {
 			continue
 		}
 		sort.Slice(cv.view.Interfaces, func(a, b int) bool { return cv.view.Interfaces[a].Name < cv.view.Interfaces[b].Name })
@@ -395,10 +509,6 @@ func (t *Tracker) View(duty []DutySeries, transfer map[string]bool) View {
 		if !IsRadio(ds.Interface) {
 			continue
 		}
-		// a series without a reading in the hour (a gateway that is configured and not there) is no row
-		if m, any := dutyMinutes(ds.Samples, min); any {
-			v.DutyCycle = append(v.DutyCycle, DutyView{Interface: ds.Interface, Address: ds.Address, Minutes: m})
-		}
 		from, to, ok := rise(ds.Samples, now)
 		if !ok || transfer[ds.Interface] {
 			continue
@@ -406,6 +516,9 @@ func (t *Tracker) View(duty []DutySeries, transfer map[string]bool) View {
 		total, best, bestN := 0, -1, 0
 		for i := range list {
 			w, n := list[i].byIface[ds.Interface], 0
+			if w == nil {
+				continue
+			}
 			for k := Minutes - 1 - RiseMinutes; k < Minutes; k++ {
 				n += w[k]
 			}
@@ -425,12 +538,16 @@ func (t *Tracker) View(duty []DutySeries, transfer map[string]bool) View {
 		cv.Level = LevelWarning
 		cv.Cause = &Cause{Interface: ds.Interface, Address: ds.Address, From: from, To: to, Writes: bestN, Total: total, SharePercent: int(math.Round(float64(bestN) * 100 / float64(total)))}
 	}
+	v.DutyCycle = dutyRows(duty, min, bm, nb)
 
 	rank := map[string]int{LevelWarning: 0, LevelHint: 1, "": 2}
 	sort.Slice(list, func(a, b int) bool {
 		x, y := list[a].view, list[b].view
 		if rank[x.Level] != rank[y.Level] {
 			return rank[x.Level] < rank[y.Level]
+		}
+		if x.Writes != y.Writes {
+			return x.Writes > y.Writes
 		}
 		if x.Hour != y.Hour {
 			return x.Hour > y.Hour
@@ -441,6 +558,87 @@ func (t *Tracker) View(duty []DutySeries, transfer map[string]bool) View {
 		v.Clients = append(v.Clients, c.view)
 	}
 	return v
+}
+
+// spanSeries is the nb buckets of bm minutes up to the running one: the minute ring for 1 h, the
+// long ring's five minutes as they are or summed three to a quarter of an hour (both start at
+// the epoch, so a quarter is exactly three of them).
+func (k *counts) spanSeries(min int64, bm, nb int) (w, noop []int) {
+	switch bm {
+	case 1:
+		return k.min.series(min, nb)
+	case BucketMinutes:
+		return k.long.series(min/BucketMinutes, nb)
+	}
+	per := int64(bm / BucketMinutes)
+	w, noop = make([]int, nb), make([]int, nb)
+	now := min / int64(bm)
+	for i := 0; i < nb; i++ {
+		b := now - int64(nb-1-i)
+		for j := int64(0); j < per; j++ {
+			s := k.long.at(b*per + j)
+			w[i] += int(s.w)
+			noop[i] += int(s.noop)
+		}
+	}
+	return w, noop
+}
+
+// dutyRows is one row per physical radio: its series' highest reading per minute and per bucket.
+// duty is sorted by interface and address, so a radio's row carries its first series' names.
+func dutyRows(duty []DutySeries, min int64, bm, nb int) []DutyView {
+	out := []DutyView{}
+	idx := map[string]int{}
+	for _, ds := range duty {
+		if !IsRadio(ds.Interface) {
+			continue
+		}
+		key := ds.Radio
+		if key == "" {
+			key = "if:" + ds.Interface + "/" + ds.Address
+		}
+		i, ok := idx[key]
+		if !ok {
+			i = len(out)
+			idx[key] = i
+			out = append(out, DutyView{Interface: ds.Interface, Address: ds.Address, Interfaces: []string{}, Radio: ds.Radio, Name: ds.RadioName, Minutes: make([]*int, Minutes), Buckets: make([]*int, nb)})
+		}
+		r := &out[i]
+		if !slices.Contains(r.Interfaces, ds.Interface) {
+			r.Interfaces = append(r.Interfaces, ds.Interface)
+		}
+		maxInto(r.Minutes, ds.Samples, min, 1)
+		maxInto(r.Buckets, ds.Samples, min, bm)
+	}
+	// a radio without a reading in the span (a gateway that is configured and not there) is no row
+	kept := out[:0]
+	for _, r := range out {
+		if slices.ContainsFunc(r.Buckets, func(p *int) bool { return p != nil }) || slices.ContainsFunc(r.Minutes, func(p *int) bool { return p != nil }) {
+			sort.Strings(r.Interfaces)
+			kept = append(kept, r)
+		}
+	}
+	return kept
+}
+
+// maxInto puts samples onto buckets of bm minutes ending with the one of minute now: the highest
+// reading of each; readings while the interface did not answer are no reading.
+func maxInto(out []*int, samples []DutySample, now int64, bm int) {
+	n := int64(len(out))
+	last := now / int64(bm)
+	for _, s := range samples {
+		if !s.Connected {
+			continue
+		}
+		i := n - 1 - (last - minuteOf(s.Time)/int64(bm))
+		if i < 0 || i >= n {
+			continue
+		}
+		if out[i] == nil || s.DutyCycle > *out[i] {
+			dc := s.DutyCycle
+			out[i] = &dc
+		}
+	}
 }
 
 // hintOf looks at the last HoldMinutes of a client's minutes (the running one included): a
@@ -486,26 +684,6 @@ func rise(samples []DutySample, now time.Time) (from, to int, ok bool) {
 		}
 	}
 	return from, to, best >= RisePoints
-}
-
-// dutyMinutes puts a series onto the ring's minutes: the highest reading of each minute; any is
-// false when the hour holds none.
-func dutyMinutes(samples []DutySample, now int64) (out []*int, any bool) {
-	out = make([]*int, Minutes)
-	for _, s := range samples {
-		if !s.Connected {
-			continue
-		}
-		i := Minutes - 1 - int(now-minuteOf(s.Time))
-		if i < 0 || i >= Minutes {
-			continue
-		}
-		if out[i] == nil || s.DutyCycle > *out[i] {
-			dc := s.DutyCycle
-			out[i], any = &dc, true
-		}
-	}
-	return out, any
 }
 
 // Noop says whether a write changes nothing: every value it writes is the one the datapoint

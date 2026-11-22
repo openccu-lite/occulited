@@ -8,7 +8,9 @@
      * the scale is a dotted line. Every minute has its value under the pointer (the title of an
      * invisible column over the whole height, so a low bar is as easy to hit as a high one).
      *
-     * The box never changes: the same width and height whatever the values.
+     * The box never changes: the same width and height whatever the values. Without a `width` it
+     * takes its container's (openccu-lite task 489: the Status page's panel gives the chart column
+     * the width the table leaves), measured, so the bars keep their pixels and the box its height.
      */
     import {lineRuns} from './radiowrites';
 
@@ -23,10 +25,13 @@
         tip: (index: number, value: number | null) => string;
         /** a threshold drawn as a dotted line when it lies within the scale */
         threshold?: number;
+        /** in pixels; unset, the container's width */
         width?: number;
         height?: number;
     }
-    let {values, top, kind = 'bars', label, tip, threshold, width = 180, height = 28}: Props = $props();
+    let {values, top, kind = 'bars', label, tip, threshold, width: fixed, height = 28}: Props = $props();
+    let measured = $state(0);
+    const width = $derived(fixed ?? measured);
 
     const step = $derived(values.length ? width / values.length : width);
     const PAD = 1.5;
@@ -35,6 +40,8 @@
     const thrY = $derived(threshold !== undefined && threshold <= top ? y(threshold) : null);
 </script>
 
+<div class="ol-spark-box" class:fluid={fixed === undefined} style:width={fixed === undefined ? undefined : `${fixed}px`} style:height={`${height}px`} bind:clientWidth={measured}>
+{#if width > 0}
 <svg class="ol-spark" {width} {height} viewBox={`0 0 ${width} ${height}`} role="img" aria-label={label} data-spark={kind}>
     <line class="base" x1="0" x2={width} y1={height - 0.5} y2={height - 0.5} />
     {#if thrY !== null}<line class="thr" x1="0" x2={width} y1={thrY} y2={thrY} data-spark-threshold />{/if}
@@ -51,9 +58,13 @@
         <rect class="hit" x={i * step} y="0" width={step} {height}><title>{tip(i, v)}</title></rect>
     {/each}
 </svg>
+{/if}
+</div>
 
 <style>
-    .ol-spark { display: block; flex: 0 0 auto; overflow: visible; }
+    .ol-spark-box { flex: 0 0 auto; }
+    .ol-spark-box.fluid { width: 100%; min-width: 0; }
+    .ol-spark { display: block; overflow: visible; }
     .base { stroke: var(--hmm-border-muted); stroke-width: 1; }
     .thr { stroke: var(--hmm-warn); stroke-width: 1; stroke-dasharray: 2 3; }
     .bar { fill: var(--ol-series-1); }

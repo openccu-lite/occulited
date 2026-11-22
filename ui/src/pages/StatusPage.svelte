@@ -1000,8 +1000,8 @@
         {/if}
     </div>
 
-    <!-- occulited task 163: the radio writes per lite-rpc client, with the duty cycle on the same minutes -->
-    <RadioWrites active={() => life.active && tabVisible()} warnAttrs={warnFor(['radio-writes', 'radio-writes-duty-cycle'])} />
+    <!-- occulited task 163: the radio writes per lite-rpc client, with the duty cycle on the same minutes; openccu-lite task 489: the page's span -->
+    <RadioWrites active={() => life.active && tabVisible()} span={view.span} setSpan={setChartSpan} warnAttrs={warnFor(['radio-writes', 'radio-writes-duty-cycle'])} />
 
     <!-- task 111: the old storage health panel is gone - its disks are the usage panels above. What
          it held beyond them stays here: the files beside the journal (task 84), and for a daemon

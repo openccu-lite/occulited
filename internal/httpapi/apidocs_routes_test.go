@@ -359,7 +359,7 @@ var routeDocs = map[string]apidoc.Doc{
 	"GET /api/system/v1/regadom":                                         {Summary: "Whether the CCU's ReGa database is kept, its size and age"},
 	"GET /api/system/v1/regadom/file":                                    {Summary: "The kept ReGa database, for lite-addon-logic's import"},
 	"DELETE /api/system/v1/regadom":                                      {Summary: "Removes the kept ReGa database"},
-	"GET /api/system/v1/radio/writes":                                    {Summary: "The radio writes per lite-rpc client, with the duty cycle beside them"},
+	"GET /api/system/v1/radio/writes":                                    {Summary: "The radio writes per lite-rpc client, with the duty cycle beside them", Query: map[string]string{"span": "The span of `buckets` in minutes: `60` (by the minute, the default), `360` (by five minutes) or `1440` (by a quarter hour)"}},
 	"GET /api/system/v1/storage/writes":                                  {Summary: "What was written to each disk, and by which service"},
 	"GET /api/system/v1/storage/writes/recording":                        {Summary: "Whether disk writes are recorded per service"},
 	"PUT /api/system/v1/storage/writes/recording":                        {Summary: "Switches the recording of disk writes per service"},

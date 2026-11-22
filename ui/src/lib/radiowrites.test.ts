@@ -1,5 +1,5 @@
 import {describe, expect, it} from 'vitest';
-import {clientKey, dutyTop, lastReading, lineRuns, minutesAgo, noopShare, tokenClient, writesTop, type RWView} from './radiowrites';
+import {bucketTimes, clientKey, dutyTop, lastReading, lineRuns, minutesAgo, noopShare, spanNoopShare, tokenClient, writesTop, type RWView} from './radiowrites';
 
 // occulited task 163: what the panel and the token list derive from GET /radio/writes
 
@@ -22,9 +22,9 @@ describe('the radio writes', () => {
     });
     it('the duty cycle is drawn to 25 % at the least', () => {
         expect(dutyTop([])).toBe(25);
-        expect(dutyTop([{minutes: [null, 3, 24]}])).toBe(25);
-        expect(dutyTop([{minutes: [null, 3, 26]}])).toBe(50);
-        expect(dutyTop([{minutes: [3]}, {minutes: [80]}])).toBe(100);
+        expect(dutyTop([{buckets: [null, 3, 24]}])).toBe(25);
+        expect(dutyTop([{buckets: [null, 3, 26]}])).toBe(50);
+        expect(dutyTop([{buckets: [3]}, {buckets: [80]}])).toBe(100);
     });
     it('the last reading of a series with holes', () => {
         expect(lastReading([1, 2, null])).toBe(2);
@@ -54,5 +54,20 @@ describe('the radio writes', () => {
         expect(tokenClient(view, 'other')).toBeUndefined();
         expect(tokenClient(null, 'hm2mqtt')).toBeUndefined();
         expect(clientKey(view.clients[0]!)).toBe('user:hm2mqtt');
+    });
+
+    // openccu-lite task 489: the span's share, and when a bucket of 6 h or 24 h begins and ends
+    it('the span\'s share of writes that changed nothing', () => {
+        expect(spanNoopShare({writes: 340, writes_noop: 211})).toBe(62);
+        expect(spanNoopShare({writes: 0, writes_noop: 0})).toBeNull();
+    });
+    it('a bucket\'s start and end: the last holds now, each starts at a multiple of its length', () => {
+        const at = '2026-11-22T12:07:30Z';
+        const last = bucketTimes(at, 5, 71, 72);
+        expect(last.start.toISOString()).toBe('2026-11-22T12:05:00.000Z');
+        expect(last.end.toISOString()).toBe('2026-11-22T12:10:00.000Z');
+        expect(bucketTimes(at, 5, 0, 72).start.toISOString()).toBe('2026-11-22T06:10:00.000Z');
+        expect(bucketTimes(at, 15, 95, 96).start.toISOString()).toBe('2026-11-22T12:00:00.000Z');
+        expect(bucketTimes(at, 15, 0, 96).start.toISOString()).toBe('2026-11-21T12:15:00.000Z');
     });
 });

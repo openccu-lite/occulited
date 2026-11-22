@@ -2638,30 +2638,51 @@ function storageWritesRoute(req, u, res, jar) {
 // occulited task 163: the radio writes per lite-rpc client, per browser (stub-radio-writes). No
 // variant: nobody wrote. "busy": hm2mqtt behind a rise of HmIP-RF's duty cycle (the warning),
 // ci-nightly with a burst (the hint), the account admin quiet; "busy-classic" adds the classic RPC
-// note; "off" is a system without the counter.
-function radioWritesView(variant) {
+// note; "off" is a system without the counter. openccu-lite task 489: ?span=60|360|1440 - 60
+// minutes, 72 five-minute or 96 quarter-hour buckets; the token nightly-backup wrote only in the
+// morning (in 24 h, not in 6 h); "busy" has one radio module shared by BidCos-RF and HmIP-RF (one
+// duty-cycle row), "busy-classic" two LAN gateways of rfd and HmIP's own stick (three rows).
+function radioWritesView(variant, span = 60) {
     const thresholds = {average_per_minute: 20, average_minutes: 5, burst_per_minute: 60, hold_minutes: 15, duty_cycle_rise: 10, duty_cycle_minutes: 15, share: 0.5, min_writes: 30};
-    const base = {at: new Date().toISOString(), available: !variant.startsWith('off'), classic_rpc: variant.startsWith('busy-classic'), thresholds, clients: [], duty_cycle: []};
+    const bm = span === 360 ? 5 : span === 1440 ? 15 : 1;
+    const n = span / bm;
+    const base = {at: new Date().toISOString(), span, bucket_minutes: bm, available: !variant.startsWith('off'), classic_rpc: variant.startsWith('busy-classic'), thresholds, clients: [], duty_cycle: []};
     if (!variant.startsWith('busy')) return base;
     const minutes = (fill) => Array.from({length: 60}, (_, i) => fill(i));
+    const buckets = (fill) => Array.from({length: n}, (_, i) => fill(i));
     const sum = (m) => m.reduce((a, b) => a + b, 0);
     const mqtt = minutes((i) => (i < 40 ? 4 : i < 52 ? 45 + (i % 3) * 5 : 6));
     const ci = minutes((i) => (i === 50 ? 84 : i === 51 ? 12 : 0));
     const admin = minutes((i) => (i === 20 || i === 58 ? 1 : 0));
     const dc = minutes((i) => (i < 40 ? 3 : i < 53 ? 3 + Math.round((i - 39) * 1.6) : 24));
     dc[10] = null;
-    return {...base,
-        clients: [
-            {kind: 'token', name: 'hm2mqtt', label: 'hm2mqtt.js', per_minute: 6, hour: sum(mqtt), noop: Math.round(sum(mqtt) * 0.62), minutes: mqtt, interfaces: [{name: 'BidCos-RF', hour: 60, noop: 0}, {name: 'HmIP-RF', hour: sum(mqtt) - 60, noop: Math.round(sum(mqtt) * 0.62)}],
-                level: 'warning', hint: {burst: false, average: true, peak_minute: 55, peak_average: 50}, cause: {interface: 'HmIP-RF', address: '3014F711A0001F0000000A03', from: 3, to: 24, writes: 560, total: 656, share_percent: 85}},
-            {kind: 'token', name: 'ci-nightly', per_minute: 0, hour: sum(ci), noop: 0, minutes: ci, interfaces: [{name: 'HmIP-RF', hour: sum(ci), noop: 0}], level: 'hint', hint: {burst: true, average: false, peak_minute: 84, peak_average: 19.2}},
-            {kind: 'user', name: 'admin', per_minute: 1, hour: 2, noop: 1, minutes: admin, interfaces: [{name: 'HmIP-RF', hour: 2, noop: 1}]},
-        ],
-        duty_cycle: [
-            {interface: 'BidCos-RF', address: 'JEQ0000001', minutes: minutes(() => 2)},
-            ...(variant.startsWith('busy-classic') ? [{interface: 'BidCos-RF', address: 'JEQ9000001', minutes: minutes(() => 0)}] : []),
-            {interface: 'HmIP-RF', address: '3014F711A0001F0000000A03', minutes: dc},
-        ]};
+    // the longer spans: the hour's figures in the last buckets, a quieter time before
+    const per = {
+        360: {mqtt: buckets((i) => (i < 60 ? 20 : i < 68 ? 200 + (i % 2) * 40 : 30)), ci: buckets((i) => (i === 70 ? 96 : 0)), admin: buckets((i) => (i === 64 || i === 71 ? 1 : 0)), backup: buckets(() => 0),
+            dc: buckets((i) => (i === 3 ? null : i < 64 ? 3 : i < 70 ? 10 + (i - 64) * 2 : 24))},
+        1440: {mqtt: buckets((i) => (i < 92 ? 60 : 270)), ci: buckets((i) => (i === 94 ? 96 : 0)), admin: buckets((i) => (i === 93 || i === 95 ? 1 : 0)), backup: buckets((i) => (i >= 30 && i < 34 ? 75 : 0)),
+            dc: buckets((i) => (i === 3 ? null : i >= 30 && i < 34 ? 12 : i < 92 ? 3 : 24))},
+    }[span] ?? {mqtt, ci, admin, backup: minutes(() => 0), dc};
+    const client = (c, b, noopShare) => {
+        const writes = sum(b);
+        return {...c, buckets: b, writes, writes_noop: Math.round(writes * noopShare)};
+    };
+    const clients = [
+        client({kind: 'token', name: 'hm2mqtt', label: 'hm2mqtt.js', per_minute: 6, hour: sum(mqtt), noop: Math.round(sum(mqtt) * 0.62), minutes: mqtt, interfaces: [{name: 'BidCos-RF', hour: 60, noop: 0, writes: 60}, {name: 'HmIP-RF', hour: sum(mqtt) - 60, noop: Math.round(sum(mqtt) * 0.62), writes: sum(per.mqtt) - 60}],
+            level: 'warning', hint: {burst: false, average: true, peak_minute: 55, peak_average: 50}, cause: {interface: 'HmIP-RF', address: '3014F711A0001F0000000A03', from: 3, to: 24, writes: 560, total: 656, share_percent: 85}}, per.mqtt, 0.62),
+        client({kind: 'token', name: 'ci-nightly', per_minute: 0, hour: sum(ci), noop: 0, minutes: ci, interfaces: [{name: 'HmIP-RF', hour: sum(ci), noop: 0, writes: sum(per.ci)}], level: 'hint', hint: {burst: true, average: false, peak_minute: 84, peak_average: 19.2}}, per.ci, 0),
+        client({kind: 'user', name: 'admin', per_minute: 1, hour: 2, noop: 1, minutes: admin, interfaces: [{name: 'HmIP-RF', hour: 2, noop: 1, writes: sum(per.admin)}]}, per.admin, 0.5),
+        client({kind: 'token', name: 'nightly-backup', per_minute: 0, hour: 0, noop: 0, minutes: minutes(() => 0), interfaces: [{name: 'BidCos-RF', hour: 0, noop: 0, writes: sum(per.backup)}]}, per.backup, 0),
+    ].filter((c) => c.writes > 0 || c.hour > 0);
+    const flat = (v) => ({minutes: minutes(() => v), buckets: buckets(() => v)});
+    const duty_cycle = variant.startsWith('busy-classic')
+        ? [
+            {interface: 'BidCos-RF', address: 'JEQ0000001', interfaces: ['BidCos-RF'], radio: 'lan:JEQ0000001', name: 'HM-LGW', ...flat(2)},
+            {interface: 'BidCos-RF', address: 'JEQ9000001', interfaces: ['BidCos-RF'], radio: 'lan:JEQ9000001', name: 'HM-LGW', ...flat(0)},
+            {interface: 'HmIP-RF', address: '3014F711A0001F0000000A03', interfaces: ['HmIP-RF'], radio: 'usb:hmip-rfusb', name: 'HmIP-RFUSB 1F0000000A03', minutes: dc, buckets: per.dc},
+        ]
+        : [{interface: 'BidCos-RF', address: 'JEQ0000001', interfaces: ['BidCos-RF', 'HmIP-RF'], radio: 'local', name: 'RPI-RF-MOD 1F0000000A03', minutes: dc, buckets: per.dc}];
+    return {...base, clients, duty_cycle};
 }
 
 // openccu-lite task 228, phase 2: the network shares - an SMB share that is mounted and an NFS
@@ -3066,7 +3087,9 @@ function variant(req, u, res) {
     if (u.pathname.startsWith('/api/system/v1/storage/usb')) return storageUSBRoute(req, u, res, jar);
     // occulited task 163: the radio writes per client, per browser (stub-radio-writes)
     if (key === 'GET /api/system/v1/radio/writes') {
-        sendJSON(res, radioWritesView(jar['stub-radio-writes'] ?? ''));
+        const span = Number(u.searchParams.get('span') || 60);
+        if (![60, 360, 1440].includes(span)) return sendJSON(res, {error: 'invalid', message: 'span is 60, 360 or 1440 (minutes)'}, 400), true;
+        sendJSON(res, radioWritesView(jar['stub-radio-writes'] ?? '', span));
         return true;
     }
     // occulited task 159: the disk writes and the recording switch, per browser (stub-writes)
