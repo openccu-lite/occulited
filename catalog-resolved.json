@@ -1,6 +1,6 @@
 {
   "format": 1,
-  "generated_at": "2026-11-23T09:01:06Z",
+  "generated_at": "2026-11-23T21:20:48Z",
   "catalog": "file:///home/runner/work/occulited/occulited/catalog/catalog.json",
   "repos": {
     "SukramJ/openccu-loom": {
@@ -1169,10 +1169,90 @@
         }
       ],
       "per_page": 10,
-      "stars": 12
+      "stars": 14
     },
     "hobbyquaker/ccu-addon-battery": {
       "releases": [
+        {
+          "tag_name": "v1.5.6",
+          "name": "v1.5.6",
+          "draft": false,
+          "prerelease": false,
+          "html_url": "https://github.com/hobbyquaker/ccu-addon-battery/releases/tag/v1.5.6",
+          "published_at": "2026-11-23T20:57:04Z",
+          "assets": [
+            {
+              "name": "battery-aarch64-1.5.6.tar.gz",
+              "size": 5025022,
+              "browser_download_url": "https://github.com/hobbyquaker/ccu-addon-battery/releases/download/v1.5.6/battery-aarch64-1.5.6.tar.gz"
+            },
+            {
+              "name": "battery-aarch64-1.5.6.tar.gz.sha256",
+              "size": 95,
+              "browser_download_url": "https://github.com/hobbyquaker/ccu-addon-battery/releases/download/v1.5.6/battery-aarch64-1.5.6.tar.gz.sha256"
+            },
+            {
+              "name": "battery-armv7l-1.5.6.tar.gz",
+              "size": 5121613,
+              "browser_download_url": "https://github.com/hobbyquaker/ccu-addon-battery/releases/download/v1.5.6/battery-armv7l-1.5.6.tar.gz"
+            },
+            {
+              "name": "battery-armv7l-1.5.6.tar.gz.sha256",
+              "size": 94,
+              "browser_download_url": "https://github.com/hobbyquaker/ccu-addon-battery/releases/download/v1.5.6/battery-armv7l-1.5.6.tar.gz.sha256"
+            },
+            {
+              "name": "battery-x86_64-1.5.6.tar.gz",
+              "size": 5382175,
+              "browser_download_url": "https://github.com/hobbyquaker/ccu-addon-battery/releases/download/v1.5.6/battery-x86_64-1.5.6.tar.gz"
+            },
+            {
+              "name": "battery-x86_64-1.5.6.tar.gz.sha256",
+              "size": 94,
+              "browser_download_url": "https://github.com/hobbyquaker/ccu-addon-battery/releases/download/v1.5.6/battery-x86_64-1.5.6.tar.gz.sha256"
+            }
+          ]
+        },
+        {
+          "tag_name": "v1.5.5",
+          "name": "v1.5.5",
+          "draft": false,
+          "prerelease": false,
+          "html_url": "https://github.com/hobbyquaker/ccu-addon-battery/releases/tag/v1.5.5",
+          "published_at": "2026-11-23T15:37:17Z",
+          "assets": [
+            {
+              "name": "battery-aarch64-1.5.5.tar.gz",
+              "size": 5024749,
+              "browser_download_url": "https://github.com/hobbyquaker/ccu-addon-battery/releases/download/v1.5.5/battery-aarch64-1.5.5.tar.gz"
+            },
+            {
+              "name": "battery-aarch64-1.5.5.tar.gz.sha256",
+              "size": 95,
+              "browser_download_url": "https://github.com/hobbyquaker/ccu-addon-battery/releases/download/v1.5.5/battery-aarch64-1.5.5.tar.gz.sha256"
+            },
+            {
+              "name": "battery-armv7l-1.5.5.tar.gz",
+              "size": 5121329,
+              "browser_download_url": "https://github.com/hobbyquaker/ccu-addon-battery/releases/download/v1.5.5/battery-armv7l-1.5.5.tar.gz"
+            },
+            {
+              "name": "battery-armv7l-1.5.5.tar.gz.sha256",
+              "size": 94,
+              "browser_download_url": "https://github.com/hobbyquaker/ccu-addon-battery/releases/download/v1.5.5/battery-armv7l-1.5.5.tar.gz.sha256"
+            },
+            {
+              "name": "battery-x86_64-1.5.5.tar.gz",
+              "size": 5381899,
+              "browser_download_url": "https://github.com/hobbyquaker/ccu-addon-battery/releases/download/v1.5.5/battery-x86_64-1.5.5.tar.gz"
+            },
+            {
+              "name": "battery-x86_64-1.5.5.tar.gz.sha256",
+              "size": 94,
+              "browser_download_url": "https://github.com/hobbyquaker/ccu-addon-battery/releases/download/v1.5.5/battery-x86_64-1.5.5.tar.gz.sha256"
+            }
+          ]
+        },
         {
           "tag_name": "v1.5.4",
           "name": "v1.5.4",
@@ -1492,90 +1572,10 @@
               "browser_download_url": "https://github.com/hobbyquaker/ccu-addon-battery/releases/download/v1.3.0/battery-x86_64-1.3.0.tar.gz.sha256"
             }
           ]
-        },
-        {
-          "tag_name": "v1.2.0",
-          "name": "v1.2.0",
-          "draft": false,
-          "prerelease": false,
-          "html_url": "https://github.com/hobbyquaker/ccu-addon-battery/releases/tag/v1.2.0",
-          "published_at": "2026-11-17T21:13:33Z",
-          "assets": [
-            {
-              "name": "battery-aarch64-1.2.0.tar.gz",
-              "size": 5224254,
-              "browser_download_url": "https://github.com/hobbyquaker/ccu-addon-battery/releases/download/v1.2.0/battery-aarch64-1.2.0.tar.gz"
-            },
-            {
-              "name": "battery-aarch64-1.2.0.tar.gz.sha256",
-              "size": 95,
-              "browser_download_url": "https://github.com/hobbyquaker/ccu-addon-battery/releases/download/v1.2.0/battery-aarch64-1.2.0.tar.gz.sha256"
-            },
-            {
-              "name": "battery-armv7l-1.2.0.tar.gz",
-              "size": 5385798,
-              "browser_download_url": "https://github.com/hobbyquaker/ccu-addon-battery/releases/download/v1.2.0/battery-armv7l-1.2.0.tar.gz"
-            },
-            {
-              "name": "battery-armv7l-1.2.0.tar.gz.sha256",
-              "size": 94,
-              "browser_download_url": "https://github.com/hobbyquaker/ccu-addon-battery/releases/download/v1.2.0/battery-armv7l-1.2.0.tar.gz.sha256"
-            },
-            {
-              "name": "battery-x86_64-1.2.0.tar.gz",
-              "size": 5628782,
-              "browser_download_url": "https://github.com/hobbyquaker/ccu-addon-battery/releases/download/v1.2.0/battery-x86_64-1.2.0.tar.gz"
-            },
-            {
-              "name": "battery-x86_64-1.2.0.tar.gz.sha256",
-              "size": 94,
-              "browser_download_url": "https://github.com/hobbyquaker/ccu-addon-battery/releases/download/v1.2.0/battery-x86_64-1.2.0.tar.gz.sha256"
-            }
-          ]
-        },
-        {
-          "tag_name": "v1.1.0",
-          "name": "v1.1.0",
-          "draft": false,
-          "prerelease": false,
-          "html_url": "https://github.com/hobbyquaker/ccu-addon-battery/releases/tag/v1.1.0",
-          "published_at": "2026-11-15T09:46:31Z",
-          "assets": [
-            {
-              "name": "battery-aarch64-1.1.0.tar.gz",
-              "size": 5203862,
-              "browser_download_url": "https://github.com/hobbyquaker/ccu-addon-battery/releases/download/v1.1.0/battery-aarch64-1.1.0.tar.gz"
-            },
-            {
-              "name": "battery-aarch64-1.1.0.tar.gz.sha256",
-              "size": 95,
-              "browser_download_url": "https://github.com/hobbyquaker/ccu-addon-battery/releases/download/v1.1.0/battery-aarch64-1.1.0.tar.gz.sha256"
-            },
-            {
-              "name": "battery-armv7l-1.1.0.tar.gz",
-              "size": 5366524,
-              "browser_download_url": "https://github.com/hobbyquaker/ccu-addon-battery/releases/download/v1.1.0/battery-armv7l-1.1.0.tar.gz"
-            },
-            {
-              "name": "battery-armv7l-1.1.0.tar.gz.sha256",
-              "size": 94,
-              "browser_download_url": "https://github.com/hobbyquaker/ccu-addon-battery/releases/download/v1.1.0/battery-armv7l-1.1.0.tar.gz.sha256"
-            },
-            {
-              "name": "battery-x86_64-1.1.0.tar.gz",
-              "size": 5608766,
-              "browser_download_url": "https://github.com/hobbyquaker/ccu-addon-battery/releases/download/v1.1.0/battery-x86_64-1.1.0.tar.gz"
-            },
-            {
-              "name": "battery-x86_64-1.1.0.tar.gz.sha256",
-              "size": 94,
-              "browser_download_url": "https://github.com/hobbyquaker/ccu-addon-battery/releases/download/v1.1.0/battery-x86_64-1.1.0.tar.gz.sha256"
-            }
-          ]
         }
       ],
       "per_page": 10,
-      "stars": 2
+      "stars": 3
     },
     "hobbyquaker/ccu-addon-longpressdim": {
       "releases": [
@@ -2227,7 +2227,7 @@
         }
       ],
       "per_page": 10,
-      "stars": 22
+      "stars": 23
     },
     "hobbyquaker/homematic-manager": {
       "releases": [
@@ -4333,7 +4333,7 @@
         }
       ],
       "per_page": 10,
-      "stars": 198
+      "stars": 199
     },
     "hobbyquaker/lite-addon-forwarder": {
       "releases": [
@@ -12075,7 +12075,7 @@
         }
       ],
       "per_page": 100,
-      "stars": 12
+      "stars": 13
     },
     "homematic-community/ccu-addon-mosquitto": {
       "releases": [
@@ -20662,10 +20662,120 @@
         }
       ],
       "per_page": 100,
-      "stars": 12
+      "stars": 13
     },
     "rdmtc/RedMatic": {
       "releases": [
+        {
+          "tag_name": "v10.0.0-beta.0",
+          "name": "v10.0.0-beta.0",
+          "draft": false,
+          "prerelease": true,
+          "html_url": "https://github.com/rdmtc/RedMatic/releases/tag/v10.0.0-beta.0",
+          "published_at": "2026-11-23T16:15:35Z",
+          "assets": [
+            {
+              "name": "redmatic-10.0.0-beta.0-sbom-nodes.json",
+              "size": 7585,
+              "browser_download_url": "https://github.com/rdmtc/RedMatic/releases/download/v10.0.0-beta.0/redmatic-10.0.0-beta.0-sbom-nodes.json"
+            },
+            {
+              "name": "redmatic-10.0.0-beta.0-sbom-runtime.json",
+              "size": 325981,
+              "browser_download_url": "https://github.com/rdmtc/RedMatic/releases/download/v10.0.0-beta.0/redmatic-10.0.0-beta.0-sbom-runtime.json"
+            },
+            {
+              "name": "redmatic-10.0.0-beta.0-sbom-www.json",
+              "size": 5564,
+              "browser_download_url": "https://github.com/rdmtc/RedMatic/releases/download/v10.0.0-beta.0/redmatic-10.0.0-beta.0-sbom-www.json"
+            },
+            {
+              "name": "redmatic-10.0.0-beta.0.tar.gz",
+              "size": 71612163,
+              "browser_download_url": "https://github.com/rdmtc/RedMatic/releases/download/v10.0.0-beta.0/redmatic-10.0.0-beta.0.tar.gz"
+            },
+            {
+              "name": "redmatic-10.0.0-beta.0.tar.gz.sha256",
+              "size": 96,
+              "browser_download_url": "https://github.com/rdmtc/RedMatic/releases/download/v10.0.0-beta.0/redmatic-10.0.0-beta.0.tar.gz.sha256"
+            },
+            {
+              "name": "redmatic-aarch64-10.0.0-beta.0.tar.gz",
+              "size": 103237335,
+              "browser_download_url": "https://github.com/rdmtc/RedMatic/releases/download/v10.0.0-beta.0/redmatic-aarch64-10.0.0-beta.0.tar.gz"
+            },
+            {
+              "name": "redmatic-aarch64-10.0.0-beta.0.tar.gz.sha256",
+              "size": 104,
+              "browser_download_url": "https://github.com/rdmtc/RedMatic/releases/download/v10.0.0-beta.0/redmatic-aarch64-10.0.0-beta.0.tar.gz.sha256"
+            },
+            {
+              "name": "redmatic-armv7l-10.0.0-beta.0.tar.gz",
+              "size": 71612163,
+              "browser_download_url": "https://github.com/rdmtc/RedMatic/releases/download/v10.0.0-beta.0/redmatic-armv7l-10.0.0-beta.0.tar.gz"
+            },
+            {
+              "name": "redmatic-armv7l-10.0.0-beta.0.tar.gz.sha256",
+              "size": 103,
+              "browser_download_url": "https://github.com/rdmtc/RedMatic/releases/download/v10.0.0-beta.0/redmatic-armv7l-10.0.0-beta.0.tar.gz.sha256"
+            },
+            {
+              "name": "redmatic-x86_64-10.0.0-beta.0.tar.gz",
+              "size": 103240010,
+              "browser_download_url": "https://github.com/rdmtc/RedMatic/releases/download/v10.0.0-beta.0/redmatic-x86_64-10.0.0-beta.0.tar.gz"
+            },
+            {
+              "name": "redmatic-x86_64-10.0.0-beta.0.tar.gz.sha256",
+              "size": 103,
+              "browser_download_url": "https://github.com/rdmtc/RedMatic/releases/download/v10.0.0-beta.0/redmatic-x86_64-10.0.0-beta.0.tar.gz.sha256"
+            }
+          ]
+        },
+        {
+          "tag_name": "v9.20.0",
+          "name": "v9.20.0",
+          "draft": false,
+          "prerelease": false,
+          "html_url": "https://github.com/rdmtc/RedMatic/releases/tag/v9.20.0",
+          "published_at": "2026-11-23T14:58:23Z",
+          "assets": [
+            {
+              "name": "redmatic-9.20.0-sbom-nodes.json",
+              "size": 7585,
+              "browser_download_url": "https://github.com/rdmtc/RedMatic/releases/download/v9.20.0/redmatic-9.20.0-sbom-nodes.json"
+            },
+            {
+              "name": "redmatic-9.20.0-sbom-runtime.json",
+              "size": 325981,
+              "browser_download_url": "https://github.com/rdmtc/RedMatic/releases/download/v9.20.0/redmatic-9.20.0-sbom-runtime.json"
+            },
+            {
+              "name": "redmatic-9.20.0-sbom-www.json",
+              "size": 5564,
+              "browser_download_url": "https://github.com/rdmtc/RedMatic/releases/download/v9.20.0/redmatic-9.20.0-sbom-www.json"
+            },
+            {
+              "name": "redmatic-aarch64-9.20.0.tar.gz",
+              "size": 98584590,
+              "browser_download_url": "https://github.com/rdmtc/RedMatic/releases/download/v9.20.0/redmatic-aarch64-9.20.0.tar.gz"
+            },
+            {
+              "name": "redmatic-aarch64-9.20.0.tar.gz.sha256",
+              "size": 97,
+              "browser_download_url": "https://github.com/rdmtc/RedMatic/releases/download/v9.20.0/redmatic-aarch64-9.20.0.tar.gz.sha256"
+            },
+            {
+              "name": "redmatic-x86_64-9.20.0.tar.gz",
+              "size": 98579861,
+              "browser_download_url": "https://github.com/rdmtc/RedMatic/releases/download/v9.20.0/redmatic-x86_64-9.20.0.tar.gz"
+            },
+            {
+              "name": "redmatic-x86_64-9.20.0.tar.gz.sha256",
+              "size": 96,
+              "browser_download_url": "https://github.com/rdmtc/RedMatic/releases/download/v9.20.0/redmatic-x86_64-9.20.0.tar.gz.sha256"
+            }
+          ]
+        },
         {
           "tag_name": "v9.19.0",
           "name": "v9.19.0",
@@ -21185,136 +21295,6 @@
               "browser_download_url": "https://github.com/rdmtc/RedMatic/releases/download/v9.17.2/redmatic-x86_64-9.17.2.tar.gz.sha256"
             }
           ]
-        },
-        {
-          "tag_name": "v9.17.1",
-          "name": "v9.17.1",
-          "draft": false,
-          "prerelease": false,
-          "html_url": "https://github.com/rdmtc/RedMatic/releases/tag/v9.17.1",
-          "published_at": "2026-11-11T12:00:05Z",
-          "assets": [
-            {
-              "name": "redmatic-9.17.1-sbom-nodes.json",
-              "size": 7585,
-              "browser_download_url": "https://github.com/rdmtc/RedMatic/releases/download/v9.17.1/redmatic-9.17.1-sbom-nodes.json"
-            },
-            {
-              "name": "redmatic-9.17.1-sbom-runtime.json",
-              "size": 325330,
-              "browser_download_url": "https://github.com/rdmtc/RedMatic/releases/download/v9.17.1/redmatic-9.17.1-sbom-runtime.json"
-            },
-            {
-              "name": "redmatic-9.17.1-sbom-www.json",
-              "size": 5564,
-              "browser_download_url": "https://github.com/rdmtc/RedMatic/releases/download/v9.17.1/redmatic-9.17.1-sbom-www.json"
-            },
-            {
-              "name": "redmatic-9.17.1.tar.gz",
-              "size": 64306326,
-              "browser_download_url": "https://github.com/rdmtc/RedMatic/releases/download/v9.17.1/redmatic-9.17.1.tar.gz"
-            },
-            {
-              "name": "redmatic-9.17.1.tar.gz.sha256",
-              "size": 89,
-              "browser_download_url": "https://github.com/rdmtc/RedMatic/releases/download/v9.17.1/redmatic-9.17.1.tar.gz.sha256"
-            },
-            {
-              "name": "redmatic-aarch64-9.17.1.tar.gz",
-              "size": 98428910,
-              "browser_download_url": "https://github.com/rdmtc/RedMatic/releases/download/v9.17.1/redmatic-aarch64-9.17.1.tar.gz"
-            },
-            {
-              "name": "redmatic-aarch64-9.17.1.tar.gz.sha256",
-              "size": 97,
-              "browser_download_url": "https://github.com/rdmtc/RedMatic/releases/download/v9.17.1/redmatic-aarch64-9.17.1.tar.gz.sha256"
-            },
-            {
-              "name": "redmatic-armv7l-9.17.1.tar.gz",
-              "size": 64306326,
-              "browser_download_url": "https://github.com/rdmtc/RedMatic/releases/download/v9.17.1/redmatic-armv7l-9.17.1.tar.gz"
-            },
-            {
-              "name": "redmatic-armv7l-9.17.1.tar.gz.sha256",
-              "size": 96,
-              "browser_download_url": "https://github.com/rdmtc/RedMatic/releases/download/v9.17.1/redmatic-armv7l-9.17.1.tar.gz.sha256"
-            },
-            {
-              "name": "redmatic-x86_64-9.17.1.tar.gz",
-              "size": 98431525,
-              "browser_download_url": "https://github.com/rdmtc/RedMatic/releases/download/v9.17.1/redmatic-x86_64-9.17.1.tar.gz"
-            },
-            {
-              "name": "redmatic-x86_64-9.17.1.tar.gz.sha256",
-              "size": 96,
-              "browser_download_url": "https://github.com/rdmtc/RedMatic/releases/download/v9.17.1/redmatic-x86_64-9.17.1.tar.gz.sha256"
-            }
-          ]
-        },
-        {
-          "tag_name": "v9.17.0",
-          "name": "v9.17.0",
-          "draft": false,
-          "prerelease": false,
-          "html_url": "https://github.com/rdmtc/RedMatic/releases/tag/v9.17.0",
-          "published_at": "2026-11-09T22:22:11Z",
-          "assets": [
-            {
-              "name": "redmatic-9.17.0-sbom-nodes.json",
-              "size": 7585,
-              "browser_download_url": "https://github.com/rdmtc/RedMatic/releases/download/v9.17.0/redmatic-9.17.0-sbom-nodes.json"
-            },
-            {
-              "name": "redmatic-9.17.0-sbom-runtime.json",
-              "size": 325330,
-              "browser_download_url": "https://github.com/rdmtc/RedMatic/releases/download/v9.17.0/redmatic-9.17.0-sbom-runtime.json"
-            },
-            {
-              "name": "redmatic-9.17.0-sbom-www.json",
-              "size": 5564,
-              "browser_download_url": "https://github.com/rdmtc/RedMatic/releases/download/v9.17.0/redmatic-9.17.0-sbom-www.json"
-            },
-            {
-              "name": "redmatic-9.17.0.tar.gz",
-              "size": 64294337,
-              "browser_download_url": "https://github.com/rdmtc/RedMatic/releases/download/v9.17.0/redmatic-9.17.0.tar.gz"
-            },
-            {
-              "name": "redmatic-9.17.0.tar.gz.sha256",
-              "size": 89,
-              "browser_download_url": "https://github.com/rdmtc/RedMatic/releases/download/v9.17.0/redmatic-9.17.0.tar.gz.sha256"
-            },
-            {
-              "name": "redmatic-aarch64-9.17.0.tar.gz",
-              "size": 98420844,
-              "browser_download_url": "https://github.com/rdmtc/RedMatic/releases/download/v9.17.0/redmatic-aarch64-9.17.0.tar.gz"
-            },
-            {
-              "name": "redmatic-aarch64-9.17.0.tar.gz.sha256",
-              "size": 97,
-              "browser_download_url": "https://github.com/rdmtc/RedMatic/releases/download/v9.17.0/redmatic-aarch64-9.17.0.tar.gz.sha256"
-            },
-            {
-              "name": "redmatic-armv7l-9.17.0.tar.gz",
-              "size": 64294337,
-              "browser_download_url": "https://github.com/rdmtc/RedMatic/releases/download/v9.17.0/redmatic-armv7l-9.17.0.tar.gz"
-            },
-            {
-              "name": "redmatic-armv7l-9.17.0.tar.gz.sha256",
-              "size": 96,
-              "browser_download_url": "https://github.com/rdmtc/RedMatic/releases/download/v9.17.0/redmatic-armv7l-9.17.0.tar.gz.sha256"
-            },
-            {
-              "name": "redmatic-x86_64-9.17.0.tar.gz",
-              "size": 98417033,
-              "browser_download_url": "https://github.com/rdmtc/RedMatic/releases/download/v9.17.0/redmatic-x86_64-9.17.0.tar.gz"
-            },
-            {
-              "name": "redmatic-x86_64-9.17.0.tar.gz.sha256",
-              "size": 96,
-              "browser_download_url": "https://github.com/rdmtc/RedMatic/releases/download/v9.17.0/redmatic-x86_64-9.17.0.tar.gz.sha256"
-            }
-          ]
         }
       ],
       "per_page": 10,
@@ -21336,7 +21316,7 @@
       "git": "https://github.com/rdmtc/RedMatic",
       "manifest": "addon_files/openccu-lite.json",
       "id": "redmatic",
-      "tag": "v9.19.0",
+      "tag": "v9.20.0",
       "release_repo": "rdmtc/RedMatic",
       "images": {
         "icon": "ok",
@@ -21382,7 +21362,7 @@
       "git": "https://github.com/hobbyquaker/ccu-addon-battery",
       "manifest": "addon/openccu-lite.json",
       "id": "battery",
-      "tag": "v1.5.4",
+      "tag": "v1.5.6",
       "release_repo": "hobbyquaker/ccu-addon-battery",
       "images": {
         "icon": "ok",
