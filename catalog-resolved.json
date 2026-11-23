@@ -1,6 +1,6 @@
 {
   "format": 1,
-  "generated_at": "2026-11-22T19:37:25Z",
+  "generated_at": "2026-11-23T00:51:26Z",
   "catalog": "file:///home/runner/work/occulited/occulited/catalog/catalog.json",
   "repos": {
     "SukramJ/openccu-loom": {
@@ -1174,6 +1174,86 @@
     "hobbyquaker/ccu-addon-battery": {
       "releases": [
         {
+          "tag_name": "v1.5.4",
+          "name": "v1.5.4",
+          "draft": false,
+          "prerelease": false,
+          "html_url": "https://github.com/hobbyquaker/ccu-addon-battery/releases/tag/v1.5.4",
+          "published_at": "2026-11-22T21:10:23Z",
+          "assets": [
+            {
+              "name": "battery-aarch64-1.5.4.tar.gz",
+              "size": 5024512,
+              "browser_download_url": "https://github.com/hobbyquaker/ccu-addon-battery/releases/download/v1.5.4/battery-aarch64-1.5.4.tar.gz"
+            },
+            {
+              "name": "battery-aarch64-1.5.4.tar.gz.sha256",
+              "size": 95,
+              "browser_download_url": "https://github.com/hobbyquaker/ccu-addon-battery/releases/download/v1.5.4/battery-aarch64-1.5.4.tar.gz.sha256"
+            },
+            {
+              "name": "battery-armv7l-1.5.4.tar.gz",
+              "size": 5118608,
+              "browser_download_url": "https://github.com/hobbyquaker/ccu-addon-battery/releases/download/v1.5.4/battery-armv7l-1.5.4.tar.gz"
+            },
+            {
+              "name": "battery-armv7l-1.5.4.tar.gz.sha256",
+              "size": 94,
+              "browser_download_url": "https://github.com/hobbyquaker/ccu-addon-battery/releases/download/v1.5.4/battery-armv7l-1.5.4.tar.gz.sha256"
+            },
+            {
+              "name": "battery-x86_64-1.5.4.tar.gz",
+              "size": 5377863,
+              "browser_download_url": "https://github.com/hobbyquaker/ccu-addon-battery/releases/download/v1.5.4/battery-x86_64-1.5.4.tar.gz"
+            },
+            {
+              "name": "battery-x86_64-1.5.4.tar.gz.sha256",
+              "size": 94,
+              "browser_download_url": "https://github.com/hobbyquaker/ccu-addon-battery/releases/download/v1.5.4/battery-x86_64-1.5.4.tar.gz.sha256"
+            }
+          ]
+        },
+        {
+          "tag_name": "v1.5.3",
+          "name": "v1.5.3",
+          "draft": false,
+          "prerelease": false,
+          "html_url": "https://github.com/hobbyquaker/ccu-addon-battery/releases/tag/v1.5.3",
+          "published_at": "2026-11-22T20:01:02Z",
+          "assets": [
+            {
+              "name": "battery-aarch64-1.5.3.tar.gz",
+              "size": 5021575,
+              "browser_download_url": "https://github.com/hobbyquaker/ccu-addon-battery/releases/download/v1.5.3/battery-aarch64-1.5.3.tar.gz"
+            },
+            {
+              "name": "battery-aarch64-1.5.3.tar.gz.sha256",
+              "size": 95,
+              "browser_download_url": "https://github.com/hobbyquaker/ccu-addon-battery/releases/download/v1.5.3/battery-aarch64-1.5.3.tar.gz.sha256"
+            },
+            {
+              "name": "battery-armv7l-1.5.3.tar.gz",
+              "size": 5114631,
+              "browser_download_url": "https://github.com/hobbyquaker/ccu-addon-battery/releases/download/v1.5.3/battery-armv7l-1.5.3.tar.gz"
+            },
+            {
+              "name": "battery-armv7l-1.5.3.tar.gz.sha256",
+              "size": 94,
+              "browser_download_url": "https://github.com/hobbyquaker/ccu-addon-battery/releases/download/v1.5.3/battery-armv7l-1.5.3.tar.gz.sha256"
+            },
+            {
+              "name": "battery-x86_64-1.5.3.tar.gz",
+              "size": 5373116,
+              "browser_download_url": "https://github.com/hobbyquaker/ccu-addon-battery/releases/download/v1.5.3/battery-x86_64-1.5.3.tar.gz"
+            },
+            {
+              "name": "battery-x86_64-1.5.3.tar.gz.sha256",
+              "size": 94,
+              "browser_download_url": "https://github.com/hobbyquaker/ccu-addon-battery/releases/download/v1.5.3/battery-x86_64-1.5.3.tar.gz.sha256"
+            }
+          ]
+        },
+        {
           "tag_name": "v1.5.2",
           "name": "v1.5.2",
           "draft": false,
@@ -1490,86 +1570,6 @@
               "name": "battery-x86_64-1.1.0.tar.gz.sha256",
               "size": 94,
               "browser_download_url": "https://github.com/hobbyquaker/ccu-addon-battery/releases/download/v1.1.0/battery-x86_64-1.1.0.tar.gz.sha256"
-            }
-          ]
-        },
-        {
-          "tag_name": "v1.0.4",
-          "name": "v1.0.4",
-          "draft": false,
-          "prerelease": false,
-          "html_url": "https://github.com/hobbyquaker/ccu-addon-battery/releases/tag/v1.0.4",
-          "published_at": "2026-10-28T13:01:40Z",
-          "assets": [
-            {
-              "name": "battery-aarch64-1.0.4.tar.gz",
-              "size": 5158364,
-              "browser_download_url": "https://github.com/hobbyquaker/ccu-addon-battery/releases/download/v1.0.4/battery-aarch64-1.0.4.tar.gz"
-            },
-            {
-              "name": "battery-aarch64-1.0.4.tar.gz.sha256",
-              "size": 95,
-              "browser_download_url": "https://github.com/hobbyquaker/ccu-addon-battery/releases/download/v1.0.4/battery-aarch64-1.0.4.tar.gz.sha256"
-            },
-            {
-              "name": "battery-armv7l-1.0.4.tar.gz",
-              "size": 5319290,
-              "browser_download_url": "https://github.com/hobbyquaker/ccu-addon-battery/releases/download/v1.0.4/battery-armv7l-1.0.4.tar.gz"
-            },
-            {
-              "name": "battery-armv7l-1.0.4.tar.gz.sha256",
-              "size": 94,
-              "browser_download_url": "https://github.com/hobbyquaker/ccu-addon-battery/releases/download/v1.0.4/battery-armv7l-1.0.4.tar.gz.sha256"
-            },
-            {
-              "name": "battery-x86_64-1.0.4.tar.gz",
-              "size": 5564570,
-              "browser_download_url": "https://github.com/hobbyquaker/ccu-addon-battery/releases/download/v1.0.4/battery-x86_64-1.0.4.tar.gz"
-            },
-            {
-              "name": "battery-x86_64-1.0.4.tar.gz.sha256",
-              "size": 94,
-              "browser_download_url": "https://github.com/hobbyquaker/ccu-addon-battery/releases/download/v1.0.4/battery-x86_64-1.0.4.tar.gz.sha256"
-            }
-          ]
-        },
-        {
-          "tag_name": "v1.0.3",
-          "name": "v1.0.3",
-          "draft": false,
-          "prerelease": false,
-          "html_url": "https://github.com/hobbyquaker/ccu-addon-battery/releases/tag/v1.0.3",
-          "published_at": "2026-10-28T08:54:07Z",
-          "assets": [
-            {
-              "name": "battery-aarch64-1.0.3.tar.gz",
-              "size": 5163490,
-              "browser_download_url": "https://github.com/hobbyquaker/ccu-addon-battery/releases/download/v1.0.3/battery-aarch64-1.0.3.tar.gz"
-            },
-            {
-              "name": "battery-aarch64-1.0.3.tar.gz.sha256",
-              "size": 95,
-              "browser_download_url": "https://github.com/hobbyquaker/ccu-addon-battery/releases/download/v1.0.3/battery-aarch64-1.0.3.tar.gz.sha256"
-            },
-            {
-              "name": "battery-armv7l-1.0.3.tar.gz",
-              "size": 5326453,
-              "browser_download_url": "https://github.com/hobbyquaker/ccu-addon-battery/releases/download/v1.0.3/battery-armv7l-1.0.3.tar.gz"
-            },
-            {
-              "name": "battery-armv7l-1.0.3.tar.gz.sha256",
-              "size": 94,
-              "browser_download_url": "https://github.com/hobbyquaker/ccu-addon-battery/releases/download/v1.0.3/battery-armv7l-1.0.3.tar.gz.sha256"
-            },
-            {
-              "name": "battery-x86_64-1.0.3.tar.gz",
-              "size": 5570531,
-              "browser_download_url": "https://github.com/hobbyquaker/ccu-addon-battery/releases/download/v1.0.3/battery-x86_64-1.0.3.tar.gz"
-            },
-            {
-              "name": "battery-x86_64-1.0.3.tar.gz.sha256",
-              "size": 94,
-              "browser_download_url": "https://github.com/hobbyquaker/ccu-addon-battery/releases/download/v1.0.3/battery-x86_64-1.0.3.tar.gz.sha256"
             }
           ]
         }
@@ -21336,7 +21336,7 @@
       "git": "https://github.com/hobbyquaker/ccu-addon-battery",
       "manifest": "addon/openccu-lite.json",
       "id": "battery",
-      "tag": "v1.5.2",
+      "tag": "v1.5.4",
       "release_repo": "hobbyquaker/ccu-addon-battery",
       "images": {
         "icon": "ok",
