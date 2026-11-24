@@ -1,6 +1,6 @@
 {
   "format": 1,
-  "generated_at": "2026-11-23T21:20:48Z",
+  "generated_at": "2026-11-24T06:00:36Z",
   "catalog": "file:///home/runner/work/occulited/occulited/catalog/catalog.json",
   "repos": {
     "SukramJ/openccu-loom": {
@@ -1579,6 +1579,46 @@
     },
     "hobbyquaker/ccu-addon-longpressdim": {
       "releases": [
+        {
+          "tag_name": "v0.1.6",
+          "name": "v0.1.6",
+          "draft": false,
+          "prerelease": false,
+          "html_url": "https://github.com/hobbyquaker/ccu-addon-longpressdim/releases/tag/v0.1.6",
+          "published_at": "2026-11-23T21:21:10Z",
+          "assets": [
+            {
+              "name": "longpressdim-aarch64-0.1.6.tar.gz",
+              "size": 3258097,
+              "browser_download_url": "https://github.com/hobbyquaker/ccu-addon-longpressdim/releases/download/v0.1.6/longpressdim-aarch64-0.1.6.tar.gz"
+            },
+            {
+              "name": "longpressdim-aarch64-0.1.6.tar.gz.sha256",
+              "size": 100,
+              "browser_download_url": "https://github.com/hobbyquaker/ccu-addon-longpressdim/releases/download/v0.1.6/longpressdim-aarch64-0.1.6.tar.gz.sha256"
+            },
+            {
+              "name": "longpressdim-armv7l-0.1.6.tar.gz",
+              "size": 3482842,
+              "browser_download_url": "https://github.com/hobbyquaker/ccu-addon-longpressdim/releases/download/v0.1.6/longpressdim-armv7l-0.1.6.tar.gz"
+            },
+            {
+              "name": "longpressdim-armv7l-0.1.6.tar.gz.sha256",
+              "size": 99,
+              "browser_download_url": "https://github.com/hobbyquaker/ccu-addon-longpressdim/releases/download/v0.1.6/longpressdim-armv7l-0.1.6.tar.gz.sha256"
+            },
+            {
+              "name": "longpressdim-x86_64-0.1.6.tar.gz",
+              "size": 3609504,
+              "browser_download_url": "https://github.com/hobbyquaker/ccu-addon-longpressdim/releases/download/v0.1.6/longpressdim-x86_64-0.1.6.tar.gz"
+            },
+            {
+              "name": "longpressdim-x86_64-0.1.6.tar.gz.sha256",
+              "size": 99,
+              "browser_download_url": "https://github.com/hobbyquaker/ccu-addon-longpressdim/releases/download/v0.1.6/longpressdim-x86_64-0.1.6.tar.gz.sha256"
+            }
+          ]
+        },
         {
           "tag_name": "v0.1.5",
           "name": "v0.1.5",
@@ -21351,7 +21391,7 @@
       "git": "https://github.com/hobbyquaker/ccu-addon-longpressdim",
       "manifest": "addon/openccu-lite.json",
       "id": "longpressdim",
-      "tag": "v0.1.5",
+      "tag": "v0.1.6",
       "release_repo": "hobbyquaker/ccu-addon-longpressdim",
       "images": {
         "icon": "ok",
