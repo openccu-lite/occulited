@@ -27,7 +27,7 @@
     import Help from '../lib/Help.svelte';
     import {warnEdge} from '../lib/systemmenu.svelte';
     import {ADDON_CARD_WARNINGS, worse, type Edge} from '../lib/warnedge';
-    import InstallProgress, {type InstallBusy} from '../lib/InstallProgress.svelte';
+    import InstallProgress, {type InstallBusy, type Progress} from '../lib/InstallProgress.svelte';
     import {addonsChanged} from '../lib/addonsync';
     import AddonPorts from '../lib/AddonPorts.svelte';
     import AddonSessionSettings from '../lib/AddonSessionSettings.svelte';
@@ -91,6 +91,10 @@
     let installBusy = $state(false);
     let installJob = $state<InstallBusy | null>(null);
     let progressView: InstallProgress | undefined = $state();
+    // occulited B-172: the catalogue run and a refused start are said at the card that started
+    // them too - the notice at the top of the page is out of sight where the user clicked
+    let run = $state<Progress | null>(null);
+    let cardNotice = $state<{id: string; text: string} | null>(null);
     // ?q=<id> deep-links a card (the old Catalogue's way; /catalog?q= is an alias of this page)
     let filter = $state(new URLSearchParams(location.search).get('q') ?? '');
     const INSTALLED_KEY = 'ol.addons.installedOnly';
@@ -325,10 +329,13 @@
     async function install(c: Card) {
         if (!c.entry?.id) return;
         notice = '';
+        cardNotice = null;
         const r = await installFromCatalog({id: c.entry.id, name: c.name, latest: c.entry.latest}, c.addon?.version ?? installedVersions[c.id]);
         if (r === null) return;
-        if (r) notice = r;
-        else await progressView?.poll();
+        if (r) {
+            notice = r;
+            cardNotice = {id: c.id, text: r};
+        } else await progressView?.poll();
     }
     // occulited task 171: " (Beta)" behind a pre-release in a list the dialog shows
     const preNote = (v: string, flagged?: boolean) => {
@@ -618,7 +625,7 @@
 <!-- one bar for a catalogue run, wherever it was started -->
 <!-- B-157: a run the page cannot draw says so; the list below stays -->
 <svelte:boundary onerror={(e) => console.error('addons: the install progress could not be rendered', e)}>
-<InstallProgress bind:this={progressView} bind:busy={installBusy} bind:job={installJob} onfinished={() => { void load(); addonsChanged(); }} />
+<InstallProgress bind:this={progressView} bind:busy={installBusy} bind:job={installJob} bind:run onfinished={() => { void load(); addonsChanged(); }} />
     {#snippet failed(err)}
         <div class="ol-notice error" data-progress-error>{t('The install progress could not be shown: {error}', {error: (err as Error)?.message ?? String(err)})}</div>
     {/snippet}
@@ -868,6 +875,15 @@
                     {#if e?.homepage && httpURL(e.homepage)}{' · '}<a href={e.homepage} target="_blank" rel="noopener">{t('Homepage')}</a>{/if}
                     {#if a && fe}{' · '}<span class="ad-pinhint">{t('Pin it to the menu in the Addons menu')}</span>{/if}
                 </div>
+                {#if e?.id && run?.addon_id === e.id && run.phase !== 'done'}
+                    <!-- B-172: the run of this card's addon, where the user clicked Install -->
+                    {@const refusedRun = run.phase === 'failed' && releasesProblemKind(run.error, run.retry_minutes) !== ''}
+                    <p class="ad-run" class:ol-warn={run.phase === 'failed'} data-card-run={run.phase} role={run.phase === 'failed' ? 'alert' : 'status'}>
+                        {t(run.phase)}{#if refusedRun}{' — '}<ReleasesProblem code={run.error} minutes={run.retry_minutes} />{' '}{t('Nothing was installed.')}{:else if run.phase === 'failed' && run.message}{` — ${run.message}`}{:else if run.phase !== 'failed'}{' '}<span class="ol-muted">{run.percent ?? 0} %</span>{/if}
+                    </p>
+                {:else if cardNotice?.id === c.id}
+                    <p class="ad-run ol-warn" data-card-run="refused" role="alert">{cardNotice.text}</p>
+                {/if}
                 <div class="ol-card-foot ad-foot">
                     <div class="ad-actions">
                         {#if a}
@@ -1033,6 +1049,7 @@
     .ad-info { margin: 4px 0; font-size: var(--hmm-font-size-small); overflow-wrap: anywhere; }
     .ad-info a { color: var(--hmm-link, var(--hmm-accent)); }
     .ad-check { margin: 4px 0; font-size: var(--hmm-font-size-small); }
+    .ad-run { margin: 4px 0; font-size: var(--hmm-font-size-small); overflow-wrap: anywhere; }
     .ad-meta-line { font-size: var(--hmm-font-size-small); margin: 6px 0 12px; overflow-wrap: anywhere; }
     .ad-pinhint { font-style: italic; }
     .ad-foot { border-top: 1px solid var(--hmm-border-muted); display: flex; align-items: center; flex-wrap: wrap; gap: 8px 10px; }

@@ -23,9 +23,12 @@ import (
 // Format is the file's format this binary reads and writes.
 const Format = 1
 
-// MaxAge is how old the file may be before a system leaves it for the API: the Action runs every
-// hour, so six hours is five missed runs.
-const MaxAge = 6 * time.Hour
+// MaxAge is how old the file may be before a system leaves it for the API. The Action is
+// scheduled every hour, but GitHub's scheduler skips runs for half a day at a time (2026-11-23/24:
+// 12 h and 11.7 h between two runs), and a system that left the file asked the API for every
+// entry - one check spent an address's unauthenticated hour (occulited B-172). A day is still
+// fresher than the daily check; the versions it names are the ones an install takes.
+const MaxAge = 24 * time.Hour
 
 // MaxSize bounds the file a system reads.
 const MaxSize = 8 << 20

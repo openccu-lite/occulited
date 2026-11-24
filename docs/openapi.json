@@ -3007,6 +3007,9 @@
           "repo": {
             "type": "string"
           },
+          "reserved": {
+            "type": "boolean"
+          },
           "retry_at": {
             "format": "date-time",
             "type": [

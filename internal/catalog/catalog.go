@@ -170,6 +170,9 @@ type CheckNotice struct {
 	RetryAt *time.Time `json:"retry_at,omitempty"`
 	// RetryMinutes is counted from the moment the view is answered; 0 = unknown or already past.
 	RetryMinutes int `json:"retry_minutes,omitempty"`
+	// Reserved: GitHub was not asked - the check left the last requests of the address's hour for
+	// an install (B-172); Code is CodeRateLimit.
+	Reserved bool `json:"reserved,omitempty"`
 }
 
 // Latest is the newest release the resolver picked for this architecture.
@@ -322,6 +325,8 @@ type Service struct {
 	// resolvedETag its ETag; used while resolved.File.Valid says so
 	resolvedFile *resolved.File
 	resolvedETag string
+	// budget is what GitHub's last API answer said is left of the address's hour (B-172)
+	budget apiBudget
 }
 
 // New returns a service for the catalogue URLs.
@@ -686,7 +691,7 @@ func (s *Service) view() *View {
 	if n := s.cache.ReleasesError; n != nil {
 		c := *n
 		if c.RetryAt != nil {
-			re := &ReleasesError{Repo: c.Repo, RateLimited: c.Code == CodeRateLimit, RetryAt: *c.RetryAt}
+			re := &ReleasesError{Repo: c.Repo, RateLimited: c.Code == CodeRateLimit, RetryAt: *c.RetryAt, Reserved: c.Reserved}
 			c.RetryMinutes = re.RetryMinutes(s.clock())
 			if re.RateLimited {
 				c.Message = re.message(s.clock())
@@ -784,6 +789,7 @@ func RepoName(git string) string {
 func (s *Service) Refresh(ctx context.Context) error {
 	s.refreshing.Lock()
 	defer s.refreshing.Unlock()
+	ctx = withCheck(ctx) // B-172: each release list once, the reserve kept for an install
 	pubErr, err := s.loadFiles(ctx, true)
 	if err != nil {
 		s.noteCheck(err)
@@ -817,11 +823,21 @@ func (s *Service) Refresh(ctx context.Context) error {
 				}
 			}
 		}
-		if c.Manifest != nil && c.Manifest.Release != nil {
-			s.refreshStars(ctx, c.Manifest.Release.GitHub)
-		}
 	}
 	s.RefreshReleases(ctx)
+	// B-172: the star counts after the release lists - what is left of GitHub's budget goes to
+	// the versions first, and the reserve stops the stars before it stops an install
+	for _, e := range cat.Addons {
+		if ctx.Err() != nil {
+			break
+		}
+		s.mu.Lock()
+		m := s.cache.Entries[entryKey(e.Git)].Manifest
+		s.mu.Unlock()
+		if m != nil && m.Release != nil {
+			s.refreshStars(ctx, m.Release.GitHub)
+		}
+	}
 	failure := pubErr
 	if failure == nil && tried > 0 && failed == tried {
 		failure = fmt.Errorf("no addon's manifest could be read (%s)", firstFailed)
@@ -994,6 +1010,9 @@ func (s *Service) refreshStars(ctx context.Context, repo string) {
 		s.mu.Unlock()
 		return
 	}
+	if _, wait := s.holdBack(ctx); wait {
+		return // B-172: the last count stays; the reserve is an install's
+	}
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, s.GitHubAPI+"/repos/"+repo, nil)
 	if err != nil {
 		return
@@ -1071,7 +1090,7 @@ func (s *Service) noteReleasesError(err error) {
 		return
 	}
 	now := s.clock()
-	n := &CheckNotice{Code: re.Code(), Repo: re.Repo, Message: re.message(now), At: now}
+	n := &CheckNotice{Code: re.Code(), Repo: re.Repo, Message: re.message(now), At: now, Reserved: re.Reserved}
 	if !re.RetryAt.IsZero() {
 		at := re.RetryAt
 		n.RetryAt = &at
@@ -1124,6 +1143,7 @@ func (s *Service) daily(ctx context.Context) {
 // dailyReleases is Run's release refresh: it says anew what it could not read (B-21), and the
 // cache is written either way, so the notice survives a restart.
 func (s *Service) dailyReleases(ctx context.Context) {
+	ctx = withCheck(ctx) // B-172
 	s.loadResolved(ctx)
 	s.mu.Lock()
 	s.cache.ReleasesError = nil
@@ -1207,16 +1227,25 @@ func (s *Service) releasesPage(ctx context.Context, repo string, perPage int) ([
 	if rels, ok := s.resolvedReleases(repo, perPage); ok {
 		return rels, nil
 	}
+	key := repo
+	if perPage != addonReleases {
+		key += "?per_page=" + strconv.Itoa(perPage) // a longer list is its own answer, with its own ETag
+	}
+	// B-172: a check reads each list once (latestTag and Resolve ask for the same one), and keeps
+	// GitHub's last requests for an install
+	check := checkOf(ctx)
+	if rels, ok := check.get(key); ok {
+		return rels, nil
+	}
+	if at, wait := s.holdBack(ctx); wait {
+		return nil, &ReleasesError{Repo: repo, RateLimited: true, RetryAt: at, Reserved: true}
+	}
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, s.GitHubAPI+"/repos/"+repo+"/releases?per_page="+strconv.Itoa(perPage), nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header.Set("Accept", "application/vnd.github+json")
 	s.mu.Lock()
-	key := repo
-	if perPage != addonReleases {
-		key += "?per_page=" + strconv.Itoa(perPage) // a longer list is its own answer, with its own ETag
-	}
 	cached, ok := s.releases[key]
 	s.mu.Unlock()
 	if ok && cached.etag != "" {
@@ -1253,6 +1282,7 @@ func (s *Service) releasesPage(ctx context.Context, repo string, perPage int) ([
 		limited, retry := rateLimited(res, body, s.clock())
 		return nil, &ReleasesError{Repo: repo, RateLimited: limited, RetryAt: retry, Status: res.StatusCode}
 	}
+	check.put(key, rels)
 	return rels, nil
 }
 

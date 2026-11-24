@@ -55,8 +55,13 @@
          * one-click installs, each with its own notice); the slot (busy, job) is everybody's
          */
         addon?: string;
+        /**
+         * occulited B-172: the run this notice shows, null while it shows none (nothing ran, an
+         * ended run closed or history) - bindable, so the Addons page says it at the card too
+         */
+        run?: Progress | null;
     }
-    let {busy = $bindable(false), job = $bindable(null), showEnded = true, onfinished, addon = ''}: Props = $props();
+    let {busy = $bindable(false), job = $bindable(null), showEnded = true, onfinished, addon = '', run = $bindable(null)}: Props = $props();
 
     let progress = $state<Progress | null>(null);
     const keyOf = runKey;
@@ -112,6 +117,9 @@
     const refused = $derived(progress?.phase === 'failed' && releasesProblemKind(progress.error, progress.retry_minutes) !== '');
     const pct = $derived(progress?.percent ?? (progress?.total ? Math.round(((progress.bytes ?? 0) / progress.total) * 100) : 0));
     const visible = $derived(!!progress && (addon === '' || progress.addon_id === addon) && (!progress.finished || keyOf(progress) !== closed));
+    $effect(() => {
+        run = visible ? progress : null;
+    });
     /** the close button: the ended run's notice goes, and a reload does not bring it back */
     function close() {
         if (!progress?.finished) return;

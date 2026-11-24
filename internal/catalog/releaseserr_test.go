@@ -225,8 +225,10 @@ func TestCheckNamesAnUnreadReleaseList(t *testing.T) {
 		t.Fatalf("after a restart: %+v", n)
 	}
 
-	// the budget is back: the next check reads 1.1.0 and the notice goes
+	// the budget is back at GitHub's reset (B-172: before it, the check does not ask): the next
+	// check reads 1.1.0 and the notice goes
 	g.mode.Store("ok")
+	now = g.reset.Add(time.Second)
 	s.dailyReleases(t.Context())
 	if v := s.Cached(); v.ReleasesError != nil || v.Addons[0].Latest.Version != "1.1.0" {
 		t.Fatalf("after the limit: %+v %+v", v.ReleasesError, v.Addons[0].Latest)

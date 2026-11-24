@@ -46,6 +46,7 @@ func (s *Service) do(req *http.Request) (*http.Response, error) {
 		req.Header.Set("Authorization", "Bearer "+s.Token)
 	}
 	res, err := httpwait.Do(s.HTTP, req, s.HeaderWait)
+	s.noteBudget(req, res) // B-172
 	if !retryable(res, err) || req.Context().Err() != nil {
 		return res, err
 	}
@@ -57,6 +58,7 @@ func (s *Service) do(req *http.Request) (*http.Response, error) {
 	s.HTTP.CloseIdleConnections()
 	again := req.Clone(req.Context())
 	res, err = httpwait.Do(s.HTTP, again, s.HeaderWait)
+	s.noteBudget(again, res)
 	if retryable(res, err) && req.Context().Err() == nil {
 		s.logFailed(again, res, err, true)
 	}

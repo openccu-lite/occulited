@@ -75,3 +75,25 @@ test('no notice while the last check read every list', async ({page}) => {
     await expect(page.locator('#addon-row-redmatic')).toBeVisible();
     await expect(page.locator('[data-releases-error]')).toHaveCount(0);
 });
+
+// B-172 (F2): the refused run is said at the card too - the user clicked Install there, scrolled
+// far below the notice at the top of the page
+test('the refused run stands at the card of its addon', async ({page}) => {
+    await refusedRun(page, 'github-rate-limit', 23);
+    await page.goto('/addons');
+    const at = page.locator('#addon-row-redmatic [data-card-run="failed"]');
+    await expect(at).toHaveText('failed — GitHub rate limit, try again in 23 min. Nothing was installed.');
+    await expect(at).toHaveAttribute('role', 'alert');
+    await expect(page.locator('[data-card-run]')).toHaveCount(1);
+    // the close button of the notice at the top takes the card's line with it
+    await page.locator('[data-install-progress-close]').click();
+    await expect(page.locator('[data-card-run]')).toHaveCount(0);
+});
+
+test('a run in progress shows its phase and percent at the card', async ({page}) => {
+    await page.route('**/api/system/v1/catalog/progress', (route) =>
+        route.fulfill({json: {progress: {addon_id: 'redmatic', phase: 'downloading', started: new Date().toISOString(), percent: 42, bytes: 1, total: 10}, busy: {kind: 'catalog', addon_id: 'redmatic', started: new Date().toISOString()}}}),
+    );
+    await page.goto('/addons');
+    await expect(page.locator('#addon-row-redmatic [data-card-run="downloading"]')).toContainText('42 %');
+});

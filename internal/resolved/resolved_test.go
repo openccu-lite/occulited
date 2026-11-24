@@ -12,8 +12,9 @@ func TestParse(t *testing.T) {
 		name, body, err string
 	}{
 		{"fresh", `{"format":1,"generated_at":"2026-10-28T11:00:00Z","repos":{}}`, ""},
-		{"at the limit", `{"format":1,"generated_at":"2026-10-28T06:00:00Z"}`, ""},
-		{"stale", `{"format":1,"generated_at":"2026-10-28T05:59:00Z"}`, "stale"},
+		{"at the limit", `{"format":1,"generated_at":"2026-10-27T12:00:00Z"}`, ""},
+		{"half a day of skipped runs (B-172)", `{"format":1,"generated_at":"2026-10-28T00:00:00Z"}`, ""},
+		{"stale", `{"format":1,"generated_at":"2026-10-27T11:59:00Z"}`, "stale"},
 		{"a clock behind the Action's", `{"format":1,"generated_at":"2026-10-28T12:30:00Z"}`, ""},
 		{"from the future", `{"format":1,"generated_at":"2026-10-28T13:30:00Z"}`, "future"},
 		{"another format", `{"format":2,"generated_at":"2026-10-28T11:00:00Z"}`, "format 2"},

@@ -68,7 +68,8 @@ everyone:
 - **The file** `catalog-resolved.json` is published as the only file of the branch **`catalog-resolved`**, which
   is appended to and never force-pushed (`scripts/catalog-resolved-publish.sh`): a run commits only when the answers
   changed (the file without its `generated_at`) or the published file is three hours old - re-stamped well inside
-  the six hours a system takes it for - and creates the branch's first commit when it does not exist. Read from `https://raw.githubusercontent.com/openccu-lite/occulited/catalog-resolved/catalog-resolved.json`
+  the 24 hours a system takes it for (six until occulited B-172: GitHub's scheduler skips the hourly runs for
+  up to half a day, and every system then asked the API per entry) - and creates the branch's first commit when it does not exist. Read from `https://raw.githubusercontent.com/openccu-lite/occulited/catalog-resolved/catalog-resolved.json`
   - the catalogue file's own host, so a system reaches nothing new (no other host to trust, pin or let through a
   firewall), and no Pages site to set up. A run that resolves nothing (no token, no network) writes nothing: the
   last good file stays until it is stale.
@@ -83,13 +84,16 @@ everyone:
   ([manifest-format.md](manifest-format.md), occulited task 128: at most 64 MB of download, streamed until the declared
   files are found) and shows as `ok`; an addon with no `aarch64` package shows such an image as not fetched.
 - **A system's check** reads the file first, once per check, conditional on its ETag (`catalog.resolved` in
-  `occulited.json`; absent = that URL, `"off"` = none). While it is valid - format 1, `generated_at` at most six
+  `occulited.json`; absent = that URL, `"off"` = none). While it is valid - format 1, `generated_at` at most 24
   hours old (and not more than an hour in the future) - it answers the release lists and star counts; everything the
   system derives from them (the tag, the manifest at it, the asset for its architecture, an install's release, the
   update hints) is derived by the same code as before, so the file and the API path cannot drift. A repository the
   file does not hold, holds with an `error` or with a shorter list than asked for, and a file that is missing, stale
   or of another format, is asked of the API as before. The manifests, images and packages come from the raw host
   and the release downloads as before (neither is rate-limited). A system sends no token.
+  Without a valid file (occulited B-172) a check reads each repository's release list once, asks for the star counts
+  after all of them, and stops asking the API while GitHub's last answer left 10 or fewer requests of the address's
+  hour (`X-RateLimit-Remaining`): those are an install's, which reads its release list anew.
 - **The system update check** (`system_update.resolved`, the same default) takes the feed repository's list
   (`system_update.feed`'s `/repos/<owner>/<repo>/releases`) from the file the same way, per channel the same picks;
   `system_update.feed` stays the fallback. The file carries openccu-lite's list under both of its names,

@@ -70,7 +70,11 @@ func TestCheckFromResolved(t *testing.T) {
 	}{
 		{"stable from the file", func() *resolved.File { return &file }, ChannelStable, "1.0.2", false},
 		{"beta from the file", func() *resolved.File { return &file }, ChannelBeta, "1.1.0-beta.1", false},
-		{"stale: the API", func() *resolved.File { f := file; f.GeneratedAt = time.Now().Add(-7 * time.Hour); return &f }, ChannelStable, "1.0.1", true},
+		{"stale: the API", func() *resolved.File {
+			f := file
+			f.GeneratedAt = time.Now().Add(-resolved.MaxAge - time.Hour)
+			return &f
+		}, ChannelStable, "1.0.1", true},
 		{"missing: the API", func() *resolved.File { return nil }, ChannelStable, "1.0.1", true},
 		{"without the repository: the API", func() *resolved.File { f := file; f.Repos = nil; return &f }, ChannelStable, "1.0.1", true},
 		{"a shorter list than the feed's: the API", func() *resolved.File {

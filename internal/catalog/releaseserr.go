@@ -28,12 +28,18 @@ type ReleasesError struct {
 	RetryAt time.Time
 	Status  int   // the HTTP status, 0 for no answer
 	Err     error // the transport error, nil for an HTTP answer
+	// Reserved: not asked at all - a check held back because GitHub's last answer left only the
+	// reserve for installs (B-172); RateLimited is set too, RetryAt is GitHub's reset.
+	Reserved bool
 }
 
 func (e *ReleasesError) Error() string { return e.message(time.Now()) }
 
 // message is Error with the wait counted from now.
 func (e *ReleasesError) message(now time.Time) string {
+	if e.Reserved {
+		return fmt.Sprintf("GitHub rate limit nearly spent, try again in %d min: the check left the release list of %s and the last %d requests for an install", e.RetryMinutes(now), e.Repo, apiReserve)
+	}
 	if e.RateLimited {
 		if m := e.RetryMinutes(now); m > 0 {
 			return fmt.Sprintf("GitHub rate limit, try again in %d min: the release list of %s cannot be read now", m, e.Repo)
