@@ -25,6 +25,7 @@
     import {suggestLabel, labelError, type FS} from '../lib/usbformat';
     import StorageShares from '../lib/StorageShares.svelte';
     import StorageWrites from '../lib/StorageWrites.svelte';
+    import StorageWriteBehaviour from '../lib/StorageWriteBehaviour.svelte';
 
     interface Partition { name: string; fstype?: string; label?: string; label_id?: string; mount?: string; read_only?: boolean; size_bytes: number; total_bytes?: number; free_bytes?: number }
     interface Use { kind: 'journal' | 'backup' | 'store'; name?: string; id?: string }
@@ -227,6 +228,8 @@
     <StorageShares active={() => life.active} />
     <!-- occulited task 159: what is written to the disks, and by which service -->
     <StorageWrites active={() => life.active} />
+    <!-- occulited task 160: how often the system storage is written to on its own -->
+    <StorageWriteBehaviour active={() => life.active} />
 {/if}
 
 

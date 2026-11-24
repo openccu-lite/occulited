@@ -2598,6 +2598,36 @@ function storageUSBRoute(req, u, res, jar) {
     return true;
 }
 
+// occulited task 160: the system storage's mount options, per browser (stub-mount). The default:
+// the image's (commit=30, no lazytime); "custom": lazytime and 120 s chosen; "unsupported": a
+// userfs that is no ext4 mount; "busy": the remount is refused. A PUT is kept per browser.
+const MOUNTS = new Map();
+function storageMountRoute(req, res, jar) {
+    const id = jar['stub-mount'] ?? '';
+    if (!MOUNTS.has(id)) MOUNTS.set(id, id.startsWith('custom') ? {lazytime: true, commit_s: 120} : {lazytime: false, commit_s: 30});
+    const unsupported = id.startsWith('unsupported');
+    const view = () => {
+        const s = MOUNTS.get(id);
+        const options = `rw,${s.lazytime ? 'lazytime,' : ''}noatime,nodiratime${s.commit_s === 5 ? '' : `,commit=${s.commit_s}`}`;
+        return unsupported
+            ? {mount: '/usr/local', mounted: true, fstype: 'f2fs', options: 'rw,noatime', supported: false, active: {lazytime: false, commit_s: 5}, setting: {lazytime: false, commit_s: 30}, default: {lazytime: false, commit_s: 30}, custom: false, commit_choices: [5, 30, 60, 120]}
+            : {mount: '/usr/local', mounted: true, fstype: 'ext4', options, supported: true, active: {...s}, setting: {...s}, default: {lazytime: false, commit_s: 30}, custom: s.lazytime || s.commit_s !== 30, commit_choices: [5, 30, 60, 120]};
+    };
+    let body = '';
+    req.on('data', (c) => (body += c));
+    req.on('end', () => {
+        if (req.method === 'GET') return sendJSON(res, view());
+        if (req.method !== 'PUT') return sendJSON(res, {error: 'not_found', message: 'no such route'}, 404);
+        const b = body ? JSON.parse(body) : {};
+        if (typeof b.lazytime !== 'boolean' || ![5, 30, 60, 120].includes(b.commit_s)) return sendJSON(res, {error: 'invalid-body', message: 'lazytime and commit_s are required'}, 422);
+        if (unsupported) return sendJSON(res, {error: 'unsupported', message: 'the system storage is not an ext4 file system mounted on its own: its mount options cannot be set'}, 409);
+        if (id.startsWith('busy')) return sendJSON(res, {error: 'internal', message: 'userfs-mount: mount -o remount,lazytime,commit=60 /usr/local: exit status 32: mount: /usr/local: mount point is busy.'}, 500);
+        MOUNTS.set(id, {lazytime: b.lazytime, commit_s: b.commit_s});
+        return sendJSON(res, view());
+    });
+    return true;
+}
+
 // occulited task 159: the disk writes, per browser (stub-writes). The default: the card and a stick
 // with their totals, the recording off. "on": recorded since two hours, RedMatic the top writer;
 // "hint": the card written to fast; "unsupported": a kernel without the io controller. The switch
@@ -3140,6 +3170,8 @@ function variant(req, u, res) {
         sendJSON(res, radioWritesView(jar['stub-radio-writes'] ?? '', span));
         return true;
     }
+    // occulited task 160: the system storage's mount options, per browser (stub-mount)
+    if (u.pathname === '/api/system/v1/storage/mount-options') return storageMountRoute(req, res, jar);
     // occulited task 159: the disk writes and the recording switch, per browser (stub-writes)
     if (u.pathname.startsWith('/api/system/v1/storage/writes')) return storageWritesRoute(req, u, res, jar);
     // openccu-lite task 228, phase 2: the network shares, per browser (stub-shares)

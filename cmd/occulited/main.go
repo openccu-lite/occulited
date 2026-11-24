@@ -464,6 +464,7 @@ func run(opts daemonOptions) error {
 	var services httpapi.ServiceManager = system.NoInit{}
 	// occulited task 159: the switch "record disk writes per service"; nil without systemd
 	var ioAccounting *system.IOAccounting
+	var userfsMount *system.UserfsMount // occulited task 160
 	// task 186: the journal is the log (D-30); /var/log/messages of the busybox init is not read
 	var logReader system.LogReader = system.JournalLog{Root: root}
 	var journal *system.JournalLog
@@ -502,6 +503,24 @@ func run(opts daemonOptions) error {
 				log.Warn("services: the recording of disk writes per service could not be applied", "err", err)
 			} else if changed {
 				log.Info("services: the recording of disk writes per service was applied", "enabled", ioAccounting.Enabled())
+			}
+			cancel()
+		}
+		// occulited task 160: the userfs's mount options the administrator chose (System → Storage),
+		// the same way - the image's fstab mounted it with its own, the choice is applied again here
+		userfsMount = &system.UserfsMount{File: filepath.Join(cfg.StateDir, "userfs-mount.json")}
+		if *rootDir != "/" {
+			userfsMount.Set = func(_ context.Context, lazytime bool, commit int) error {
+				log.Info("dry run", "userfs-mount lazytime", lazytime, "commit", commit)
+				return nil
+			}
+		} else {
+			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+			if changed, err := userfsMount.Replay(ctx); err != nil {
+				log.Warn("storage: the chosen mount options of the system storage could not be applied", "err", err)
+			} else if changed {
+				o, _ := userfsMount.Stored()
+				log.Info("storage: the chosen mount options of the system storage were applied", "lazytime", o.Lazytime, "commit_s", o.CommitS)
 			}
 			cancel()
 		}
@@ -1121,7 +1140,7 @@ func run(opts daemonOptions) error {
 	}, HmIPServerDiagrams: func() bool { return cfg.HmIPServer.Diagrams }, OnHmIPServerDiagrams: func(on bool) error {
 		cfg.HmIPServer.Diagrams = on // task 33: read by the radio steps at hmipserver's next start
 		return config.Save(*cfgPath, cfg)
-	}, WebBase: "http://" + cfg.Listen, MetaRecovered: loaded.RecoveredFromBackup, NetTx: netTx, IPv6: ipv6Tx, Run: run, RunStdin: runStdin, Firewall: fwm, Health: sampler, SysHist: sysHist, IOWatch: ioWatch, IOAccounting: ioAccounting, Updates: updates, FirstBoot: firstBoot, ChangeKey: changeKey, SetLogLevel: setLogLevel, InitInterface: initInterface, AddonCtl: addonCtl, InstallToken: installToken, Feed: feed, Cert: certSvc, RadioFirmware: radioFW, RadioConnections: radioConn, RadioBusy: radioBusy, HmIPLocalKey: localKey, HmIPDeviceKeys: deviceKeys, ImportRecord: importRecord, NamesImport: metaAPI.ImportNamesFromSBK, ConfirmTicket: users.RedeemConfirmed, FirewallRules: fwRules, HTTPS: httpsCfg, ClassicRPC: &system.ClassicRPCConfig{Root: root, Run: run, Systemd: root.HasSystemd()}, WiFi: wifiService(root, root.HasSystemd()), Power: &system.Power{Root: root, Systemd: root.HasSystemd(), Run: run}, RadioInterfaces: radioIfs, Storage: storage, Thermal: thermal, Clock: clock, BootTiming: bootTiming, Version: version, Commit: commit, BackupHooks: backupHooks}
+	}, WebBase: "http://" + cfg.Listen, MetaRecovered: loaded.RecoveredFromBackup, NetTx: netTx, IPv6: ipv6Tx, Run: run, RunStdin: runStdin, Firewall: fwm, Health: sampler, SysHist: sysHist, IOWatch: ioWatch, IOAccounting: ioAccounting, UserfsMount: userfsMount, Updates: updates, FirstBoot: firstBoot, ChangeKey: changeKey, SetLogLevel: setLogLevel, InitInterface: initInterface, AddonCtl: addonCtl, InstallToken: installToken, Feed: feed, Cert: certSvc, RadioFirmware: radioFW, RadioConnections: radioConn, RadioBusy: radioBusy, HmIPLocalKey: localKey, HmIPDeviceKeys: deviceKeys, ImportRecord: importRecord, NamesImport: metaAPI.ImportNamesFromSBK, ConfirmTicket: users.RedeemConfirmed, FirewallRules: fwRules, HTTPS: httpsCfg, ClassicRPC: &system.ClassicRPCConfig{Root: root, Run: run, Systemd: root.HasSystemd()}, WiFi: wifiService(root, root.HasSystemd()), Power: &system.Power{Root: root, Systemd: root.HasSystemd(), Run: run}, RadioInterfaces: radioIfs, Storage: storage, Thermal: thermal, Clock: clock, BootTiming: bootTiming, Version: version, Commit: commit, BackupHooks: backupHooks}
 	// openccu-lite task 232: the server a purpose's pins are taken from - the OIDC issuer as the
 	// configuration file has it now, the ACME directory the settings point at
 	sysAPI.PinTarget = func(purpose string) string {

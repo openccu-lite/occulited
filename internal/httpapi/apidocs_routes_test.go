@@ -364,6 +364,8 @@ var routeDocs = map[string]apidoc.Doc{
 	"GET /api/system/v1/storage/writes":                                  {Summary: "What was written to each disk, and by which service"},
 	"GET /api/system/v1/storage/writes/recording":                        {Summary: "Whether disk writes are recorded per service"},
 	"PUT /api/system/v1/storage/writes/recording":                        {Summary: "Switches the recording of disk writes per service"},
+	"GET /api/system/v1/storage/mount-options":                           {Summary: "The system storage's mount options: lazytime and the commit interval"},
+	"PUT /api/system/v1/storage/mount-options":                           {Summary: "Sets the system storage's mount options and remounts it"},
 	"GET /api/system/v1/storage/usb":                                     {Summary: "The USB disks and their partitions"},
 	"POST /api/system/v1/storage/usb/{disk}/eject":                       {Summary: "Ejects a USB disk"},
 	"POST /api/system/v1/storage/usb/{disk}/format":                      {Summary: "Formats a USB disk"},

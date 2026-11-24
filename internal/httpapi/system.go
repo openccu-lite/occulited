@@ -371,6 +371,9 @@ type SystemAPI struct {
 	// /radio/writes answers available false and no warning is raised.
 	RadioWrites  *radiowrites.Tracker
 	IOAccounting *system.IOAccounting
+	// UserfsMount is the userfs's mount options (occulited task 160); nil = GET
+	// /storage/mount-options answers the image's and PUT 501.
+	UserfsMount *system.UserfsMount
 	// Storage is the storage health panel (task 69); nil = GET /storage answers 501.
 	Storage *system.Storage
 	// Thermal is the temperature panel (occulited task 148), GET /status's `thermal`; nil = none.
@@ -540,6 +543,7 @@ func (a *SystemAPI) Register(mux *http.ServeMux) {
 	route(mux, auth.ScopeSystemRead, "GET "+p+"/usb/storage", a.usbStorage)
 	a.registerStorageUSB(mux, p)    // storageusb.go, task 228
 	a.registerStorageWrites(mux, p) // storagewrites.go, occulited task 159
+	a.registerStorageMount(mux, p)  // storagemount.go, occulited task 160
 	a.registerRegadom(mux, p)       // regadom.go, occulited task 167
 	a.registerRadioWrites(mux, p)   // radiowrites.go, occulited task 163
 	a.registerShares(mux, p)        // storageshares.go, task 228 phase 2

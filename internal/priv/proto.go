@@ -75,6 +75,8 @@ type request struct {
 	WWW     string `json:"www,omitempty"`
 	// Seq is button-wait's "after this event" and button-ack's event (openccu-lite task 164).
 	Seq uint64 `json:"seq,omitempty"`
+	// Commit is userfs-mount's commit interval in seconds (occulited task 160; Enabled is lazytime).
+	Commit int `json:"commit,omitempty"`
 }
 
 type response struct {
@@ -1788,6 +1790,14 @@ func (s *Server) do(ctx context.Context, req request) response {
 			return refuse("io-accounting: only the switch")
 		}
 		return fail(ops.SetIOAccounting(ctx, req.Enabled))
+	case opUserfsMount:
+		// occulited task 160: lazytime and the commit interval, nothing else - the mount point and
+		// the option names are the helper's
+		if !reflect.DeepEqual(req, request{Op: req.Op, Enabled: req.Enabled, Commit: req.Commit}) {
+			s.log("helper: refused a userfs-mount request with more than lazytime and the commit interval")
+			return refuse("userfs-mount: only lazytime and the commit interval")
+		}
+		return fail(ops.SetUserfsMount(ctx, req.Enabled, req.Commit))
 	case opIPv6Conf:
 		// occulited B-139: an interface, a key and a value - what the shell shape it replaced checked
 		v, err := strconv.Atoi(string(req.Data))

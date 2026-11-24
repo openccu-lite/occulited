@@ -7367,6 +7367,57 @@
         ],
         "type": "object"
       },
+      "MountOptionsView": {
+        "properties": {
+          "active": {
+            "$ref": "#/components/schemas/SystemUserfsMountOptions"
+          },
+          "commit_choices": {
+            "items": {
+              "type": "integer"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "custom": {
+            "type": "boolean"
+          },
+          "default": {
+            "$ref": "#/components/schemas/SystemUserfsMountOptions"
+          },
+          "fstype": {
+            "type": "string"
+          },
+          "mount": {
+            "type": "string"
+          },
+          "mounted": {
+            "type": "boolean"
+          },
+          "options": {
+            "type": "string"
+          },
+          "setting": {
+            "$ref": "#/components/schemas/SystemUserfsMountOptions"
+          },
+          "supported": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "active",
+          "commit_choices",
+          "custom",
+          "default",
+          "mount",
+          "mounted",
+          "setting",
+          "supported"
+        ],
+        "type": "object"
+      },
       "NamesImportResult": {
         "properties": {
           "changed": {
@@ -15288,6 +15339,21 @@
           "installed",
           "update_available",
           "url"
+        ],
+        "type": "object"
+      },
+      "SystemUserfsMountOptions": {
+        "properties": {
+          "commit_s": {
+            "type": "integer"
+          },
+          "lazytime": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "commit_s",
+          "lazytime"
         ],
         "type": "object"
       },
@@ -40328,6 +40394,118 @@
         ],
         "x-occulite-scopes": [
           "system:read"
+        ]
+      }
+    },
+    "/api/system/v1/storage/mount-options": {
+      "get": {
+        "operationId": "getSystemStorageMountOptions",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MountOptionsView"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": [
+              "system:read"
+            ]
+          },
+          {
+            "cookie": [
+              "system:read"
+            ]
+          }
+        ],
+        "summary": "The system storage's mount options: lazytime and the commit interval",
+        "tags": [
+          "system/storage"
+        ],
+        "x-occulite-scopes": [
+          "system:read"
+        ]
+      },
+      "put": {
+        "operationId": "putSystemStorageMountOptions",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "commit_s": {
+                    "type": [
+                      "integer",
+                      "null"
+                    ]
+                  },
+                  "lazytime": {
+                    "type": [
+                      "boolean",
+                      "null"
+                    ]
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MountOptionsView"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": [
+              "system:write"
+            ]
+          },
+          {
+            "cookie": [
+              "system:write"
+            ]
+          }
+        ],
+        "summary": "Sets the system storage's mount options and remounts it",
+        "tags": [
+          "system/storage"
+        ],
+        "x-occulite-scopes": [
+          "system:write"
         ]
       }
     },

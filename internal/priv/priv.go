@@ -230,6 +230,10 @@ type Ops interface {
 	// reads and writes counted (occulited task 159, ioaccounting.go): DefaultIOAccounting=yes in
 	// /run/systemd/system.conf.d. The request is the switch; the caller reloads systemd.
 	SetIOAccounting(ctx context.Context, on bool) error
+	// SetUserfsMount remounts the userfs with lazytime on or off and one of UserfsCommitChoices as
+	// the ext4 commit interval (occulited task 160, userfsmount.go). Refused where /usr/local is
+	// no ext4 mount of its own (ErrUserfsNotExt4).
+	SetUserfsMount(ctx context.Context, lazytime bool, commit int) error
 	// SetIPv6Conf writes one of an interface's IPv6 sysctls (occulited B-139, ipv6conf.go): a
 	// named interface - never all, default or lo -, one of IPv6ConfKeys, the value 0 to 2.
 	SetIPv6Conf(ctx context.Context, iface, key string, v int) error
