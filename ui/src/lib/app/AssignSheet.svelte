@@ -18,12 +18,16 @@
     import {humanName} from './knxall';
     import {knxSVG} from './stateicons';
     import IconPicker from './IconPicker.svelte';
+    import {controlSettings, formatNumber, parseNumber, withSetting} from './variables';
+    import {i18n} from '../i18n.svelte';
 
     // layer: above the device sheet when opened from its gear (occulited task 96), so closing it returns there
     // iconOf (occulited task 99, 105, 106): the channel kinds with the "Symbol" picker - a switch (its shown name and
     // device model decide the automatic icon), a key, or a contact (one icon per state: closed, open, and tilted for
-    // a three-state sensor; `window` and `opener` decide the automatic ones); other kinds have none
-    let {ref, snap, favoritesPath, from = null, layer = 90, iconOf, onclose, onchanged}: {ref: string; snap: MetaSnapshot; favoritesPath: string; from?: DOMRect | null; layer?: number; iconOf?: {kind: 'switch' | 'key'; name: string; parent: string} | {kind: 'contact'; states: readonly ContactState[]; window: boolean; opener: boolean}; onclose: () => void; onchanged: () => void} = $props();
+    // a three-state sensor; `window` and `opener` decide the automatic ones); other kinds have none.
+    // occulited task 176: a system variable or a program (kind 'object') - one icon, any of the set, the automatic one
+    // by its kind; and its settings: read-only in Control, and a number's step
+    let {ref, snap, favoritesPath, from = null, layer = 90, iconOf, onclose, onchanged}: {ref: string; snap: MetaSnapshot; favoritesPath: string; from?: DOMRect | null; layer?: number; iconOf?: {kind: 'switch' | 'key'; name: string; parent: string} | {kind: 'contact'; states: readonly ContactState[]; window: boolean; opener: boolean} | {kind: 'object'; auto: string; suggested: readonly string[]; program: boolean; number: boolean}; onclose: () => void; onchanged: () => void} = $props();
     const FAVORITE_ENUM = 'favorite';
     const object = $derived(snap.objects[ref]);
     let display = $state('');
@@ -92,11 +96,14 @@
         fts_window_louvre_open: 'Louvre window, open', fts_light_dome: 'Light dome', fts_light_dome_open: 'Light dome, open', fts_door: 'Door', fts_door_open: 'Door, open',
         fts_door_tilt: 'Door, ajar', fts_frontdoor: 'Front door', fts_door_slide: 'Sliding door', fts_door_slide_open: 'Sliding door, open', fts_garage: 'Garage',
         fts_garage_door_100: 'Garage door, open', fts_sliding_gate_closed: 'Sliding gate', fts_sliding_gate_open: 'Sliding gate, open', fts_yard_gate_2w: 'Yard gate', fts_yard_gate_2w_open: 'Yard gate, open',
+        // task 176: the variable and program suggestions
+        edit_input_numeric: 'Number', edit_sort: 'Value list', message_notice: 'Text', edit_settings: 'Program', secur_alarm: 'Alarm', message_presence: 'Presence',
+        temp_temperature: 'Temperature', measure_power_meter: 'Meter', weather_station_generic: 'Reading',
     };
     // the suggested icons have translated labels; any other icon of the set its readable name
     const iconLabel = (id: string) => (ICON_LABELS[id] ? t(ICON_LABELS[id]) : humanName(id));
-    const autoIcon = $derived(iconOf ? (iconOf.kind === 'switch' ? switchIconId(undefined, iconOf.name, iconOf.parent) : iconOf.kind === 'key' ? KEY_DEFAULT : '') : '');
-    const suggested = $derived(iconOf?.kind === 'key' ? KEY_ICONS : iconOf?.kind === 'contact' ? CONTACT_ICONS : SWITCH_ICONS);
+    const autoIcon = $derived(iconOf ? (iconOf.kind === 'switch' ? switchIconId(undefined, iconOf.name, iconOf.parent) : iconOf.kind === 'key' ? KEY_DEFAULT : iconOf.kind === 'object' ? iconOf.auto : '') : '');
+    const suggested = $derived(iconOf?.kind === 'key' ? KEY_ICONS : iconOf?.kind === 'contact' ? CONTACT_ICONS : iconOf?.kind === 'object' ? iconOf.suggested : SWITCH_ICONS);
     // ---- occulited task 105: a contact's icons per state - one picker, the state chosen above it; the namespace is
     // written whole (a PATCH replaces it), with the icon key kept and the namespace removed when nothing is left
     // task 110: a switch has two, off and on (off left, as the switch sheet's buttons); key and input channels keep one
@@ -124,7 +131,31 @@
     }
     function pickIcon(id: string | null) {
         if ((id ?? undefined) === chosen) return;
-        void write({meta: {[CONTROL_NS]: id ? {icon: id} : null}});
+        // the namespace's other keys stay (task 176: a variable's read-only and step sit beside its icon)
+        void write({meta: {[CONTROL_NS]: withSetting(object?.meta, 'icon', id)}});
+    }
+    // ---- occulited task 176: a variable's or a program's settings in Control, beside the icon in the same namespace
+    const settings = $derived(controlSettings(object?.meta));
+    function setReadOnly(on: boolean) {
+        void write({meta: {[CONTROL_NS]: withSetting(object?.meta, 'read_only', on)}});
+    }
+    // the step's field follows the stored one only when that changes, like the display name
+    const storedStep = $derived(settings.step === undefined ? '' : formatNumber(settings.step, i18n.language, settings.step));
+    let stepText = $state('');
+    let seenStep: string | null = null;
+    $effect(() => {
+        const st = storedStep;
+        if (st !== seenStep) {
+            seenStep = st;
+            stepText = st;
+        }
+    });
+    const stepValue = $derived(stepText.trim() === '' ? null : parseNumber(stepText));
+    const stepBad = $derived(stepValue === undefined || (stepValue !== null && !(stepValue > 0)));
+    const stepDirty = $derived(stepText.trim() !== storedStep);
+    function saveStep() {
+        if (!stepDirty || stepBad || busy) return;
+        void write({meta: {[CONTROL_NS]: withSetting(object?.meta, 'step', stepValue ?? null)}});
     }
     async function write(body: {enums: string[]} | {meta: Record<string, unknown>}) {
         busy = true;
@@ -240,6 +271,21 @@
             {/if}
         {/if}
     {/if}
+    {#if iconOf?.kind === 'object'}
+        <!-- task 176: shown only - the tile and the sheet show the value (a program: its state) and change nothing -->
+        <label class="as-row" data-assign="read-only">
+            <input type="checkbox" checked={settings.readOnly} disabled={busy} onchange={(e) => setReadOnly(e.currentTarget.checked)} />
+            <span>{t('Show only (read-only in Control)')}</span>
+            <Help>{iconOf.program ? t('Control then only shows whether this program is active: no run, no switch. Other software and the addon itself can still run and switch it.') : t('Control then only shows the value of this variable. Programs, other software and the addon itself can still change it.')}</Help>
+        </label>
+        {#if iconOf.number}
+            <div class="as-field" data-assign="step">
+                <label class="as-label" for="as-step">{t('Step')}<Help>{t("The step of the plus and minus buttons and of the slider in this number's sheet; it also decides how many decimals Control shows. Empty: chosen by the limits.")}</Help></label>
+                <input id="as-step" class="hmm-input as-input" type="text" inputmode="decimal" autocomplete="off" bind:value={stepText} placeholder={t('automatic')} aria-invalid={stepBad ? 'true' : undefined} title={stepBad ? t('A number above 0, or empty.') : undefined} disabled={busy} onkeydown={(e) => { if (e.key === 'Enter') { e.preventDefault(); saveStep(); } }} data-assign-step />
+                <button type="button" class="hmm-button as-btn" disabled={busy || !stepDirty || stepBad} onclick={saveStep} data-assign-step-save>{t('Save')}</button>
+            </div>
+        {/if}
+    {/if}
     {#if favoritesPath}
         <label class="as-row as-fav" data-assign="favorite">
             <input type="checkbox" checked={inFavorites} disabled={busy} onchange={() => toggle(favoritesPath)} />
@@ -275,6 +321,7 @@
         .as-field > span:empty { display: none; }
     }
     .as-input { min-height: 44px; font-size: 1.05em; }
+    .as-input[aria-invalid='true'] { border-color: var(--hmm-error); }
     .as-btn { min-height: 44px; padding: 0 16px; }
     .as-section { margin: 14px 0 6px; font-size: 1em; color: var(--hmm-fg-muted); font-weight: 600; }
     .as-rows { display: flex; flex-direction: column; }

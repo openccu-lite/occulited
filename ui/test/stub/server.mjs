@@ -1285,7 +1285,9 @@ function liteValuesOf(jar) {
         // occulited tasks 113/114: an HmIP-BROLL (its receiver channel 4) and a BidCos HM-LC-Bl1 (channel 1), both still;
         // an HmIP-DLD (channel 1, locked) and a KeyMatic HM-Sec-Key (channel 1, locked)
         '000B10:4': {LEVEL: 0.3, LEVEL_2: 0, ACTIVITY_STATE: 3, PROCESS: 0}, 'LEQ0000001:1': {LEVEL: 0.8, DIRECTION: 0, WORKING: false},
-        '000B20:1': {LOCK_STATE: 1, ACTIVITY_STATE: 3, PROCESS: 0}, 'KEQ9999999:1': {STATE: false, DIRECTION: 0, WORKING: false, STATE_UNCERTAIN: false}});
+        '000B20:1': {LOCK_STATE: 1, ACTIVITY_STATE: 3, PROCESS: 0}, 'KEQ9999999:1': {STATE: false, DIRECTION: 0, WORKING: false, STATE_UNCERTAIN: false},
+        // occulited task 176: the addon interface's variables and programs (LOGIC below)
+        ...Object.fromEntries(Object.entries(LOGIC).map(([a, o]) => [a, {...o.value}]))});
     return liteValuesBy.get(id);
 }
 const liteParents = {'HmIP-RCV-1:1': 'HmIP-RCV-50'};
@@ -1361,6 +1363,39 @@ const liteDescs = {
         VOLTAGE: {CONTROL: 'POWERMETER_IGL.VOLTAGE', OPERATIONS: 5, TYPE: 'FLOAT', UNIT: 'V'}, CURRENT: {CONTROL: 'POWERMETER_IGL.CURRENT', OPERATIONS: 5, TYPE: 'FLOAT', UNIT: 'mA'}, FREQUENCY: {CONTROL: 'POWERMETER_IGL.FREQUENCY', OPERATIONS: 5, TYPE: 'FLOAT', UNIT: 'Hz'},
     },
 };
+// occulited task 176, B-170: an addon's interface with system variables and programs, as lite-addon-logic's "Logic"
+// has them - one device per object (var-<key>, prg-<key>), the values on channel 1 of type VARIABLE, ALARM or
+// PROGRAM, no CONTROL anywhere; the channel's FLAGS say visible (1). Every variable has a description of its own
+// (liteDescOverride), as the system's cache keys them by the device's FIRMWARE fingerprint.
+const MAXF = 3.4028234663852886e38;
+const LOGIC = {
+    'var-regen:1': {type: 'VARIABLE', flags: 1, value: {VALUE: false}, desc: {VALUE: {TYPE: 'BOOL', OPERATIONS: 7, MIN: false, MAX: true}}},
+    'var-anwesend:1': {type: 'VARIABLE', flags: 1, value: {VALUE: true}, desc: {VALUE: {TYPE: 'BOOL', OPERATIONS: 7, MIN: false, MAX: true, VALUE_LIST: ['abwesend', 'anwesend']}}},
+    'var-temperatur:1': {type: 'VARIABLE', flags: 1, value: {VALUE: 21.5}, desc: {VALUE: {TYPE: 'FLOAT', OPERATIONS: 7, MIN: -40, MAX: 60, UNIT: '°C'}}},
+    'var-zaehler:1': {type: 'VARIABLE', flags: 1, value: {VALUE: 7}, desc: {VALUE: {TYPE: 'FLOAT', OPERATIONS: 7, MIN: -MAXF, MAX: MAXF, UNIT: ''}}},
+    'var-modus:1': {type: 'VARIABLE', flags: 1, value: {VALUE: 1}, desc: {VALUE: {TYPE: 'ENUM', OPERATIONS: 7, MIN: 0, MAX: 2, VALUE_LIST: ['Auto', 'Manuell', 'Urlaub']}}},
+    'var-hinweis:1': {type: 'VARIABLE', flags: 1, value: {VALUE: 'Müll rausbringen'}, desc: {VALUE: {TYPE: 'STRING', OPERATIONS: 7}}},
+    'var-alarm-wasser:1': {type: 'ALARM', flags: 1, value: {VALUE: true, COUNT: 2, FIRST: 1790000000, LAST: 1790000100},
+        desc: {VALUE: {TYPE: 'BOOL', OPERATIONS: 7}, ACKNOWLEDGE: {TYPE: 'ACTION', OPERATIONS: 2}, COUNT: {TYPE: 'INTEGER', OPERATIONS: 5}, FIRST: {TYPE: 'INTEGER', OPERATIONS: 5, UNIT: 's'}, LAST: {TYPE: 'INTEGER', OPERATIONS: 5, UNIT: 's'}}},
+    // a system value: nobody writes it
+    'var-duty-cycle:1': {type: 'VARIABLE', flags: 1, value: {VALUE: 12}, desc: {VALUE: {TYPE: 'FLOAT', OPERATIONS: 5, MIN: -MAXF, MAX: MAXF, UNIT: '%'}}},
+    // not visible in the addon: no tile
+    'var-versteckt:1': {type: 'VARIABLE', flags: 0, value: {VALUE: true}, desc: {VALUE: {TYPE: 'BOOL', OPERATIONS: 7}}},
+    'prg-markise:1': {type: 'PROGRAM', flags: 1, value: {ACTIVE: true, LAST_RUN: 0}, desc: {ACTIVE: {TYPE: 'BOOL', OPERATIONS: 7}, RUN: {TYPE: 'ACTION', OPERATIONS: 2}, RUN_THEN: {TYPE: 'ACTION', OPERATIONS: 2}, LAST_RUN: {TYPE: 'INTEGER', OPERATIONS: 5}}},
+    // not operable: no RUN
+    'prg-fest:1': {type: 'PROGRAM', flags: 1, value: {ACTIVE: false, LAST_RUN: 0}, desc: {ACTIVE: {TYPE: 'BOOL', OPERATIONS: 7}, RUN: {TYPE: 'ACTION', OPERATIONS: 0}, RUN_THEN: {TYPE: 'ACTION', OPERATIONS: 0}, LAST_RUN: {TYPE: 'INTEGER', OPERATIONS: 5}}},
+    'prg-versteckt:1': {type: 'PROGRAM', flags: 2, value: {ACTIVE: true, LAST_RUN: 0}, desc: {ACTIVE: {TYPE: 'BOOL', OPERATIONS: 7}, RUN: {TYPE: 'ACTION', OPERATIONS: 2}, RUN_THEN: {TYPE: 'ACTION', OPERATIONS: 2}, LAST_RUN: {TYPE: 'INTEGER', OPERATIONS: 5}}},
+};
+const liteFlags = {};
+for (const [addr, o] of Object.entries(LOGIC)) {
+    liteTypes[addr] = o.type;
+    liteParents[addr] = o.type === 'PROGRAM' ? 'LOGIC-PROGRAM' : 'LOGIC-VARIABLE';
+    liteFlags[addr] = o.flags;
+    liteDescOverride[addr] = `LOGIC ${addr}`;
+    liteDescs[`LOGIC ${addr}`] = o.desc;
+}
+const isLogic = (address) => /^(var|prg)-/.test(address);
+const LITE_IFACES = ['HmIP-RF', 'BidCos-RF', 'VirtualDevices', 'Logic'];
 // occulited B-47: the browser rule of lite-rpc's reads, as the daemon's originRefusal has it
 // (internal/httpapi/literpc.go) - the stub knows no sessions, so an Authorization header stands for
 // the session as Bearer. Sec-Fetch-Site and Origin decide where the browser sends them; where it
@@ -1477,7 +1512,7 @@ const LITE_STATE_KEYS = new Set([
 // the interface an address belongs to, as the lite-rpc routes take it: a BidCos serial is three letters and seven
 // digits (KEQ0012345, the central BidCoS-RF), a heating group INT…, everything else is hmipserver's. B-110: the
 // state route named every KEQ/LEQ/MEQ channel HmIP-RF before, which the page's BidCos read from rfd covered up.
-const liteIfaceOf = (address) => (address.startsWith('INT') ? 'VirtualDevices' : address.startsWith('BidCoS-RF') || /^[A-Z]{3}\d{7}(:|$)/.test(address) ? 'BidCos-RF' : 'HmIP-RF');
+const liteIfaceOf = (address) => (isLogic(address) ? 'Logic' : address.startsWith('INT') ? 'VirtualDevices' : address.startsWith('BidCoS-RF') || /^[A-Z]{3}\d{7}(:|$)/.test(address) ? 'BidCos-RF' : 'HmIP-RF');
 function liteStateRoute(req, u, res) {
     const why = liteOriginRefusal(req);
     if (why) {
@@ -1494,7 +1529,8 @@ function liteStateRoute(req, u, res) {
         if (addresses.length && !addresses.some((a) => address === a || address.startsWith(a + ':'))) continue;
         for (const [datapoint, value] of Object.entries(values)) {
             const changedAt = liteChangedOf(cookieJar(req)['stub-app'])[address]?.[datapoint];
-            if (LITE_STATE_KEYS.has(datapoint)) entries.push({interface: iface, address, datapoint, value, ts: now, lc: changedAt ?? now, confirmed: true, source: 'event', ...(changedAt ? {changed_at: changedAt} : {})});
+            // an addon's interface is kept whole (occulited task 169)
+            if (iface === 'Logic' || LITE_STATE_KEYS.has(datapoint)) entries.push({interface: iface, address, datapoint, value, ts: now, lc: changedAt ?? now, confirmed: true, source: 'event', ...(changedAt ? {changed_at: changedAt} : {})});
         }
     }
     sendJSON(res, {entries, total: entries.length, unconfirmed: 0, event_id: `stub-${liteSeq}`, sweeps: {}, datapoints: [...LITE_STATE_KEYS]});
@@ -1510,7 +1546,7 @@ function liteParamsetsRoute(req, u, res) {
     req.on('data', (c) => { body += c; });
     req.on('end', () => {
         const b = JSON.parse(body || '{}');
-        if (iface !== 'HmIP-RF' && iface !== 'BidCos-RF' && iface !== 'VirtualDevices') return sendJSON(res, {error: 'unknown-interface', message: `no such interface: ${iface}`}, 404);
+        if (!LITE_IFACES.includes(iface)) return sendJSON(res, {error: 'unknown-interface', message: `no such interface: ${iface}`}, 404);
         const keys = {}, paramsets = {}, errors = {};
         for (const addr of b.addresses ?? []) {
             const ty = liteTypes[addr];
@@ -1541,7 +1577,7 @@ function liteRoute(req, u, res) {
             const value = plain(sent);
             const err = (code, message) => ({jsonrpc: '2.0', error: {code, message}, id: r.id});
             if (r.method === 'setValue' && i4OnFloat(addr, key, sent)) return err(-1, 'Failure');
-            if (iface !== 'HmIP-RF' && iface !== 'BidCos-RF' && iface !== 'VirtualDevices') return err(-32000, `the interface process does not answer: ${iface}`);
+            if (!LITE_IFACES.includes(iface)) return err(-32000, `the interface process does not answer: ${iface}`);
             switch (r.method) {
                 case 'getDeviceDescription':
                     // openccu-lite task 411: a device's own description names its channels
@@ -1549,7 +1585,7 @@ function liteRoute(req, u, res) {
                         const kids = Object.keys(liteTypes).filter((a) => a.startsWith(`${addr}:`));
                         return kids.length ? {jsonrpc: '2.0', result: {ADDRESS: addr, TYPE: addr, CHILDREN: kids}, id: r.id} : err(-2, 'Unknown instance');
                     }
-                    return liteTypes[addr] ? {jsonrpc: '2.0', result: {ADDRESS: addr, TYPE: liteTypes[addr], PARENT: addr.split(':')[0], ...(liteParents[addr] ? {PARENT_TYPE: liteParents[addr]} : {})}, id: r.id} : err(-2, 'Unknown instance');
+                    return liteTypes[addr] ? {jsonrpc: '2.0', result: {ADDRESS: addr, TYPE: liteTypes[addr], PARENT: addr.split(':')[0], ...(liteParents[addr] ? {PARENT_TYPE: liteParents[addr]} : {}), ...(addr in liteFlags ? {FLAGS: liteFlags[addr]} : {})}, id: r.id} : err(-2, 'Unknown instance');
                 case 'getParamsetDescription': return liteTypes[addr] ? {jsonrpc: '2.0', result: liteDescOf(addr), id: r.id} : err(-2, 'Unknown instance');
                 case 'getParamset': return liteValues[addr] ? {jsonrpc: '2.0', result: liteValues[addr], id: r.id} : err(-2, 'Unknown instance');
                 case 'setValue':
@@ -1563,6 +1599,22 @@ function liteRoute(req, u, res) {
                     }
                     if (!liteValues[addr]) return err(-2, 'Unknown instance');
                     if (addr === '000ABC:1' && key === 'SET_POINT_TEMPERATURE' && value > 30) return err(-5, 'Invalid parameter or value');
+                    // occulited task 176: a variable or a program as the addon's interface answers - a datapoint without the
+                    // write bit is refused, a number outside its limits and an entry the list does not have too; a run comes
+                    // back as LAST_RUN, an acknowledged alarm as VALUE false
+                    if (isLogic(String(addr))) {
+                        const d = liteDescOf(addr)?.[key];
+                        const put = (k, v) => { liteValues[addr] = {...liteValues[addr], [k]: v}; liteEmit(app, iface, addr, k, v); };
+                        if (!d) return err(-5, `${addr} has no datapoint ${key}`);
+                        if ((d.OPERATIONS & 2) === 0) return err(-6, d.TYPE === 'ACTION' ? `${addr.split(':')[0]} is not operable: it cannot be run from outside` : `${key} of ${addr.split(':')[0]} cannot be written`);
+                        if (key === 'RUN' || key === 'RUN_THEN') { put('LAST_RUN', 1); return {jsonrpc: '2.0', result: '', id: r.id}; }
+                        if (key === 'ACKNOWLEDGE') { put('VALUE', false); put('COUNT', 0); return {jsonrpc: '2.0', result: '', id: r.id}; }
+                        if (d.TYPE === 'FLOAT' && (typeof value !== 'number' || value < d.MIN || value > d.MAX)) return err(-5, `the value is outside ${d.MIN} to ${d.MAX}`);
+                        if (d.TYPE === 'ENUM' && !(Number.isInteger(value) && value >= 0 && value < d.VALUE_LIST.length)) return err(-5, 'the list has no such entry');
+                        if (d.TYPE === 'BOOL' && typeof value !== 'boolean') return err(-5, 'the value does not fit the datapoint');
+                        put(key, value);
+                        return {jsonrpc: '2.0', result: '', id: r.id};
+                    }
                     // occulited tasks 113/114: a blind moves until it is stopped - its direction and PROCESS/WORKING come back,
                     // its level stays; a lock runs for 1.5 s (stub-lock-ms), then reports its new state and stands.
                     // occulited B-108: the orders a system shows - the activity report before the write's answer (the

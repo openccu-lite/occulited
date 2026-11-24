@@ -4,3 +4,5 @@ export const NAMES: string[];
 export const SWITCH_ICONS: string[];
 export const KEY_ICONS: string[];
 export const CONTACT_ICONS: string[];
+export const VARIABLE_ICONS: string[];
+export const PROGRAM_ICONS: string[];

@@ -5,9 +5,12 @@
  * before the dot names the control (DIMMER.LEVEL, SWITCH.STATE, TEMP.SETPOINT); a channel with
  * several kinds takes the highest of the table's order; a channel without any falls back on
  * its datapoint names for a reading. Values come from getParamset VALUES and the event stream.
+ * occulited task 176: a system variable and a program (an addon interface's channels, variables.ts) are
+ * known by the channel's type.
  */
+import {isProgram, isVariable, programModel, programText, truth, varKind, variableModel, variableText} from './variables';
 
-export type Widget = 'switch' | 'dimmer' | 'blind' | 'thermostat' | 'color' | 'lock' | 'door' | 'button' | 'contact' | 'motion' | 'reading' | 'power' | 'smoke' | 'signal' | 'none';
+export type Widget = 'switch' | 'dimmer' | 'blind' | 'thermostat' | 'color' | 'lock' | 'door' | 'button' | 'contact' | 'motion' | 'reading' | 'power' | 'smoke' | 'signal' | 'variable' | 'program' | 'none';
 export type TileKind = 'act-open' | 'act' | 'read';
 
 export interface Datapoint {
@@ -29,6 +32,8 @@ export interface Model {
     stateKey: string;
     /** the datapoint the main action writes; '' = no action */
     commandKey: string;
+    /** occulited task 176: set read-only in Control (a variable, a program) - the sheet shows without controls */
+    locked?: boolean;
 }
 
 // the order decides when a channel carries several kinds: the richer control first
@@ -84,6 +89,9 @@ const SMOKE_TYPES = /^SMOKE_DETECTOR(_TEAM(_V2)?)?$/;
  *  keeps the DANGER kind to smoke detectors' channel types (task 104). */
 export function classify(desc: Description | undefined, type?: string): Model {
     if (!desc) return {widget: 'none', tile: 'read', stateKey: '', commandKey: ''};
+    // task 176: a variable's or a program's channel has no CONTROL; its type says what it is
+    if (isVariable(desc, type)) return variableModel(desc);
+    if (isProgram(desc, type)) return programModel(desc);
     const kinds = kindsOf(desc);
     for (const k of KINDS) {
         if (k.widget === 'smoke' && type !== undefined && !SMOKE_TYPES.test(type)) continue;
@@ -278,15 +286,19 @@ export function isOn(m: Model, values: Values, desc?: Description): boolean {
         case 'motion': return v === true;
         case 'contact': return v !== false && v !== 0 && v !== undefined; // open or tilted
         case 'smoke': return v === true || (num(v) ?? 0) > 0; // an alarm
+        case 'variable': return ['bool', 'alarm'].includes(varKind(desc)) && truth(v); // a number, an entry or a text is never "on"
         case 'signal': return values.ACOUSTIC_ALARM_ACTIVE === true || values.OPTICAL_ALARM_ACTIVE === true || v === true || (num(v) ?? 0) > 0;
         default: return false;
     }
 }
 
-/** The tile's one state line. Words the caller translates (t) are given as keys. */
-export function stateText(m: Model, values: Values, desc: Description | undefined, t: (k: string, p?: Record<string, string>) => string): string {
+/** The tile's one state line. Words the caller translates (t) are given as keys. fmt (task 176): a variable's number
+ *  in the reader's language and with the step chosen for it. */
+export function stateText(m: Model, values: Values, desc: Description | undefined, t: (k: string, p?: Record<string, string>) => string, fmt: {step?: number; language?: string} = {}): string {
     const v = values[m.stateKey];
     if (m.widget === 'button') return ''; // a press is a moment, shown by the tile as it happens, not a state
+    if (m.widget === 'variable') return variableText(values, desc, t, fmt);
+    if (m.widget === 'program') return programText(values, t);
     if (v === undefined) return '';
     switch (m.widget) {
         case 'switch': return v === true ? t('On') : t('Off');
@@ -354,6 +366,9 @@ export function mainAction(m: Model, values: Values, desc?: Description): {key: 
     if (!m.commandKey) return undefined;
     switch (m.widget) {
         case 'switch': return {key: m.commandKey, value: !(values[m.stateKey] === true)};
+        // task 176: a boolean variable is switched, a program run (with its conditions)
+        case 'variable': return {key: m.commandKey, value: !truth(values[m.stateKey])};
+        case 'program': return {key: m.commandKey, value: true};
         case 'dimmer': case 'color': return {key: m.commandKey, value: (num(values[m.stateKey]) ?? 0) > 0 ? 0 : 1};
         case 'blind': {
             const b = blindAction(values, desc);

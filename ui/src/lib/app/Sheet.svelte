@@ -16,10 +16,12 @@
     import {lucideSVG} from './lucide';
     import {durationLine, nextDurationChange, sinceLine} from './duration';
     import {canBoost, splitSeconds, type BoostInfo} from './boost';
+    import {boolLabels, entries, entryIndex, formatNumber, limitOf, numberProblem, parseNumber, stepOf, stepped, truth, varKind} from './variables';
 
     // onassign (occulited task 96): the gear left of close opens the assignment sheet; only given to an account that may use it
     // boost/onboost (occulited task 103): a thermostat's running boost countdown, and the toggle that starts or ends it
-    let {channel, meter = null, name, messages = [], from = null, onclose, onset, onput, onassign, icon: chosen, icons, boost = null, onboost}: {channel: Channel; name: string; messages?: CornerMessage[]; from?: DOMRect | null; onclose: () => void; onset: (key: string, value: unknown) => Promise<void>; onput: (values: Record<string, unknown>) => Promise<void>; onassign?: () => void; meter?: Channel | null; icon?: string; icons?: ContactIcons; boost?: BoostInfo | null; onboost?: () => Promise<void>} = $props();
+    // step (occulited task 176): the step chosen for a number variable in the metadata, if any
+    let {channel, step: chosenStep, meter = null, name, messages = [], from = null, onclose, onset, onput, onassign, icon: chosen, icons, boost = null, onboost}: {channel: Channel; step?: number; name: string; messages?: CornerMessage[]; from?: DOMRect | null; onclose: () => void; onset: (key: string, value: unknown) => Promise<void>; onput: (values: Record<string, unknown>) => Promise<void>; onassign?: () => void; meter?: Channel | null; icon?: string; icons?: ContactIcons; boost?: BoostInfo | null; onboost?: () => Promise<void>} = $props();
     const boostText = $derived(boost ? (boost.full > 0 || boost.remaining > 0 ? t('Boost: {m} min {s} s', {m: String(splitSeconds(boost.remaining).m), s: splitSeconds(boost.remaining).s}) : t('Boost')) : '');
 
     // the sheet grows out of the card it came from (a FLIP from the card's rectangle to the
@@ -209,6 +211,57 @@
         const a = mainAction(m, v, channel.desc);
         if (a) await set(a.key, a.value);
     }
+    // ---- occulited task 176: a system variable and a program (variables.ts). A variable that takes no write, or is
+    // set read-only in Control (m.locked), shows its value and nothing to change it with.
+    const fmt = $derived({language: i18n.language, step: chosenStep});
+    const kind = $derived(m.widget === 'variable' ? varKind(channel.desc) : undefined);
+    const canWrite = (key: string) => !m.locked && writable(key);
+    const labels = $derived(boolLabels(channel.desc, t));
+    const varOn = $derived(truth(v.VALUE));
+    const varMin = $derived(limitOf(channel.desc?.VALUE?.MIN));
+    const varMax = $derived(limitOf(channel.desc?.VALUE?.MAX));
+    const varStep = $derived(stepOf(channel.desc, chosenStep));
+    const varUnit = $derived(channel.desc?.VALUE?.UNIT ?? '');
+    const varNum = $derived(typeof v.VALUE === 'number' ? v.VALUE : Number(v.VALUE ?? 0) || 0);
+    // the field holds what is typed until it is sent; it follows the value when that changes
+    let typed = $state<string | null>(null);
+    let seenValue: unknown;
+    $effect(() => {
+        if (v.VALUE !== seenValue) {
+            seenValue = v.VALUE;
+            typed = null;
+        }
+    });
+    const numberText = $derived(typed ?? formatNumber(varNum, i18n.language, chosenStep));
+    const problem = $derived(typed === null ? '' : numberProblem(typed, varMin, varMax));
+    const rangeText = $derived(varMin !== undefined && varMax !== undefined ? t('{min} to {max}', {min: formatNumber(varMin, i18n.language), max: formatNumber(varMax, i18n.language)}) : varMin !== undefined ? t('at least {min}', {min: formatNumber(varMin, i18n.language)}) : varMax !== undefined ? t('at most {max}', {max: formatNumber(varMax, i18n.language)}) : '');
+    async function sendNumber() {
+        if (typed === null || problem) return;
+        const n = parseNumber(typed);
+        if (n === undefined) return;
+        // what is there already is not written again (a field left as it was found)
+        if (n !== varNum) await set('VALUE', n);
+        typed = null;
+    }
+    const textValue = $derived(typed ?? String(v.VALUE ?? ''));
+    async function sendText() {
+        if (typed === null) return;
+        await set('VALUE', typed);
+        typed = null;
+    }
+    // an alarm: how often it reported since it went off, and when it first did
+    const alarmFirst = $derived.by(() => {
+        const n = Number(v.FIRST ?? 0);
+        return n > 0 ? new Date(n * 1000).toLocaleString(i18n.language === 'de' ? 'de-DE' : 'en-GB', {dateStyle: 'medium', timeStyle: 'short'}) : '';
+    });
+    // a program's run is a moment: the button says so for a second, in its own box
+    let ran = $state('');
+    async function run(key: 'RUN' | 'RUN_THEN') {
+        await set(key, true);
+        if (error) return;
+        ran = key;
+        setTimeout(() => (ran = ''), 1200);
+    }
 </script>
 
 <ModalDialog open={true} title={name} size="medium" onclose={close} class="app-sheet">
@@ -222,13 +275,13 @@
             <!-- task 103: the disc is the boost button here too -->
             <button type="button" class="ol-disc ol-disc-act sh-circle" class:boost={!!boost} class:on={!boost && (icon.tone === 'on' || on)} title={boost ? t('End boost') : t('Start boost')} aria-label={`${name}: ${boost ? t('End boost') : t('Start boost')}`} aria-pressed={!!boost} disabled={busy} onclick={() => void onboost()} data-icon={icon.name} data-sheet-boost-btn={boost ? 'on' : 'off'}><span class="ol-disc-ico">{@html icon.svg}</span></button>
         {:else if action && m.commandKey}
-            <button type="button" class="ol-disc ol-disc-act sh-circle" class:on={icon.tone === 'on' || on} class:alarm={icon.tone === 'alarm'} title={blindVerb} aria-label={blindVerb ? `${name}: ${blindVerb}` : t('Switch {name}', {name})} aria-pressed={blindVerb ? undefined : on} disabled={busy} onclick={() => void act()} data-icon={icon.name}><span class="ol-disc-ico">{@html icon.svg}</span></button>
+            <button type="button" class="ol-disc ol-disc-act sh-circle" class:on={icon.tone === 'on' || on} class:alarm={icon.tone === 'alarm'} title={blindVerb} aria-label={blindVerb ? `${name}: ${blindVerb}` : m.widget === 'program' ? t('Run {name}', {name}) : t('Switch {name}', {name})} aria-pressed={blindVerb || m.widget === 'program' ? undefined : on} disabled={busy} onclick={() => void (m.widget === 'program' ? run('RUN') : act())} data-icon={icon.name}><span class="ol-disc-ico">{@html icon.svg}</span></button>
         {:else}
             <span class="ol-disc sh-circle" class:on={icon.tone === 'on'} class:alarm={icon.tone === 'alarm'} aria-hidden="true" data-icon={icon.name}><span class="ol-disc-ico">{@html icon.svg}</span></span>
         {/if}
         <div class="sh-titles">
             <div class="sh-name">{name}</div>
-            <div class="sh-state ol-muted" data-sheet-state>{stateText(m, v, channel.desc, t)}</div>
+            <div class="sh-state ol-muted" data-sheet-state title={m.widget === 'variable' ? stateText(m, v, channel.desc, t, fmt) : undefined}>{stateText(m, v, channel.desc, t, fmt)}</div>
             {#if boost}<div class="sh-boost" data-sheet-boost={boost.remaining}>{boostText}</div>{/if}
             <!-- task 95: how long, and since when exactly; nothing while the time is not known -->
             {#if since}<div class="sh-since ol-muted" data-sheet-since title={since}>{durationLine(m, v, changedAt, minuteNow, i18n.language)} · {since}</div>{/if}
@@ -250,6 +303,75 @@
             <button type="button" class="hmm-button sh-btn sh-big" class:sh-lit-off={!on} aria-pressed={!on} disabled={busy} onclick={() => void set(m.commandKey, false)} data-sheet-off>{t('Off')}</button>
             <button type="button" class="hmm-button sh-btn sh-big" class:sh-lit={on} aria-pressed={on} disabled={busy} onclick={() => void set(m.commandKey, true)} data-sheet-on>{t('On')}</button>
         </div>
+    {:else if m.widget === 'variable'}
+        <!-- task 176: by the variable's kind; without a write (or set read-only) the head's state line is all there is -->
+        {#if kind === 'bool' && canWrite('VALUE')}
+            <!-- the two texts as two buttons of one size, false left (as the switch's Off) -->
+            <div class="sh-presets sh-switch" data-sheet="variable-bool" role="group" aria-label={name}>
+                <button type="button" class="hmm-button sh-btn sh-big sh-clip" class:sh-lit-off={!varOn} aria-pressed={!varOn} disabled={busy} title={labels.off} onclick={() => void set('VALUE', false)} data-sheet-false>{labels.off}</button>
+                <button type="button" class="hmm-button sh-btn sh-big sh-clip" class:sh-lit={varOn} aria-pressed={varOn} disabled={busy} title={labels.on} onclick={() => void set('VALUE', true)} data-sheet-true>{labels.on}</button>
+            </div>
+        {:else if kind === 'alarm'}
+            <dl class="sh-readings" data-sheet="variable-alarm">
+                <dt>{t('alarm reports')}</dt><dd data-reading="COUNT">{Number(v.COUNT ?? 0)}</dd>
+                <dt>{t('alarm first')}</dt><dd data-reading="FIRST">{alarmFirst || '–'}</dd>
+            </dl>
+            {#if canWrite('ACKNOWLEDGE')}
+                <div class="sh-presets">
+                    <button type="button" class="hmm-button sh-btn primary" disabled={busy || !varOn} onclick={() => void set('ACKNOWLEDGE', true)} data-sheet-acknowledge>{t('Acknowledge')}</button>
+                </div>
+            {/if}
+        {:else if kind === 'number' && canWrite('VALUE')}
+            <div class="sh-number" data-sheet="variable-number">
+                <button type="button" class="hmm-button sh-btn sh-round" aria-label={t('Lower')} disabled={busy || (varMin !== undefined && varNum <= varMin)} onclick={() => void set('VALUE', stepped(varNum, -varStep, varMin, varMax))} data-sheet-minus>−</button>
+                <span class="sh-number-field">
+                    <input class="hmm-input sh-input" type="text" inputmode="decimal" autocomplete="off" value={numberText} aria-label={t('Value')} aria-invalid={problem ? 'true' : undefined} disabled={busy} oninput={(e) => (typed = e.currentTarget.value)} onkeydown={(e) => { if (e.key === 'Enter') { e.preventDefault(); void sendNumber(); } }} onblur={() => void sendNumber()} data-sheet-number />
+                    <!-- the unit's box is there with or without a unit, so the field is one width -->
+                    <span class="sh-unit" title={varUnit}>{varUnit}</span>
+                </span>
+                <button type="button" class="hmm-button sh-btn sh-round" aria-label={t('Raise')} disabled={busy || (varMax !== undefined && varNum >= varMax)} onclick={() => void set('VALUE', stepped(varNum, varStep, varMin, varMax))} data-sheet-plus>+</button>
+            </div>
+            <!-- one line, always there: the limits, or what is wrong with what was typed -->
+            <div class="sh-hint" class:sh-bad={!!problem} data-sheet-number-hint={problem || 'range'}>{problem === 'not-a-number' ? t('This is not a number.') : problem === 'out-of-range' ? t('Allowed: {range}', {range: rangeText}) : rangeText}</div>
+            {#if varMin !== undefined && varMax !== undefined && varMax > varMin}
+                <label class="sh-slider"><span>{t('Value')}</span>
+                    <input type="range" min={varMin} max={varMax} step={varStep} value={dragging ?? varNum} aria-label={t('Value')} disabled={busy} oninput={(e) => (dragging = Number(e.currentTarget.value))} onchange={(e) => { const n = Number(e.currentTarget.value); dragging = n; void set('VALUE', n).finally(() => (dragging = null)); }} data-sheet-range />
+                    <output>{formatNumber(dragging ?? varNum, i18n.language, chosenStep)}</output>
+                </label>
+            {/if}
+        {:else if kind === 'list' && canWrite('VALUE')}
+            <div class="sh-fields" data-sheet="variable-list">
+                <label class="sh-field"><span>{t('Value')}</span>
+                    <select class="hmm-select sh-select" value={entryIndex(channel.desc, v.VALUE)} disabled={busy} aria-label={t('Value')} onchange={(e) => void set('VALUE', Number(e.currentTarget.value))} data-sheet-select>
+                        {#each entries(channel.desc) as x, i (i)}<option value={i}>{x}</option>{/each}
+                    </select>
+                </label>
+            </div>
+        {:else if kind === 'text' && canWrite('VALUE')}
+            <div class="sh-text" data-sheet="variable-text">
+                <input class="hmm-input sh-input" type="text" autocomplete="off" value={textValue} aria-label={t('Value')} disabled={busy} oninput={(e) => (typed = e.currentTarget.value)} onkeydown={(e) => { if (e.key === 'Enter') { e.preventDefault(); void sendText(); } }} data-sheet-text />
+                <button type="button" class="hmm-button sh-btn sh-set" disabled={busy || typed === null} onclick={() => void sendText()} data-sheet-text-set>{t('Set')}</button>
+            </div>
+        {:else if kind === 'text' && v.VALUE !== undefined && v.VALUE !== ''}
+            <!-- a text nobody can change: all of it, as the tile's line is one line -->
+            <p class="sh-fulltext" data-sheet="variable-text">{String(v.VALUE)}</p>
+        {/if}
+        {#if m.locked}<p class="ol-muted sh-locked" data-sheet-locked>{t('Shown only: set to read-only in Control.')}</p>{/if}
+    {:else if m.widget === 'program'}
+        <!-- task 176: run it (with its conditions, or the first "then" without them), and switch it -->
+        {#if canWrite('RUN') || canWrite('RUN_THEN')}
+            <div class="sh-presets sh-runs" data-sheet="program-run">
+                {#if canWrite('RUN')}<button type="button" class="hmm-button sh-btn sh-run primary" disabled={busy} title={t('Checks the conditions now and runs what applies.')} onclick={() => void run('RUN')} data-sheet-run={ran === 'RUN' ? 'done' : ''}>{ran === 'RUN' ? t('program started') : t('program run')}</button>{/if}
+                {#if canWrite('RUN_THEN')}<button type="button" class="hmm-button sh-btn sh-run" disabled={busy} title={t('Runs the first "then" without a look at the conditions.')} onclick={() => void run('RUN_THEN')} data-sheet-run-then={ran === 'RUN_THEN' ? 'done' : ''}>{ran === 'RUN_THEN' ? t('program started') : t('Run without conditions')}</button>{/if}
+            </div>
+        {/if}
+        {#if canWrite('ACTIVE')}
+            <div class="sh-presets sh-switch" data-sheet="program-active" role="group" aria-label={t('program active')}>
+                <button type="button" class="hmm-button sh-btn sh-big sh-clip" class:sh-lit-off={!truth(v.ACTIVE)} aria-pressed={!truth(v.ACTIVE)} disabled={busy} onclick={() => void set('ACTIVE', false)} data-sheet-inactive>{t('program inactive')}</button>
+                <button type="button" class="hmm-button sh-btn sh-big sh-clip" class:sh-lit={truth(v.ACTIVE)} aria-pressed={truth(v.ACTIVE)} disabled={busy} onclick={() => void set('ACTIVE', true)} data-sheet-active>{t('program active')}</button>
+            </div>
+        {/if}
+        {#if m.locked}<p class="ol-muted sh-locked" data-sheet-locked>{t('Shown only: set to read-only in Control.')}</p>{/if}
     {:else if m.widget === 'dimmer' || m.widget === 'color'}
         <div class="sh-presets" data-sheet="presets">
             {#each PRESETS as p (p)}
@@ -443,4 +565,25 @@
     .sh-readings { display: grid; grid-template-columns: auto 1fr; gap: 8px 18px; margin: 6px 0 4px; font-size: 1.1em; }
     .sh-readings dt { color: var(--hmm-fg-muted); }
     .sh-readings dd { margin: 0; font-variant-numeric: tabular-nums; font-weight: 600; }
+    /* task 176: a variable's and a program's controls. Every box keeps its size whatever it says: a long text is cut
+       with its whole in the tooltip, the unit and the hint line are there empty too */
+    .sh-clip { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .sh-number { display: flex; align-items: center; justify-content: center; gap: 14px; margin: 6px 0 6px; }
+    .sh-number-field { display: grid; grid-template-columns: 1fr 4.5em; align-items: center; gap: 8px; flex: 1 1 auto; min-width: 0; max-width: 20em; }
+    .sh-input { min-height: 48px; font-size: 1.25em; width: 100%; min-width: 0; font-variant-numeric: tabular-nums; }
+    .sh-number .sh-input { text-align: right; }
+    .sh-input[aria-invalid='true'] { border-color: var(--hmm-error); }
+    .sh-unit { font-size: 1.15em; color: var(--hmm-fg-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .sh-hint { height: 1.4em; line-height: 1.4em; margin: 0 0 12px; text-align: center; color: var(--hmm-fg-muted); font-size: 0.95em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-variant-numeric: tabular-nums; }
+    .sh-hint.sh-bad { color: var(--hmm-error); }
+    .sh-text { display: grid; grid-template-columns: 1fr 7em; gap: 10px; margin: 4px 0 16px; }
+    .sh-set { min-width: 0; padding: 0 8px; }
+    .sh-fulltext { margin: 4px 0 12px; font-size: 1.1em; overflow-wrap: anywhere; white-space: pre-wrap; }
+    .sh-runs { flex-wrap: nowrap; }
+    .sh-run { flex: 1 1 0; min-width: 0; height: 56px; padding: 0 10px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .sh-locked { margin: 4px 0 0; }
+    @media (max-width: 420px) {
+        .sh-runs { flex-direction: column; }
+        .sh-run { flex: 0 0 56px; width: 100%; }
+    }
 </style>

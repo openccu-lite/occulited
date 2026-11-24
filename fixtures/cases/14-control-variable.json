@@ -1,0 +1,126 @@
+{
+  "title": "Control's settings of a system variable or a program (occulited task 176) are keys of the control namespace beside the icon: read_only (true: the tile and the sheet only show) and step (a number's step); the namespace is written whole, a key left out is gone, and the store does not interpret it",
+  "start": "empty",
+  "ops": [
+    {
+      "op": "object.set",
+      "ref": "Logic.var-temperatur:1",
+      "body": {
+        "name": "Temperatur",
+        "meta": {
+          "control": {
+            "icon": "temp_temperature"
+          }
+        }
+      },
+      "expect": {
+        "ok": true,
+        "revision": 1
+      }
+    },
+    {
+      "op": "object.set",
+      "ref": "Logic.var-temperatur:1",
+      "body": {
+        "meta": {
+          "control": {
+            "icon": "temp_temperature",
+            "read_only": true,
+            "step": 0.5
+          }
+        }
+      },
+      "expect": {
+        "ok": true,
+        "revision": 2
+      }
+    },
+    {
+      "op": "object.get",
+      "ref": "Logic.var-temperatur:1",
+      "expect": {
+        "value": {
+          "name": "Temperatur",
+          "meta": {
+            "control": {
+              "icon": "temp_temperature",
+              "read_only": true,
+              "step": 0.5
+            }
+          }
+        }
+      }
+    },
+    {
+      "op": "object.set",
+      "ref": "Logic.var-temperatur:1",
+      "body": {
+        "meta": {
+          "control": {
+            "icon": "temp_temperature",
+            "read_only": true,
+            "step": 0.5
+          }
+        }
+      },
+      "expect": {
+        "ok": true,
+        "unchanged": true
+      }
+    },
+    {
+      "op": "object.set",
+      "ref": "Logic.var-temperatur:1",
+      "body": {
+        "meta": {
+          "control": {
+            "step": 0.5
+          }
+        }
+      },
+      "expect": {
+        "ok": true,
+        "revision": 3
+      }
+    },
+    {
+      "op": "object.get",
+      "ref": "Logic.var-temperatur:1",
+      "expect": {
+        "value": {
+          "name": "Temperatur",
+          "meta": {
+            "control": {
+              "step": 0.5
+            }
+          }
+        }
+      }
+    },
+    {
+      "op": "object.set",
+      "ref": "Logic.var-temperatur:1",
+      "body": {
+        "meta": {
+          "control": null
+        }
+      },
+      "expect": {
+        "ok": true,
+        "revision": 4
+      }
+    },
+    {
+      "op": "object.get",
+      "ref": "Logic.var-temperatur:1",
+      "expect": {
+        "value": {
+          "name": "Temperatur"
+        }
+      }
+    }
+  ],
+  "end": {
+    "revision": 4
+  }
+}

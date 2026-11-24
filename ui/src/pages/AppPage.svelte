@@ -21,7 +21,8 @@
     import {actionOf, blindAction, isVirtualKey, mayBeVirtualChannel, virtualChannels, formatPower, heldKeys, isMeter, isOn, motion, withPending, LEVEL_KEYS, longAction, mainAction, meterPairs, shown as hasUI, stateText, thermoParts, thermoRow, working, type Model, type Values} from '../lib/app/channels';
     import {fit} from '../lib/app/fit';
     import {durationLine, hasDuration, nextDurationChange} from '../lib/app/duration';
-    import {loadChannels, loadDeviceTypes, openEvents, operable, setValue, type Channel, putValues} from '../lib/app/rpc';
+    import {invisible, loadChannels, loadDeviceTypes, openEvents, operable, setValue, type Channel, putValues} from '../lib/app/rpc';
+    import {controlSettings, lockedModel} from '../lib/app/variables';
     import type {StreamState} from '../lib/app/eventstream';
     import {subscribeShell} from '../lib/shellstream/client';
     import Sheet from '../lib/app/Sheet.svelte';
@@ -40,7 +41,8 @@
     import {ensureAllIcons, knxAll} from '../lib/app/knxall.svelte';
     import {boostActive, boostCommand, BoostTracker, canBoost, plainMode, RING_C, RING_R, ringOffset, splitSeconds, tileMode, type BoostInfo, type BoostSource, type TileMode} from '../lib/app/boost';
     import {isGroupRef, loadGroupMembers} from '../lib/app/groups';
-    import {chosenIcon, chosenIcons, CONTACT_STATES, hasTilted, isWindow, KNX, stateIcon, type StateIcon} from '../lib/app/stateicons';
+    import {chosenIcon, chosenIcons, CONTACT_STATES, hasTilted, isWindow, KNX, PROGRAM_ICONS, stateIcon, VARIABLE_ICONS, type StateIcon} from '../lib/app/stateicons';
+    import {autoIcon} from '../lib/app/variables';
     import {embedSrc, findView, parseViewRoute, shownGroups, viewHref, words, type AppViewGroup} from '../lib/app/appviews';
     import {postLook, theme} from '../lib/theme.svelte';
 
@@ -455,7 +457,15 @@
         const types = deviceTypes.get(`${c.iface}.${c.address.slice(0, i)}`);
         return !types || virtualChannels(types).has(Number(c.address.slice(i + 1)));
     }
-    const uiTiles = $derived(tiles.filter((x) => hasUI(channels.get(x.ref)) && !pairs.hidden.has(x.ref) && !leftOut(x.ref)));
+    // occulited B-170: the unassigned list is every channel nobody chose, and most of what is described there has no
+    // widget (and an addon's interface brings hundreds: Logic's variables and programs). A tile made before its
+    // description is read showed for a moment and vanished when the read was back, so here a channel that is not loaded
+    // yet waits for the read of the page's channels; once that is over - or failed - what is still not loaded is shown,
+    // as before (an outage does not blank the page). A room, a function and the favorites keep showing at once.
+    let settledRefs = $state('');
+    const holding = $derived(view.kind === 'unassigned' && settledRefs !== refs.join(' '));
+    // occulited task 176: a variable or a program that is not visible in its interface is no tile
+    const uiTiles = $derived(tiles.filter((x) => { const c = channels.get(x.ref); return hasUI(c) && !(holding && !c) && !invisible(c) && !pairs.hidden.has(x.ref) && !leftOut(x.ref); }));
     /** the power meter channel merged into a switch tile, if any */
     function meterOf(ref: string): Channel | undefined {
         const r = pairs.meter.get(ref);
@@ -463,8 +473,10 @@
     }
     /** the tile's state line: a switch with a meter says the power after its state ("On · 12.5 W") */
     function tileState(ref: string, c: Channel, m: Model): string {
+        // task 176: a variable's number in the reader's notation, with the step chosen for it
+        const fmt = {language: i18n.language, step: settingsOf(ref).step};
         // a meter's own tile: the same units and decimals as the switch's line
-        const s = isMeter(m) && m.stateKey === 'POWER' ? formatPower(c.values.POWER, i18n.language) || stateText(m, c.values, c.desc, t) : stateText(m, c.values, c.desc, t);
+        const s = isMeter(m) && m.stateKey === 'POWER' ? formatPower(c.values.POWER, i18n.language) || stateText(m, c.values, c.desc, t, fmt) : stateText(m, c.values, c.desc, t, fmt);
         const mc = meterOf(ref);
         const p = mc ? formatPower(mc.values[mc.model.stateKey || 'POWER'], i18n.language) : '';
         return p ? (s ? `${s} · ${p}` : p) : s;
@@ -563,9 +575,15 @@
             channels = m;
         }
     }
-    /** the channel as the tile and the sheet show it: moving while its click's action is pending */
+    /** occulited task 176: what Control keeps for a variable or a program in the metadata (read-only, a number's step) */
+    function settingsOf(ref: string) {
+        return controlSettings(snap?.objects[ref]?.meta);
+    }
+    /** the channel as the tile and the sheet show it: moving while its click's action is pending; task 176: a variable
+     *  or a program set read-only without its action */
     function viewOf(ref: string): Channel | undefined {
         const c = channels.get(ref);
+        if (c && (c.model.widget === 'variable' || c.model.widget === 'program')) return settingsOf(ref).readOnly ? {...c, model: lockedModel(c.model)} : c;
         const p = pendingAct[ref];
         return c && p ? {...c, values: withPending(c.values, c.desc, p.dir)} : c;
     }
@@ -643,7 +661,11 @@
         }
     }
     async function loadValues(list: string[]) {
-        if (list.length === 0) return;
+        const key = list.join(' ');
+        if (list.length === 0) {
+            settledRefs = key;
+            return;
+        }
         try {
             const r = await loadChannels(list);
             // task 411: the types before the tiles, so that the list arrives whole and nothing moves afterwards
@@ -675,6 +697,8 @@
             rpcError = (e as Error).message;
             loadedRefs = '';
         }
+        // B-170: this read is over; what the unassigned list held back for it shows now
+        settledRefs = key;
     }
     onMount(() => () => closeEvents());
     // occulited B-53: lite-rpc's stream only while the app is shown - not while another page of the
@@ -709,7 +733,7 @@
         return () => clearTimeout(timer);
     });
     function modelOf(ref: string): Model | undefined {
-        return channels.get(ref)?.model;
+        return viewOf(ref)?.model;
     }
     function tileKind(ref: string): string {
         const m = modelOf(ref);
@@ -740,13 +764,16 @@
         // DIRECTION/WORKING, and the level it reports on the way is held until it stands (onEvent)
         // B-108: a lock does not show its target either - the click's action is pending until the device reports
         const lock = c.model.widget === 'lock';
-        const undo = c.model.widget === 'button' || blind || lock ? () => undefined : apply(ref, {[a.key]: a.value});
+        // task 176: a program's run is a moment like a key's press
+        const moment = c.model.widget === 'button' || c.model.widget === 'program';
+        const undo = moment || blind || lock ? () => undefined : apply(ref, {[a.key]: a.value});
         if (blind) discBusy = {...discBusy, [ref]: true};
         if (a.key === 'STOP') endPending(ref, true);
         else beginPending(ref, a.key, a.value);
         try {
             await setValue(ref, a.key, a.value);
             if (c.model.widget === 'button') flash(ref, long ? t('long press') : t('short press'));
+            if (c.model.widget === 'program') flash(ref, t('program started'));
         } catch (e) {
             endPending(ref, true);
             undo();
@@ -1225,6 +1252,9 @@
                 {/if}
             {:else if view.kind === 'messages'}
                 <p class="ol-muted">{t('The service messages are listed on the Status page, where a message whose cause is gone is confirmed.')} <a href="/#service-messages" use:link>{t('Status')}</a></p>
+            {:else if uiTiles.length === 0 && holding && tiles.length > 0}
+                <!-- B-170: the unassigned channels' descriptions are being read -->
+                <Loading />
             {:else if uiTiles.length === 0}
                 <p class="ol-muted" data-app-empty>{view.kind === 'favorites' ? t('No favorites yet. A channel is added to your favorites from its card.') : t('No channels assigned here.')}</p>
             {:else}
@@ -1262,7 +1292,7 @@
                                         {#if bst}<svg class="app-ring" class:indet={bst.full === 0} viewBox="0 0 64 64" aria-hidden="true" data-app-ring={bst.full > 0 ? Math.round((100 * bst.remaining) / bst.full) : 'indeterminate'}><circle class="bg" cx="32" cy="32" r={RING_R} />{#if bst.full > 0}<circle class="fg" cx="32" cy="32" r={RING_R} stroke-dasharray={RING_C.toFixed(1)} stroke-dashoffset={ringOffset(bst.remaining, bst.full).toFixed(1)} />{:else}<circle class="fg" cx="32" cy="32" r={RING_R} stroke-dasharray="{(RING_C / 4).toFixed(1)} {((3 * RING_C) / 4).toFixed(1)}" />{/if}</svg>{/if}
                                     </button>
                                 {:else if m && m.commandKey && kind !== 'read' && m.widget !== 'thermostat'}
-                                    <button type="button" class="ol-disc ol-disc-act app-circle app-circle-act" class:on={si.tone === 'on' || on || !!flashed[x.ref]} class:alarm={si.tone === 'alarm'} data-icon={si.name} title={m.widget === 'blind' && c ? blindVerb(c) : undefined} aria-label={m.widget === 'button' ? t('Press {name}', {name: nameOf(x.ref)}) : m.widget === 'blind' && c ? `${nameOf(x.ref)}: ${blindVerb(c)}` : t('Switch {name}', {name: nameOf(x.ref)})} aria-pressed={m.widget === 'button' || m.widget === 'blind' ? undefined : on} aria-busy={discBusy[x.ref] ? 'true' : undefined} data-app-disc-action={m.widget === 'blind' && c ? blindAction(c.values, c.desc) : undefined} onpointerdown={(ev) => { ev.stopPropagation(); pressStart(x.ref); }} onpointerup={() => pressEnd(x.ref)} onpointercancel={() => pressEnd(x.ref)} onpointerleave={() => pressEnd(x.ref)} onclick={(ev) => { ev.stopPropagation(); pressClick(x.ref); }} oncontextmenu={(ev) => { if (m.widget === 'button') ev.preventDefault(); }} data-app-act data-app-pressed={flashed[x.ref] ? '1' : undefined}>
+                                    <button type="button" class="ol-disc ol-disc-act app-circle app-circle-act" class:on={si.tone === 'on' || on || !!flashed[x.ref]} class:alarm={si.tone === 'alarm'} data-icon={si.name} title={m.widget === 'blind' && c ? blindVerb(c) : undefined} aria-label={m.widget === 'button' ? t('Press {name}', {name: nameOf(x.ref)}) : m.widget === 'program' ? t('Run {name}', {name: nameOf(x.ref)}) : m.widget === 'blind' && c ? `${nameOf(x.ref)}: ${blindVerb(c)}` : t('Switch {name}', {name: nameOf(x.ref)})} aria-pressed={m.widget === 'button' || m.widget === 'program' || m.widget === 'blind' ? undefined : on} aria-busy={discBusy[x.ref] ? 'true' : undefined} data-app-disc-action={m.widget === 'blind' && c ? blindAction(c.values, c.desc) : undefined} onpointerdown={(ev) => { ev.stopPropagation(); pressStart(x.ref); }} onpointerup={() => pressEnd(x.ref)} onpointercancel={() => pressEnd(x.ref)} onpointerleave={() => pressEnd(x.ref)} onclick={(ev) => { ev.stopPropagation(); pressClick(x.ref); }} oncontextmenu={(ev) => { if (m.widget === 'button') ev.preventDefault(); }} data-app-act data-app-pressed={flashed[x.ref] ? '1' : undefined}>
                                         <span class="ol-disc-ico app-ico">{@html si.svg}</span>
                                     </button>
                                 {:else}
@@ -1338,10 +1368,12 @@
         {@const assignWidget = assignCh?.model.widget}
         <!-- task 105: a contact (or a door opener) gets one picker per state: closed, open, and tilted where the sensor has it -->
         {@const contactOf = assignCh && (assignWidget === 'contact' || assignWidget === 'door') ? {kind: 'contact' as const, states: hasTilted(assignCh.desc, assignCh.model.stateKey) ? CONTACT_STATES : CONTACT_STATES.filter((st) => st !== 'tilted'), window: assignWidget === 'contact' && isWindow(assignCh.desc, assignCh.model.stateKey), opener: assignWidget === 'door'} : undefined}
-        <AssignSheet ref={assignRef} {snap} {favoritesPath} from={assignFrom} iconOf={assignWidget === 'switch' || assignWidget === 'button' ? {kind: assignWidget === 'switch' ? 'switch' : 'key', name: nameOf(assignRef), parent: assignCh?.parent ?? ''} : contactOf} layer={sheetRef ? 95 : 90} onclose={() => (assignRef = null)} onchanged={() => void load()} />
+        <!-- task 176: a variable or a program gets one icon (automatic: by its kind), and its settings -->
+        {@const objectOf = assignCh && (assignWidget === 'variable' || assignWidget === 'program') ? {kind: 'object' as const, auto: autoIcon(assignCh.model, assignCh.desc), suggested: assignWidget === 'program' ? PROGRAM_ICONS : VARIABLE_ICONS, program: assignWidget === 'program', number: assignWidget === 'variable' && ['FLOAT', 'INTEGER'].includes(assignCh.desc?.VALUE?.TYPE ?? '')} : undefined}
+        <AssignSheet ref={assignRef} {snap} {favoritesPath} from={assignFrom} iconOf={assignWidget === 'switch' || assignWidget === 'button' ? {kind: assignWidget === 'switch' ? 'switch' : 'key', name: nameOf(assignRef), parent: assignCh?.parent ?? ''} : (contactOf ?? objectOf)} layer={sheetRef ? 95 : 90} onclose={() => (assignRef = null)} onchanged={() => void load()} />
     {/if}
     {#if sheetRef && sheetChannel}
-        <Sheet channel={sheetChannel} meter={meterOf(sheetRef) ?? null} name={sheetName} icon={chosenIcon(snap?.objects[sheetRef]?.meta)} icons={chosenIcons(snap?.objects[sheetRef]?.meta)} messages={corner(sheetRef)} from={sheetFrom} boost={sheetChannel.model.widget === 'thermostat' ? boostOf(sheetRef, sheetChannel) : null} onboost={sheetChannel.model.widget === 'thermostat' && canBoost(sheetChannel.desc) ? () => toggleBoost(sheetRef!) : undefined} onclose={() => (sheetRef = null)} onset={(k, val) => sheetSet(sheetRef!, k, val)} onput={(vals) => sheetPut(sheetRef!, vals)} onassign={canConfigure ? () => { assignFrom = null; assignRef = sheetRef; } : undefined} />
+        <Sheet channel={sheetChannel} step={settingsOf(sheetRef).step} meter={meterOf(sheetRef) ?? null} name={sheetName} icon={chosenIcon(snap?.objects[sheetRef]?.meta)} icons={chosenIcons(snap?.objects[sheetRef]?.meta)} messages={corner(sheetRef)} from={sheetFrom} boost={sheetChannel.model.widget === 'thermostat' ? boostOf(sheetRef, sheetChannel) : null} onboost={sheetChannel.model.widget === 'thermostat' && canBoost(sheetChannel.desc) ? () => toggleBoost(sheetRef!) : undefined} onclose={() => (sheetRef = null)} onset={(k, val) => sheetSet(sheetRef!, k, val)} onput={(vals) => sheetPut(sheetRef!, vals)} onassign={canConfigure ? () => { assignFrom = null; assignRef = sheetRef; } : undefined} />
     {/if}
 
     <!-- the floating hamburger, on a phone only (CSS): bottom left, the drawer's side; gone while the

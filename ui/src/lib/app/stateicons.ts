@@ -7,7 +7,8 @@
 // 'on' today's on colour, 'alarm' the error colour, '' the neutral one. A state change swaps the
 // icon only; the circle keeps its box.
 import {isOn, kindsOf, lockState, valvePercent, type Description, type Model, type Values} from './channels';
-import {CONTACT_ICONS as CONTACT_NAMES, KEY_ICONS as KEY_NAMES, SWITCH_ICONS as SWITCH_NAMES} from '../../../scripts/knx-names.mjs';
+import {CONTACT_ICONS as CONTACT_NAMES, KEY_ICONS as KEY_NAMES, PROGRAM_ICONS as PROGRAM_NAMES, SWITCH_ICONS as SWITCH_NAMES, VARIABLE_ICONS as VARIABLE_NAMES} from '../../../scripts/knx-names.mjs';
+import {autoIcon, varKind} from './variables';
 
 const FILES = import.meta.glob('./knx/*.svg', {query: '?raw', import: 'default', eager: true}) as Record<string, string>;
 
@@ -89,6 +90,9 @@ export const SWITCH_ICONS: readonly string[] = SWITCH_NAMES;
 /** occulited task 106: the suggestions for a key channel's icon; control_switch_1 is the default */
 export const KEY_ICONS: readonly string[] = KEY_NAMES;
 export const KEY_DEFAULT = 'control_switch_1';
+/** occulited task 176: the suggestions for a variable's and a program's icon */
+export const VARIABLE_ICONS: readonly string[] = VARIABLE_NAMES;
+export const PROGRAM_ICONS: readonly string[] = PROGRAM_NAMES;
 /** occulited task 105: a door/window contact's states, and the suggestions for each */
 export type ContactState = 'closed' | 'open' | 'tilted';
 /** occulited task 110: a switch's states; its icons per state sit beside a contact's in the same `icons` key */
@@ -217,6 +221,15 @@ export function stateIcon({model: m, values, desc, parent = '', pressed = false,
             return on ? knx('secur_alarm_alarm', 'alarm') : knx('secur_alarm');
         case 'power':
             return knx('measure_power_meter', (num(v) ?? 0) > 0 ? 'on' : '');
+        case 'variable': {
+            // task 176: the chosen icon (any of the set whose drawing is at hand), else by the variable's kind; a
+            // boolean that is true is lit, an alarm that is on is red
+            const tone: Tone = on ? (varKind(desc) === 'alarm' ? 'alarm' : 'on') : '';
+            return knx(icon && knxSVG(icon) !== undefined ? icon : autoIcon(m, desc, on), tone);
+        }
+        case 'program':
+            // lit for the moment it was started from the tile
+            return knx(icon && knxSVG(icon) !== undefined ? icon : autoIcon(m, desc), pressed ? 'on' : '');
         case 'reading':
             return readingIcon(values, desc);
     }

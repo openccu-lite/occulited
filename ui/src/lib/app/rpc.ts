@@ -76,6 +76,9 @@ export interface Channel {
     type: string;
     /** the device's model (PARENT_TYPE), e.g. HmIP-PSM - task 75: a plug shows a socket */
     parent?: string;
+    /** the channel's FLAGS (1 visible, 2 internal), where its description has them - task 176: a variable or a
+     *  program that is not visible is no tile */
+    flags?: number;
     desc?: Description;
     model: Model;
     values: Values;
@@ -92,6 +95,7 @@ const descByRef = new Map<string, Description>();
 const descByKey = new Map<string, Description>();
 const typeByRef = new Map<string, string>();
 const parentByRef = new Map<string, string>(); // task 75: the device model of a channel
+const flagsByRef = new Map<string, number>(); // task 176: the channel's FLAGS
 
 /** One entry of the state store, as far as the tiles read it. */
 interface StateEntry {
@@ -186,9 +190,10 @@ export async function loadChannels(refs: string[]): Promise<{channels: Map<strin
             if (unknown.length) {
                 const ans = await batch(iface, unknown.map((a) => ({method: 'getDeviceDescription', params: [a]})));
                 unknown.forEach((a, i) => {
-                    const r = ans[i]?.result as {TYPE?: string; PARENT_TYPE?: string} | undefined;
+                    const r = ans[i]?.result as {TYPE?: string; PARENT_TYPE?: string; FLAGS?: unknown} | undefined;
                     if (r?.TYPE) typeByRef.set(`${iface}.${a}`, r.TYPE);
                     if (r?.PARENT_TYPE) parentByRef.set(`${iface}.${a}`, r.PARENT_TYPE);
+                    if (typeof r?.FLAGS === 'number') flagsByRef.set(`${iface}.${a}`, r.FLAGS);
                 });
             }
             // 2. the descriptions of the channels not seen yet, from the system's cache (task 108)
@@ -211,7 +216,7 @@ export async function loadChannels(refs: string[]): Promise<{channels: Map<strin
                 const ref = `${iface}.${a}`;
                 const type = typeByRef.get(ref) ?? '';
                 const desc = descByRef.get(ref);
-                channels.set(ref, {ref, iface, address: a, type, parent: parentByRef.get(ref), desc, model: classify(desc, type || undefined), values: {...state?.values.get(ref)}, changed: {...state?.changed.get(ref)}});
+                channels.set(ref, {ref, iface, address: a, type, parent: parentByRef.get(ref), flags: flagsByRef.get(ref), desc, model: classify(desc, type || undefined), values: {...state?.values.get(ref)}, changed: {...state?.changed.get(ref)}});
             }
             // 4. the interface process for what the store does not have - every channel when there
             // is no store - on an interface whose reads are free (B-110: HmIP-RF; a BidCos or
@@ -243,6 +248,12 @@ export async function loadChannels(refs: string[]): Promise<{channels: Map<strin
         }
     }
     return {channels, errors, eventId: state?.eventId ?? '', unknown};
+}
+
+/** occulited task 176: a variable or a program its interface marks as not visible (FLAGS without bit 1, the CCU's
+ *  "sichtbar" switched off): no tile anywhere. A channel without FLAGS, and every other kind of channel, is shown. */
+export function invisible(c: {flags?: number; model: Model} | undefined): boolean {
+    return !!c && (c.model.widget === 'variable' || c.model.widget === 'program') && c.flags !== undefined && (c.flags & 1) === 0;
 }
 
 /**
