@@ -69,6 +69,10 @@ type SystemdAddons struct {
 	// nil = nothing is learned, only runtime.daemon counts.
 	Daemons *AddonDaemons
 
+	// InterfaceGone removes what the metadata holds of an interface whose addon was uninstalled
+	// (occulited B-160) and answers how many objects went; nil = the metadata is left alone.
+	InterfaceGone func(name string) (int, error)
+
 	// Idle says whether an addon that keeps a daemon is not running by its own choice - its start
 	// left nothing running (CrashLoops.Idle, occulited B-166); nil = never.
 	Idle func(id string) bool
@@ -687,6 +691,11 @@ func (a *SystemdAddons) Uninstall(ctx context.Context, id string) (UninstallResu
 	// a reinstall runs as the same uid and no other addon gets it. The firewall follows: the opened
 	// ports were the policy's.
 	// occulited task 154: and its own timers, before the policy that says they are its
+	// occulited B-160: the interface its stored manifest declared, read before the manifest goes
+	iface := ""
+	if m := a.Scripts.Root.ReadAddonManifest(id); m != nil && m.Runtime != nil && m.Runtime.RPCInterface != nil && m.Runtime.RPCInterface.Validate() == nil {
+		iface = m.Runtime.RPCInterface.Name
+	}
 	out.SystemRemoved = append(out.SystemRemoved, a.Systemd.RemoveAddonTimers(ctx, id)...)
 	out.SystemRemoved = append(out.SystemRemoved, a.Scripts.Root.removeAddonPolicyFiles(id)...)
 	// occulited task 152: and its key for root. The private key went with the addon's files; the
@@ -711,6 +720,12 @@ func (a *SystemdAddons) Uninstall(ctx context.Context, id string) (UninstallResu
 	syncIngressAfterChange(ctx, a.Scripts.Root)
 	// occulited task 136: and its profile snippet (runtime.bin) with its rc.d entry
 	a.syncProfilesAfterChange()
+	// occulited B-160: and the names it gave the devices of its interface, once the addon is gone
+	// and the interface is no addon's any more - after the journal's lines above, so the answer
+	// carries it and the log line below says it
+	if n := a.forgetInterfaceNames(id, iface); n != "" {
+		out.SystemRemoved = append(out.SystemRemoved, n)
+	}
 	return out, err
 }
 

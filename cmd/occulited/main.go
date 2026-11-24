@@ -511,6 +511,8 @@ func run(opts daemonOptions) error {
 		// `info` is the addon's own code - it runs as the addon's user there too, not only through sa
 		scripts.Credential = sa.Credential
 		sa.APITokens = users // task 66: the addons' API tokens from their catalogue declarations
+		// occulited B-160: an uninstalled addon's interface takes the names of its devices along
+		sa.InterfaceGone = func(name string) (int, error) { return forgetInterfaceObjects(store, name) }
 		sa.DefaultMode = cfg.Addons.DefaultMode
 		sa.EarlyStart = early.On         // task 119: the Addons page's switches, in occulited.json
 		sa.StartDelay = early.StartDelay // task 369: the start delays, beside them
@@ -2276,6 +2278,29 @@ func hardenAddonParents(root system.Root, log *slog.Logger) {
 // the first-boot name import settled (task 250: the maintainer, "kill these files after first boot
 // of openccu-lite"; the way back is the (Open)CCU's backup from before the switch). An import that
 // still has to run keeps them, with a warning, until a later start.
+// forgetInterfaceObjects removes every object of an interface from the metadata, as one revision
+// (occulited B-160: the names an uninstalled addon gave the devices of its interface, with what
+// was assigned to them). Answers how many went.
+func forgetInterfaceObjects(store *meta.Store, iface string) (int, error) {
+	if iface == "" || strings.Contains(iface, ".") {
+		return 0, nil
+	}
+	var refs []string
+	for ref := range store.Snapshot().Objects {
+		if strings.HasPrefix(ref, iface+".") {
+			refs = append(refs, ref)
+		}
+	}
+	if len(refs) == 0 {
+		return 0, nil
+	}
+	sort.Strings(refs)
+	if _, _, err := store.Bulk(nil, nil, refs); err != nil {
+		return 0, err
+	}
+	return len(refs), nil
+}
+
 func firstBootLeftovers(root system.Root, services httpapi.ServiceManager, manager httpapi.AddonManager, store *meta.Store, stateDir string, log *slog.Logger) {
 	var stop func(string)
 	var reload func()

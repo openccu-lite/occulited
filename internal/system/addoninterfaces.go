@@ -1,6 +1,7 @@
 package system
 
 import (
+	"fmt"
 	"log/slog"
 	"os"
 	"sort"
@@ -157,4 +158,52 @@ func (r Root) SyncAddonInterfaces(off func(id string) bool) []string {
 // radio views leave the interfaces out from the first poll on.
 func (r Root) LoadAddonInterfaces() {
 	addoniface.Set(addoniface.Parse([]byte(readFile(r.join(addoniface.File)))))
+}
+
+// forgetInterfaceNames removes the metadata's objects of the interface an uninstalled addon
+// provided (occulited B-160): the addon named its devices there (POST
+// /interfaces/{interface}/objects:bulk), and with the addon gone nothing lists, renames or removes
+// them. Only after an uninstall that removed the addon (its rc.d entry is gone - a failed
+// uninstall keeps the addon and its names), never at a switch-off, and never when the name is
+// still listed in InterfacesList.xml (another addon's, a radio's or one the user added) or
+// declared by another installed addon. Answers
+// its line for the uninstall's list of what the system removed, "" for nothing.
+func (a *SystemdAddons) forgetInterfaceNames(id, iface string) string {
+	if iface == "" || a.InterfaceGone == nil {
+		return ""
+	}
+	root := a.Scripts.Root
+	if _, err := os.Lstat(root.join("/usr/local/etc/config/rc.d/" + id)); err == nil {
+		return ""
+	}
+	if addoniface.Is(iface) {
+		return ""
+	}
+	for _, i := range radio.ParseInterfaces(readFile(root.join(InterfacesListPath))) {
+		if strings.EqualFold(i.Name, iface) {
+			return ""
+		}
+	}
+	// an installed addon that is switched off keeps the name too: its manifest is still stored
+	if entries, err := os.ReadDir(root.join(AddonPolicyDir)); err == nil {
+		for _, e := range entries {
+			other, ok := strings.CutSuffix(e.Name(), AddonManifestSuffix)
+			if !ok || other == id {
+				continue
+			}
+			if m := root.ReadAddonManifest(other); m != nil && m.Runtime != nil && m.Runtime.RPCInterface != nil && strings.EqualFold(m.Runtime.RPCInterface.Name, iface) {
+				return ""
+			}
+		}
+	}
+	n, err := a.InterfaceGone(iface)
+	if err != nil {
+		slog.Warn("addons: rpc_interface: the interface's names could not be removed from the metadata", "addon", id, "interface", iface, "err", err)
+		return ""
+	}
+	if n == 0 {
+		return ""
+	}
+	slog.Info("addons: rpc_interface: the interface's names removed from the metadata", "addon", id, "interface", iface, "objects", n)
+	return fmt.Sprintf("metadata: %d names of %s", n, iface)
 }

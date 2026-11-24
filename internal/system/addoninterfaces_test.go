@@ -1,6 +1,7 @@
 package system
 
 import (
+	"context"
 	"encoding/json"
 	"os"
 	"strings"
@@ -158,4 +159,135 @@ func TestSyncAddonInterfaces(t *testing.T) {
 	if !addoniface.Is("Logic") {
 		t.Fatal("not loaded from the record")
 	}
+}
+
+// occulited B-160: an uninstalled addon's interface takes the names of its devices out of the
+// metadata - after the uninstall, not at a switch-off, and not while the name is another's.
+func TestUninstallForgetsInterfaceNames(t *testing.T) {
+	type gone struct {
+		names []string
+		n     int
+		err   error
+	}
+	setup := func(t *testing.T) (Root, *SystemdAddons, *gone) {
+		root := profileBox(t)
+		t.Cleanup(func() { addoniface.Set(nil) })
+		_ = os.MkdirAll(root.join("/etc/config"), 0o755)
+		if err := os.WriteFile(root.join(InterfacesListPath), []byte(ifaceTemplate), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		run := func(context.Context, string, ...string) ([]byte, error) { return nil, nil }
+		a := NewSystemdAddons(root, SystemdServices{Root: root, Run: run})
+		g := &gone{n: 3}
+		a.InterfaceGone = func(name string) (int, error) {
+			g.names = append(g.names, name)
+			return g.n, g.err
+		}
+		installInterfaceAddon(t, root, "logic", "Logic", 39310)
+		if got := strings.Join(a.SyncAddonProfiles(), " "); got != "" || !addoniface.Is("Logic") {
+			t.Fatalf("sync: %q", got)
+		}
+		return root, a, g
+	}
+	last := func(out UninstallResult) string {
+		if len(out.SystemRemoved) == 0 {
+			return ""
+		}
+		return out.SystemRemoved[len(out.SystemRemoved)-1]
+	}
+
+	t.Run("uninstall", func(t *testing.T) {
+		root, a, g := setup(t)
+		// a switch-off drops the interface and keeps the names
+		if err := os.Chmod(root.join("/usr/local/etc/config/rc.d/logic"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		a.SyncAddonProfiles()
+		if addoniface.Is("Logic") || len(g.names) != 0 {
+			t.Fatalf("switched off: listed %v, asked %v", addoniface.Is("Logic"), g.names)
+		}
+		_ = os.Chmod(root.join("/usr/local/etc/config/rc.d/logic"), 0o755)
+		a.SyncAddonProfiles()
+		out, err := a.Uninstall(context.Background(), "logic")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if strings.Join(g.names, " ") != "Logic" || last(out) != "metadata: 3 names of Logic" {
+			t.Fatalf("asked %v, removed %v", g.names, out.SystemRemoved)
+		}
+		if strings.Contains(interfaceNames(t, root), "Logic") {
+			t.Fatal("still listed")
+		}
+	})
+	t.Run("a disabled addon's too", func(t *testing.T) {
+		root, a, g := setup(t)
+		if err := os.Chmod(root.join("/usr/local/etc/config/rc.d/logic"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		a.SyncAddonProfiles()
+		if out, err := a.Uninstall(context.Background(), "logic"); err != nil || strings.Join(g.names, " ") != "Logic" || last(out) != "metadata: 3 names of Logic" {
+			t.Fatalf("%v: asked %v, removed %v", err, g.names, out.SystemRemoved)
+		}
+	})
+	t.Run("nothing named", func(t *testing.T) {
+		_, a, g := setup(t)
+		g.n = 0
+		if out, err := a.Uninstall(context.Background(), "logic"); err != nil || len(g.names) != 1 || strings.HasPrefix(last(out), "metadata") {
+			t.Fatalf("%v: asked %v, removed %v", err, g.names, out.SystemRemoved)
+		}
+	})
+	t.Run("the store refuses", func(t *testing.T) {
+		_, a, g := setup(t)
+		g.err = os.ErrPermission
+		if out, err := a.Uninstall(context.Background(), "logic"); err != nil || strings.HasPrefix(last(out), "metadata") {
+			t.Fatalf("%v: removed %v", err, out.SystemRemoved)
+		}
+	})
+	t.Run("no hook, no interface", func(t *testing.T) {
+		root, a, g := setup(t)
+		installProfileAddon(t, root, "plain", "")
+		if out, err := a.Uninstall(context.Background(), "plain"); err != nil || len(g.names) != 0 {
+			t.Fatalf("%v: asked %v, removed %v", err, g.names, out.SystemRemoved)
+		}
+		a.InterfaceGone = nil
+		if out, err := a.Uninstall(context.Background(), "logic"); err != nil || strings.HasPrefix(last(out), "metadata") {
+			t.Fatalf("%v: removed %v", err, out.SystemRemoved)
+		}
+	})
+	t.Run("the name is another installed addon's", func(t *testing.T) {
+		root, a, g := setup(t)
+		// "logic2" declares the same name and is switched off: installed, not listed
+		installInterfaceAddon(t, root, "logic2", "Logic", 39320)
+		if err := os.Chmod(root.join("/usr/local/etc/config/rc.d/logic2"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		a.SyncAddonProfiles()
+		if out, err := a.Uninstall(context.Background(), "logic"); err != nil || len(g.names) != 0 {
+			t.Fatalf("%v: asked %v, removed %v", err, g.names, out.SystemRemoved)
+		}
+	})
+	t.Run("the name is listed by another entry", func(t *testing.T) {
+		root, a, g := setup(t)
+		// the user's own entry of that name, put there while the addon was off: never the addon's
+		if err := os.Chmod(root.join("/usr/local/etc/config/rc.d/logic"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		a.SyncAddonProfiles()
+		own := strings.Replace(ifaceTemplate, "</interfaces>", "\t<ipc>\n\t\t<name>Logic</name>\n\t\t<url>xmlrpc://127.0.0.1:9999</url>\n\t\t<info>Logic</info>\n\t</ipc>\n</interfaces>", 1)
+		if err := os.WriteFile(root.join(InterfacesListPath), []byte(own), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		if out, err := a.Uninstall(context.Background(), "logic"); err != nil || len(g.names) != 0 {
+			t.Fatalf("%v: asked %v, removed %v", err, g.names, out.SystemRemoved)
+		}
+		if !strings.Contains(interfaceNames(t, root), "Logic=xmlrpc://127.0.0.1:9999") {
+			t.Fatal("the other entry went")
+		}
+	})
+	t.Run("the addon stayed", func(t *testing.T) {
+		_, a, g := setup(t)
+		if got := a.forgetInterfaceNames("logic", "Logic"); got != "" || len(g.names) != 0 {
+			t.Fatalf("%q, asked %v", got, g.names)
+		}
+	})
 }
