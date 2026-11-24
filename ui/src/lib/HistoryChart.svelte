@@ -19,12 +19,17 @@
      * hundreds among values of two is drawn clipped at the top, with a mark there, and the
      * pointer still reads its value.
      *
+     * Events (occulited task 172: the temperature panel's undervoltage episodes) are red vertical
+     * lines at their time - a band where the stretch is wider than two pixels - each with its
+     * tooltip, which the pointer near it shows like a sample's value.
+     *
      * The span is the last 24 h by default (occulited task 81); the selector offers 1 h and 6 h too. The sampler keeps 500
      * samples per interface (task 214, about 8 h), so 24 h shows all that is kept. Used by the Status
      * page and by the Interfaces page (task 54).
      */
     import {i18n, t} from './i18n.svelte';
     import {clock, niceTop, scalePeak, segments, sliceSpan, timeLabels, type Sample} from './history';
+    import type {ChartEvent} from './thermal';
 
     interface Props {
         /** the whole series, oldest first; the chart takes the span it shows out of it */
@@ -57,8 +62,10 @@
          * label at the end; above the band (no stretch for it) only `above` at the top edge says it
          */
         threshold?: {value: number; label: string; above: string};
+        /** occulited task 172: moments or stretches marked by a red vertical line with a tooltip; those outside the span are not drawn */
+        events?: ChartEvent[];
     }
-    let {samples, label, unit = '%', spans = [60, 360, 1440], span = $bindable(1440), height = 64, mark, steps, format = (v: number) => String(v), outlierFloor, floor, threshold}: Props = $props();
+    let {samples, label, unit = '%', spans = [60, 360, 1440], span = $bindable(1440), height = 64, mark, steps, format = (v: number) => String(v), outlierFloor, floor, threshold, events = []}: Props = $props();
 
     let width = $state(0);
     // room above the top gridline for the stroke, and a pixel above the baseline for it too
@@ -86,14 +93,28 @@
     }));
     // the samples above the band (an outlier the scale left out), marked at its top edge
     const clipped = $derived(shown.filter((s) => s.up !== false && s.v > topShown));
+    // the events within the span, at their pixels: at least 2 wide, so a two-second dip shows on 24 h
+    const xt = (ms: number) => (t1 > t0 ? ((ms - t0) / (t1 - t0)) * width : width / 2);
+    const marks = $derived(
+        events
+            .filter((e) => e.end >= t0 && e.start <= t1)
+            .map((e) => {
+                const a = Math.max(0, xt(e.start)), b = Math.min(width, xt(e.end));
+                const w = Math.max(2, b - a);
+                return {...e, x: Math.min(a, width - w), w};
+            }),
+    );
     const axis = $derived(shown.length ? timeLabels(new Date(t0), new Date(t1), i18n.language) : null);
     const spanLabel = (m: number) => (m % 1440 === 0 && m >= 2880 ? t('{n} d', {n: m / 1440}) : m % 60 === 0 ? t('{n} h', {n: m / 60}) : t('{n} min', {n: m}));
 
     // the sample under the pointer: the nearest by x, shown with a marker and its time · value
     let hover = $state<Sample | null>(null);
+    // an event the pointer is on (within 4 px of its line): its tooltip instead of a sample's value
+    let hoverMark = $state<(typeof marks)[number] | null>(null);
     function pick(ev: PointerEvent) {
         const box = (ev.currentTarget as SVGSVGElement).getBoundingClientRect();
         const px = ev.clientX - box.left;
+        hoverMark = marks.find((m) => px >= m.x - 4 && px <= m.x + m.w + 4) ?? null;
         let best: Sample | null = null, bd = Infinity;
         for (const s of shown) {
             if (s.up === false) continue;
@@ -104,12 +125,12 @@
     }
     // a mouse leaving clears the marker; a finger lifting keeps it where it tapped
     function leave(ev: PointerEvent) {
-        if (ev.pointerType === 'mouse') hover = null;
+        if (ev.pointerType === 'mouse') hover = hoverMark = null;
     }
     function choose(m: number) {
         span = m;
         // the marked sample may not be in the new span
-        hover = null;
+        hover = hoverMark = null;
     }
     const hoverText = $derived(hover ? `${clock(new Date(hover.t), i18n.language)} · ${format(hover.v)} ${unit}` : '');
 </script>
@@ -131,6 +152,9 @@
                     <polyline class="line" points={run.pts} />
                 {/if}
             {/each}
+            {#each marks as m, i (i)}
+                <rect class="event" data-event={i} data-event-label={m.label} x={m.x} y={PAD_TOP} width={m.w} height={height - PAD_TOP}><title>{m.label}</title></rect>
+            {/each}
             {#each clipped as c (c.t)}
                 {@const cx = x(c)}
                 <polygon class="clip" data-clipped={c.t} points={`${(cx - 3).toFixed(1)},${PAD_TOP + 4} ${(cx + 3).toFixed(1)},${PAD_TOP + 4} ${cx.toFixed(1)},${PAD_TOP - 1}`} />
@@ -144,7 +168,10 @@
                 {@const ty = thrIn ? y(threshold.value) : PAD_TOP}
                 <text class="thrtick" data-threshold-label={thrIn ? 'line' : 'above'} x={width - 2} y={ty - 3 < PAD_TOP + 9 ? ty + 12 : ty - 3} text-anchor="end">{thrIn ? threshold.label : threshold.above}</text>
             {/if}
-            {#if hover}
+            {#if hoverMark}
+                {@const left = hoverMark.x < width / 2}
+                <text class="value eventtext" data-event-hover x={left ? hoverMark.x + hoverMark.w + 6 : hoverMark.x - 6} y={PAD_TOP + 12} text-anchor={left ? 'start' : 'end'}>{hoverMark.label}</text>
+            {:else if hover}
                 {@const hx = x(hover)}
                 {@const left = hx < width / 2}
                 <line class="cursor" x1={hx} x2={hx} y1={PAD_TOP} y2={height} />
@@ -192,6 +219,9 @@
     .line { fill: none; stroke: var(--hmm-accent); stroke-width: 1.5; stroke-linejoin: round; stroke-linecap: round; }
     .dot { fill: var(--hmm-accent); }
     .clip { fill: var(--hmm-accent); }
+    /* occulited task 172: an event's line, the error colour; its hover text in the same */
+    .event { fill: var(--hmm-error); opacity: 0.85; }
+    .value.eventtext { fill: var(--hmm-error); }
     .cursor { stroke: var(--hmm-border-strong); }
     .marker { fill: var(--hmm-card-bg); stroke: var(--hmm-accent); stroke-width: 2; }
     .empty { display: flex; align-items: center; justify-content: center; color: var(--hmm-fg-muted); font-size: var(--hmm-font-size-small); }

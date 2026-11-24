@@ -21,6 +21,22 @@ describe('the Status page warnings (task 81)', () => {
         expect(warningLink(w('legacy-session', 'mosquitto', {}, '/addons'), t)).toEqual({href: '/addons', label: 'Installed addons'});
     });
 
+    // occulited task 173: the throttle state - the supply's advice, the heat's, and that the firmware keeps it
+    it('says the power-throttle states with their cause', () => {
+        const p = (variant: string, params: Warning['params']) => warningText(w('power-throttle', variant, params, '#temperature'), words);
+        expect(p('undervoltage', {cause: 'supply', count: 3})).toBe('The supply voltage is too low now, and the processor is slowed down. The usual cause is the power supply or its cable: use one that delivers enough current (for a Raspberry Pi the official power supply) and a short cable.');
+        expect(p('throttled', {cause: 'supply', count: 2, last: '2026-11-22T16:44:09Z'})).toBe('The processor is slowed down now; since the start the supply voltage was too low (2×, the last on at 2026-11-22T16:44:09Z). The usual cause is the power supply or its cable: use one that delivers enough current (for a Raspberry Pi the official power supply) and a short cable.');
+        expect(p('throttled', {cause: 'heat'})).toBe('The processor is slowed down now by its temperature limit. Give the system more air, a heat sink or a fan.');
+        expect(p('throttled', {cause: 'unknown'})).toBe('The processor is slowed down now.');
+        const earlier = p('earlier', {cause: 'supply', count: 3, last: '2026-11-22T10:30:00Z'});
+        expect(earlier).toMatch(/^Not now, but since the start the supply voltage was too low \(3×, the last on at 2026-11-22T10:30:00Z\), and the processor was slowed down\. The usual cause is the power supply/);
+        expect(earlier).toMatch(/The firmware keeps this until the next start\.$/);
+        expect(p('earlier', {cause: 'supply'})).toMatch(/^Not now, but since the start the supply voltage was too low, and/);
+        expect(p('earlier', {cause: 'heat'})).toBe('Not now, but since the start the processor was slowed down by its temperature limit. Give the system more air, a heat sink or a fan. The firmware keeps this until the next start.');
+        expect(p('earlier', {cause: 'unknown'})).toBe('Not now, but since the start the processor was slowed down at least once. The firmware keeps this until the next start.');
+        expect(warningLink(w('power-throttle', 'earlier', {}, '#temperature'), t)).toEqual({href: '#temperature', label: 'Temperature'});
+    });
+
     it('says a newer bootloader is available, or prepared, and links to the Hardware page (openccu-lite task 366)', () => {
         const n = {...w('bootloader-update', '2026-11-20', {running: '2026-10-15', latest: '2026-11-20'}, '/system/hardware#bootloader'), severity: 'info' as const};
         expect(warningText(n, words)).toBe('A newer bootloader is available for this Raspberry Pi: 2026-11-20 (installed: 2026-10-15). The Hardware page installs it.');

@@ -717,7 +717,7 @@
         <!-- occulited task 148: the temperatures - none on a system without a sensor (the VM); third,
              after memory and load (openccu-lite task 490, the maintainer 2026-11-22), the disks after it -->
         {#if status.thermal?.readings?.length}
-            <TemperaturePanel thermal={status.thermal} history={socHist} span={view.span} setSpan={setChartSpan} warnAttrs={warnFor(['soc-hot', 'disk-hot'])} />
+            <TemperaturePanel thermal={status.thermal} history={socHist} span={view.span} setSpan={setChartSpan} warnAttrs={warnFor(['soc-hot', 'disk-hot', 'power-throttle'])} />
         {/if}
         <!-- occulited task 78: one panel per disk with a ring per partition; a daemon without
              `storage` (an older one, a container whose disks are the host's) keeps the mount gauges -->

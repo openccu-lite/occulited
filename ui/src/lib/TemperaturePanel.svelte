@@ -9,16 +9,16 @@
      * throttles hard - not the 110 °C trip); the edge goes amber from the warning level (80 °C on a
      * Pi), red from the maximum, and the Status warnings soc-hot and disk-hot say the same above.
      *
-     * On a Raspberry Pi the head carries the firmware's state as a pill - normal, throttled earlier,
-     * throttled, undervoltage - whose box fits the longest word in either language, so a change
-     * moves nothing; the line under the rings names the conditions, now and since the boot, in one
-     * line of a fixed height. The foot is the processor's temperature over time, the same span as
-     * every chart of the page.
+     * On a Raspberry Pi the head carries the firmware's state as a pill - normal, throttled since
+     * boot, throttled, undervoltage - whose box fits the longest word in either language, so a change
+     * moves nothing; the box under the rings names the conditions, now and since the boot, in two
+     * lines of a fixed height (B-168: one line cut its second chip off). The foot is the processor's temperature over time, the same span as
+     * every chart of the page, with the undervoltage episodes as red lines (task 172).
      */
     import Icon from './Icon.svelte';
     import HistoryChart from './HistoryChart.svelte';
     import {i18n, t} from './i18n.svelte';
-    import {MAX_TEMP_RINGS, TEMP_STEPS, bootDip, formatCelsius, formatSeconds, formatLimit, panelLevel, ringFraction, tempColours, tempLevel, throttleFacts, throttleState, type Thermal, type ThrottleFlag, type ThrottleState, type TempReading} from './thermal';
+    import {MAX_TEMP_RINGS, TEMP_STEPS, bootDip, episodeMarks, formatCelsius, formatSeconds, formatLimit, panelLevel, ringFraction, tempColours, tempLevel, throttleFacts, throttleLevel, throttleState, type Thermal, type ThrottleFlag, type ThrottleState, type TempReading} from './thermal';
     import {clock, spanMax, type Sample} from './history';
     import {panelEdge} from './storage';
 
@@ -37,8 +37,9 @@
     const lang = $derived(i18n.language);
     const readings = $derived(thermal.readings);
     const colours = $derived(tempColours(readings));
-    const level = $derived(panelLevel(readings));
-    // the edge: the worse of the readings' level and the warnings that lead here
+    // task 173: the worse of the readings' level and the firmware's throttle state
+    const level = $derived(panelEdge(panelLevel(readings), throttleLevel(thermal.throttle)));
+    // the edge: the worse of the panel's level and the warnings that lead here
     const edge = $derived(panelEdge(level, warnAttrs['data-warn-edge']));
     const th = $derived(thermal.throttle);
     const state = $derived(th ? throttleState(th) : undefined);
@@ -66,7 +67,7 @@
         return [`${what}: ${formatCelsius(r.celsius, lang)}`, limits, read].filter(Boolean).join(' · ');
     }
     const stateWord = (s: ThrottleState) =>
-        s === 'undervoltage' ? t('undervoltage') : s === 'throttled' ? t('throttled') : s === 'earlier' ? t('throttled earlier') : t('normal');
+        s === 'undervoltage' ? t('undervoltage') : s === 'throttled' ? t('throttled') : s === 'earlier' ? t('throttled since boot') : t('normal');
     const stateClass = (s: ThrottleState) => (s === 'undervoltage' ? 'bad' : s === 'throttled' || s === 'earlier' ? 'warn' : 'good');
     function flagWord(f: ThrottleFlag): string {
         switch (f) {
@@ -109,6 +110,16 @@
             .join('\n'),
     );
 
+    // B-168: the pill's tooltip says first what its word means
+    const pillTitle = $derived(
+        (state === 'earlier'
+            ? t("Since the start the processor was throttled (or its supply too low) at least once, but it is not now; the firmware keeps this until the next start.") + '\n'
+            : '') + throttleTitle,
+    );
+
+    // task 172: the undervoltage episodes as red lines in the chart
+    const marks = $derived(episodeMarks(th, {t, clock: (d) => clock(d, lang), seconds: (v) => formatSeconds(v, lang)}));
+
     // the rings on a 100 × 100 grid: 8 wide with a 2.5 gap, the outermost at r 45 (the storage panel's)
     const STROKE = 8;
     const radius = (i: number) => 45 - i * (STROKE + 2.5);
@@ -130,7 +141,7 @@
         </div>
         {#if th && state}
             <!-- the box fits the longer words (in its pseudo-elements, unseen), so a change of the state moves nothing -->
-            <span class="ol-badge tp-pill {stateClass(state)}" data-throttle={state} title={throttleTitle} data-w1={stateWord('earlier')} data-w2={stateWord('undervoltage')}><span class="tp-pill-word">{stateWord(state)}</span></span>
+            <span class="ol-badge tp-pill {stateClass(state)}" data-throttle={state} title={pillTitle} data-w1={stateWord('earlier')} data-w2={stateWord('undervoltage')}><span class="tp-pill-word">{stateWord(state)}</span></span>
         {/if}
     </div>
     <div class="tp-row">
@@ -152,14 +163,14 @@
         </ul>
     </div>
     {#if th}
-        <!-- one line of a fixed height whatever it holds: the conditions, or that there are none -->
+        <!-- two lines of a fixed height whatever it holds (B-168): the conditions, or that there are none -->
         <div class="tp-throttle" data-throttle-facts={facts.length} title={throttleTitle}>
             {#if facts.length}
                 {#each facts as f (f.flag)}
-                    <span class="tp-fact" class:now={f.now} class:err={f.now && f.flag === 'under_voltage'} data-fact={f.flag} data-now={f.now}>{factText(f)}</span>
+                    <span class="tp-fact" class:now={f.now} class:err={f.now && f.flag === 'under_voltage'} data-fact={f.flag} data-now={f.now} title={factText(f)}>{factText(f)}</span>
                 {/each}
             {:else if dip}
-                <span class="tp-fact info" data-fact="boot_dip">{dipText}</span>
+                <span class="tp-fact info" data-fact="boot_dip" title={dipText}>{dipText}</span>
             {:else}
                 <span class="ol-muted tp-quiet">{quiet}</span>
             {/if}
@@ -168,7 +179,7 @@
     {#if soc && history.length}
         <div class="ol-card-foot">
             {#if peak !== null}<div class="ol-muted tp-peak" data-temp-peak>{t('Processor: max {temp} ({span})', {temp: fmt(peak), span: spanName(span)})}</div>{/if}
-            <HistoryChart samples={history} label={t('processor temperature history')} unit="°C" steps={TEMP_STEPS} format={fmtNum} floor={soc.max_c} threshold={{value: soc.warn_c, label: formatLimit(soc.warn_c, lang), above: t('Throttling from {temp}', {temp: formatLimit(soc.warn_c, lang)})}} bind:span={() => span, setSpan} />
+            <HistoryChart samples={history} label={t('processor temperature history')} unit="°C" steps={TEMP_STEPS} format={fmtNum} floor={soc.max_c} threshold={{value: soc.warn_c, label: formatLimit(soc.warn_c, lang), above: t('Throttling from {temp}', {temp: formatLimit(soc.warn_c, lang)})}} events={marks} bind:span={() => span, setSpan} />
         </div>
     {/if}
 </div>
@@ -194,12 +205,12 @@
     .tp-val { white-space: nowrap; text-align: right; min-width: 8.5ch; color: var(--hmm-fg); font-variant-numeric: tabular-nums; }
     .tp-val.warn { color: var(--hmm-warn); }
     .tp-val.err { color: var(--hmm-error); }
-    /* the throttle's line: always one line high, cut with the tooltip when it holds more */
-    .tp-throttle { display: flex; gap: 6px; align-items: center; min-width: 0; height: 1.6em; overflow: hidden; white-space: nowrap; font-size: var(--hmm-font-size-small); }
-    .tp-quiet { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
-    .tp-fact { flex: 0 0 auto; display: inline-flex; align-items: center; box-sizing: border-box; height: 1.6em; padding: 0 8px; line-height: 1; border-radius: 999px; border: 1px solid var(--hmm-border-muted); color: var(--hmm-fg-muted); }
-    /* B-162: the boot dip says what happened and stays quiet - the muted outline, cut like the quiet line */
-    .tp-fact.info { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; display: block; line-height: calc(1.6em - 2px); }
+    /* the throttle's box (B-168): always two lines high, whether it holds nothing, one chip or four -
+       the chips wrap into the second line, and a chip wider than the box ends in an ellipsis with its
+       text as its tooltip; what does not fit two lines is in the box's tooltip */
+    .tp-throttle { display: flex; flex-wrap: wrap; align-content: flex-start; gap: 4px 6px; min-width: 0; height: calc(3.2em + 4px); overflow: hidden; white-space: nowrap; font-size: var(--hmm-font-size-small); }
+    .tp-quiet { min-width: 0; max-width: 100%; overflow: hidden; text-overflow: ellipsis; line-height: 1.6em; }
+    .tp-fact { flex: 0 1 auto; display: block; min-width: 0; max-width: 100%; box-sizing: border-box; height: 1.6em; padding: 0 8px; line-height: calc(1.6em - 2px); overflow: hidden; text-overflow: ellipsis; border-radius: 999px; border: 1px solid var(--hmm-border-muted); color: var(--hmm-fg-muted); }
     .tp-fact.now { border-color: var(--hmm-warn); color: var(--hmm-warn); }
     .tp-fact.err { border-color: var(--hmm-error); color: var(--hmm-error); font-weight: 600; }
     .tp-peak { font-size: var(--hmm-font-size-small); margin-bottom: 2px; }

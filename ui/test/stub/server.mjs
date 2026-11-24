@@ -2316,6 +2316,20 @@ function activeWarnings(jar, warn, st) {
             const sev = disks.some((r) => lv(r) === 'error') ? 'error' : 'warning';
             list.push({id: 'disk-hot', variant: sev, severity: sev, href: '#temperature', params: {disks: disks.map((r) => ({device: r.device, kind: r.disk_kind, model: r.name, celsius: r.celsius, warn_c: r.warn_c, max_c: r.max_c}))}});
         }
+        // occulited task 173: power-throttle as internal/httpapi/thermalwarn.go's throttleRule raises it
+        const th = therm.throttle;
+        if (th) {
+            const n = th.now, b = th.since_boot;
+            const state = th.state ?? (n.under_voltage ? 'undervoltage' : n.throttled || n.freq_capped || n.soft_temp_limit ? 'throttled' : b.under_voltage || b.throttled || b.freq_capped || b.soft_temp_limit ? 'earlier' : 'normal');
+            const cause = n.under_voltage || b.under_voltage || (th.events ?? 0) > 0 ? 'supply' : n.soft_temp_limit || b.soft_temp_limit ? 'heat' : 'unknown';
+            const heatOnly = state === 'throttled' && cause === 'heat' && soc;
+            if (['undervoltage', 'throttled', 'earlier'].includes(state) && !heatOnly) {
+                const params = {cause};
+                if (th.events !== undefined) params.count = th.events;
+                if (th.last?.start) params.last = th.last.start;
+                list.push({id: 'power-throttle', variant: state, severity: state === 'undervoltage' ? 'error' : 'warning', href: '#temperature', params});
+            }
+        }
     }
     const rep = STORAGE[jar['stub-storage'] || (warn ? 'watch' : 'good')] ?? STORAGE.good;
     if (rep.verdict !== 'good') {
@@ -3515,7 +3529,7 @@ function variant(req, u, res) {
         sendJSON(res, {...structuredClone(routes[key]), security_key_set: false});
         return true;
     }
-    // occulited task 148: the temperature panel (stub-thermal=pi|ssd|hot|crit|bootdip|recurring) - a Pi 4's SoC, with a
+    // occulited task 148: the temperature panel (stub-thermal=pi|ssd|hot|crit|bootdip|recurring|capped) - a Pi 4's SoC, with a
     // USB SSD's SMART temperature, hot (throttled), at the limit with a hot disk and undervoltage now;
     // and the processor's temperature in the history. Without the cookie the OVA has no sensor.
     if (jar['stub-thermal'] && THERMAL[jar['stub-thermal']] && (key === 'GET /api/system/v1/status' || key === 'GET /api/system/v1/status/history')) {
@@ -3714,16 +3728,23 @@ function statusOfHealth(rep) {
 const flags = (o = {}) => ({under_voltage: false, freq_capped: false, throttled: false, soft_temp_limit: false, ...o});
 const piSoC = (celsius) => ({id: 'thermal_zone0', kind: 'soc', name: 'cpu-thermal', celsius, warn_c: 80, max_c: 85});
 const t7 = (celsius) => ({id: 'disk:sda', kind: 'disk', name: 'Samsung PSSD T7', device: 'sda', disk_kind: 'usb', celsius, warn_c: 70, max_c: 80, read_at: new Date(Date.now() - 20 * 60000).toISOString()});
+// occulited task 172: the episodes within the history's three hours (a reboot's hole 120 to 100 minutes ago), so the
+// chart draws them; ago(m) is m minutes before the stub's now
+const ago = (m) => new Date(Date.parse(now) - m * 60000).toISOString();
 const THERMAL = {
     pi: {readings: [piSoC(54.8)], throttle: {source: 'firmware', raw: 0, now: flags(), since_boot: flags()}},
     ssd: {readings: [piSoC(61.2), t7(38)], throttle: {source: 'firmware', raw: 0x50000, now: flags(), since_boot: flags({under_voltage: true, throttled: true})}},
     hot: {readings: [piSoC(81.4)], throttle: {source: 'firmware', raw: 0xc000c, now: flags({throttled: true, soft_temp_limit: true}), since_boot: flags({throttled: true, soft_temp_limit: true})}},
-    crit: {readings: [piSoC(85.3), t7(72)], throttle: {source: 'firmware', raw: 0x50005, now: flags({under_voltage: true, throttled: true}), since_boot: flags({under_voltage: true, throttled: true}), state: 'undervoltage', events: 3, undervoltage_s: 17, last: {start: '2026-11-22T10:30:00Z', start_s: 9000}}},
+    crit: {readings: [piSoC(85.3), t7(72)], throttle: {source: 'firmware', raw: 0x50005, now: flags({under_voltage: true, throttled: true}), since_boot: flags({under_voltage: true, throttled: true}), state: 'undervoltage', events: 3, undervoltage_s: 17, last: {start: ago(10), start_s: 5400},
+        episodes: [{start: ago(99), start_s: 8, duration_s: 1}, {start: ago(40), start_s: 3540, duration_s: 6}, {start: ago(10), start_s: 5400}]}},
     // occulited B-162: the maintainer's Pi 3 - 0x50000 and one dip of 2 s at 9.66 s, normalised: an info line
-    bootdip: {readings: [piSoC(52.1)], throttle: {source: 'firmware', raw: 0x50000, now: flags(), since_boot: flags({under_voltage: true, throttled: true}), state: 'boot_dip', events: 1, undervoltage_s: 2, last: {start: '2026-11-22T08:00:09.66Z', start_s: 9.7, duration_s: 2}, episodes: [{start: '2026-11-22T08:00:09.66Z', start_s: 9.7, duration_s: 2}]}},
+    bootdip: {readings: [piSoC(52.1)], throttle: {source: 'firmware', raw: 0x50000, now: flags(), since_boot: flags({under_voltage: true, throttled: true}), state: 'boot_dip', events: 1, undervoltage_s: 2, last: {start: ago(99), start_s: 9.7, duration_s: 2}, episodes: [{start: ago(99), start_s: 9.7, duration_s: 2}]}},
     // ... and a supply that is not enough: the dip at the start, then two more under load
-    recurring: {readings: [piSoC(52.1)], throttle: {source: 'firmware', raw: 0x50000, now: flags(), since_boot: flags({under_voltage: true, throttled: true}), state: 'earlier', events: 3, undervoltage_s: 13, last: {start: '2026-11-22T10:30:00Z', start_s: 9000, duration_s: 6},
-        episodes: [{start: '2026-11-22T08:00:08Z', start_s: 8, duration_s: 1}, {start: '2026-11-22T10:00:00Z', start_s: 7200, duration_s: 6}, {start: '2026-11-22T10:30:00Z', start_s: 9000, duration_s: 6}]}},
+    recurring: {readings: [piSoC(52.1)], throttle: {source: 'firmware', raw: 0x50000, now: flags(), since_boot: flags({under_voltage: true, throttled: true}), state: 'earlier', events: 3, undervoltage_s: 13, last: {start: ago(30), start_s: 4200, duration_s: 6},
+        episodes: [{start: ago(99), start_s: 8, duration_s: 1}, {start: ago(60), start_s: 2400, duration_s: 6}, {start: ago(30), start_s: 4200, duration_s: 6}]}},
+    // occulited B-168: three conditions since the boot - the facts' box holds them in its two lines
+    capped: {readings: [piSoC(58.4)], throttle: {source: 'firmware', raw: 0x70000, now: flags(), since_boot: flags({under_voltage: true, throttled: true, freq_capped: true}), state: 'earlier', events: 2, undervoltage_s: 9, last: {start: ago(30), start_s: 4200, duration_s: 6},
+        episodes: [{start: ago(70), start_s: 1800, duration_s: 3}, {start: ago(30), start_s: 4200, duration_s: 6}]}},
 };
 
 const STORAGE = {

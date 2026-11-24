@@ -84,9 +84,77 @@ func TestThermalWarnings(t *testing.T) {
 	}
 	found := false
 	for _, s := range a.warningSources() {
-		found = found || slices.Equal(s.IDs, []string{"soc-hot", "disk-hot"})
+		found = found || slices.Equal(s.IDs, []string{"soc-hot", "disk-hot", PowerThrottleID})
 	}
 	if !found {
 		t.Error("soc-hot is not a warning source")
+	}
+}
+
+// occulited task 173: the throttle state as power-throttle - red for an undervoltage now, yellow for
+// a throttling now or since the boot beyond a boot dip, nothing for a boot dip or a quiet firmware;
+// a throttling now that is the heat's alone beside soc-hot is soc-hot's
+func TestThrottleRule(t *testing.T) {
+	n := func(v int) *int { return &v }
+	last := &system.VoltageEpisode{Start: "2026-11-22T16:44:09+01:00", StartS: 9.4}
+	socHot := []warnings.Warning{{ID: "soc-hot"}}
+	cases := []struct {
+		name    string
+		th      *system.Throttle
+		raised  []warnings.Warning
+		variant string
+		sev     string
+		cause   string
+	}{
+		{"no throttle (not a Pi)", nil, nil, "", "", ""},
+		{"normal", &system.Throttle{State: system.ThrottleNormal}, nil, "", "", ""},
+		{"a boot dip", &system.Throttle{State: system.ThrottleBootDip, SinceBoot: system.ThrottleFlags{UnderVoltage: true, Throttled: true}, Events: n(1), Last: last}, nil, "", "", ""},
+		{"undervoltage now", &system.Throttle{State: system.ThrottleUnderVoltage, Now: system.ThrottleFlags{UnderVoltage: true}, Events: n(3), Last: last}, nil, system.ThrottleUnderVoltage, warnings.SeverityError, "supply"},
+		{"throttled now after dips", &system.Throttle{State: system.ThrottleThrottled, Now: system.ThrottleFlags{Throttled: true}, SinceBoot: system.ThrottleFlags{UnderVoltage: true, Throttled: true}, Events: n(2)}, socHot, system.ThrottleThrottled, warnings.SeverityWarning, "supply"},
+		{"throttled now by the heat, soc-hot raised", &system.Throttle{State: system.ThrottleThrottled, Now: system.ThrottleFlags{Throttled: true, SoftTempLimit: true}, SinceBoot: system.ThrottleFlags{Throttled: true, SoftTempLimit: true}}, socHot, "", "", ""},
+		{"the soft limit below soc-hot (a Pi 3B+ at 60 °C)", &system.Throttle{State: system.ThrottleThrottled, Now: system.ThrottleFlags{SoftTempLimit: true}, SinceBoot: system.ThrottleFlags{SoftTempLimit: true}}, nil, system.ThrottleThrottled, warnings.SeverityWarning, "heat"},
+		{"earlier, the supply", &system.Throttle{State: system.ThrottleEarlier, SinceBoot: system.ThrottleFlags{UnderVoltage: true, Throttled: true}, Events: n(3), Last: last}, nil, system.ThrottleEarlier, warnings.SeverityWarning, "supply"},
+		{"earlier, the heat", &system.Throttle{State: system.ThrottleEarlier, SinceBoot: system.ThrottleFlags{Throttled: true, SoftTempLimit: true}}, socHot, system.ThrottleEarlier, warnings.SeverityWarning, "heat"},
+		{"earlier, no reason known", &system.Throttle{State: system.ThrottleEarlier, SinceBoot: system.ThrottleFlags{Throttled: true}}, nil, system.ThrottleEarlier, warnings.SeverityWarning, "unknown"},
+	}
+	for _, c := range cases {
+		w := throttleRule(c.th, c.raised)
+		if c.variant == "" {
+			if w != nil {
+				t.Errorf("%s: %+v", c.name, w)
+			}
+			continue
+		}
+		if w == nil || w.ID != PowerThrottleID || w.Variant != c.variant || w.Severity != c.sev || w.Href != "#temperature" || w.Params["cause"] != c.cause {
+			t.Errorf("%s: %+v", c.name, w)
+			continue
+		}
+		if c.th.Events != nil && w.Params["count"] != *c.th.Events {
+			t.Errorf("%s: count %v", c.name, w.Params["count"])
+		}
+		if (c.th.Last != nil) != (w.Params["last"] != nil) {
+			t.Errorf("%s: last %v", c.name, w.Params["last"])
+		}
+	}
+}
+
+// the reader's answer reaches the warning: a supply problem on a Pi, read through thermalWarnings
+func TestThermalWarningsThrottle(t *testing.T) {
+	root := t.TempDir()
+	zone := filepath.Join(root, "sys/class/thermal/thermal_zone0")
+	if err := os.MkdirAll(zone, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	for f, v := range map[string]string{"temp": "52000", "type": "cpu-thermal"} {
+		if err := os.WriteFile(filepath.Join(zone, f), []byte(v), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	word := "throttled=0x50005"
+	a := &SystemAPI{Thermal: &system.ThermalReader{Root: system.Root(root), Platform: "rpi3",
+		Throttled: func(context.Context) (string, error) { return word, nil }}}
+	list, ok := a.thermalWarnings(context.Background())
+	if !ok || len(list) != 1 || list[0].ID != PowerThrottleID || list[0].Severity != warnings.SeverityError || list[0].Params["cause"] != "supply" {
+		t.Fatalf("%+v", list)
 	}
 }

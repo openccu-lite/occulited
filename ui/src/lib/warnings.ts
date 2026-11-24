@@ -252,6 +252,27 @@ export function warningText(w: Warning, words: Words): string {
             const list = (p.disks ?? []).map((d) => t('{disk} at {temp} (rated up to {warn})', {disk: [d.model, d.device ? `(${d.device})` : ''].filter(Boolean).join(' ') || d.device, temp: formatCelsius(d.celsius, lang), warn: formatLimit(d.warn_c, lang)})).join(', ');
             return t('A disk runs hot: {list}. Above its rated temperature it wears faster; give it more air.', {list});
         }
+        case 'power-throttle': {
+            // occulited task 173: the firmware's throttle state - red while the supply is too low now,
+            // yellow while throttled now or since the start beyond a boot dip; cause says the advice
+            const supply = t('The usual cause is the power supply or its cable: use one that delivers enough current (for a Raspberry Pi the official power supply) and a short cable.');
+            const air = t('Give the system more air, a heat sink or a fan.');
+            const kept = t('The firmware keeps this until the next start.');
+            const history = typeof p.count === 'number' && p.count > 0
+                ? p.last
+                    ? t('since the start the supply voltage was too low ({n}×, the last on {when})', {n: p.count, when: words.when(p.last)})
+                    : t('since the start the supply voltage was too low ({n}×)', {n: p.count})
+                : t('since the start the supply voltage was too low');
+            if (w.variant === 'undervoltage') return [t('The supply voltage is too low now, and the processor is slowed down.'), supply].join(' ');
+            if (w.variant === 'throttled') {
+                if (p.cause === 'supply') return [t('The processor is slowed down now; {history}.', {history}), supply].join(' ');
+                if (p.cause === 'heat') return [t('The processor is slowed down now by its temperature limit.'), air].join(' ');
+                return t('The processor is slowed down now.');
+            }
+            if (p.cause === 'supply') return [t('Not now, but {history}, and the processor was slowed down.', {history}), supply, kept].join(' ');
+            if (p.cause === 'heat') return [t('Not now, but since the start the processor was slowed down by its temperature limit.'), air, kept].join(' ');
+            return [t('Not now, but since the start the processor was slowed down at least once.'), kept].join(' ');
+        }
         case 'addon-ownership':
             // B-92: the files an update wrote as root, in an addon that starts as its own user
             return [
@@ -520,6 +541,7 @@ const LINK_LABELS: Record<string, string> = {
     storage: 'Storage health',
     'soc-hot': 'Temperature',
     'disk-hot': 'Temperature',
+    'power-throttle': 'Temperature',
     'addon-ownership': 'Services',
     'addon-parents': 'Services',
     'addon-adopted-root': 'Addons',

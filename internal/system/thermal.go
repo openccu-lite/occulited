@@ -3,6 +3,7 @@ package system
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log/slog"
 	"math"
 	"os"
@@ -12,6 +13,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/hobbyquaker/occulited/internal/priv"
@@ -376,8 +378,10 @@ type ThermalReader struct {
 	mu       sync.Mutex
 	at       time.Time
 	word     *uint32
-	prev     *uint32 // the word before, to see a sticky bit appear
-	late     bool    // a sticky bit appeared, or a condition held, after the boot phase (B-162)
+	prev     *uint32     // the word before, to see a sticky bit appear
+	late     bool        // a condition held now after the boot phase (B-162, B-169)
+	appeared uint32      // sticky bits seen to appear after the boot phase, logged once each (B-169)
+	reread   atomic.Bool // a sticky bit appeared: the kernel's episodes are read again at once
 	vmu      sync.Mutex
 	vat      time.Time
 	eps      []VoltageEpisode
@@ -438,12 +442,32 @@ func (t *ThermalReader) markLate() {
 	}
 }
 
-// seeLate compares a fresh word with the one before: past the boot phase, a condition that holds
-// now or a sticky bit that was not set before is not the boot's. Called with mu held.
+// seeLate compares a fresh word with the one before. Past the boot phase, a condition that holds
+// now is not the boot's: late. A sticky bit that appears past it is not late by itself (B-169):
+// the firmware's word can show the bits of a boot dip later than the kernel's lines say the dip
+// was - the production Pi 3 had one dip at 9.4 s, rpi_volt's lines and 0x50000, and was assessed
+// "earlier" all the same - so the kernel's episodes decide (an undervoltage after the boot phase
+// is an episode of its own there), and a throttling with another cause carries the soft
+// temperature limit's bit. Such a bit is logged once and has the episodes read again at once.
+// Called with mu held.
 func (t *ThermalReader) seeLate(w uint32) {
 	up, ok := t.Root.Uptime()
-	if ok && up >= BootPhase && (w&0xf != 0 || (t.prev != nil && (w>>16)&^(*t.prev>>16)&0xf != 0)) {
+	past := ok && up >= BootPhase
+	if past && w&0xf != 0 {
 		t.late = true
+	}
+	if t.prev != nil {
+		if fresh := (w >> 16) &^ (*t.prev >> 16) & 0xf; fresh != 0 {
+			t.reread.Store(true)
+			if past && fresh&^t.appeared != 0 {
+				t.appeared |= fresh
+				log := t.Log
+				if log == nil {
+					log = slog.Default()
+				}
+				log.Info("temperature: a throttling bit appeared after the boot phase", "before", fmt.Sprintf("0x%x", *t.prev), "now", fmt.Sprintf("0x%x", w), "uptime_s", int(up.Seconds()))
+			}
+		}
 	}
 	p := w
 	t.prev = &p

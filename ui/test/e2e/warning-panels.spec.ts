@@ -32,6 +32,8 @@ const CASES: Case[] = [
     // occulited task 148: the temperature panel (the stub shows one under stub-thermal, set below)
     {id: 'soc-hot', severity: 'error', href: '#temperature', variant: 'error', params: {name: 'cpu-thermal', celsius: 85.3, warn_c: 80, max_c: 85}},
     {id: 'disk-hot', severity: 'warning', href: '#temperature', variant: 'warning', params: {disks: [{device: 'sda', kind: 'usb', model: 'T7', celsius: 71, warn_c: 70, max_c: 80}]}},
+    // occulited task 173: the firmware's throttle state
+    {id: 'power-throttle', severity: 'warning', href: '#temperature', variant: 'earlier', params: {cause: 'supply', count: 3, last: '2026-11-22T10:30:00Z'}},
     {id: 'security-key', severity: 'warning', href: '/system/keys#security-key', variant: 'default'},
     {id: 'hmip-local-key', severity: 'error', href: '/system/keys#local-key', variant: '2026-10-03T00:00:00Z'},
     {id: 'hmip-key-declined', severity: 'warning', href: '/system/keys#device-keys', variant: '3014F5AC9400040000000A09@x', params: {sgtin: '3014F5AC9400040000000A09'}},
@@ -155,7 +157,7 @@ test.describe('the panel a warning leads to carries its edge', () => {
         const known = [...CASES.map((c) => c.id), ...Object.keys(NO_PANEL)];
         expect(new Set(known).size).toBe(known.length);
         // the ids of internal/httpapi/warnings.go and its siblings, as of task 12
-        for (const id of ['addon-payload', 'addon-ended', 'addon-failed', 'rega', 'arch', 'legacy-session', 'addon-update', 'addon-ownership', 'addon-parents', 'crash-loop', 'occulited-crash-loop', 'meta', 'unclean', 'backup-target', 'backup-userfs', 'backup-unencrypted', 'backup-delivery', 'backup-age', 'certificate', 'storage', 'security-key', 'hmip-local-key', 'hmip-key-declined', 'hmip-pairing-failed', 'hmip-adapter', 'hmip-local-swap', 'hmip-module-missing', 'devices-import', 'hmip-security-counter', 'rpc-stalled', 'radio-load', 'radio-writes', 'radio-writes-duty-cycle', 'firewall', 'hmip-port-open', 'classic-rpc-open', 'app-public', 'radio-firmware', 'radio-module-unusable', 'hmip-clock-hold', 'hb-rf-eth', 'journal-target', 'journal-sync', 'store-target', 'trust-ca', 'system-update-available', 'device-update-ready', 'soc-hot', 'disk-hot']) {
+        for (const id of ['addon-payload', 'addon-ended', 'addon-failed', 'rega', 'arch', 'legacy-session', 'addon-update', 'addon-ownership', 'addon-parents', 'crash-loop', 'occulited-crash-loop', 'meta', 'unclean', 'backup-target', 'backup-userfs', 'backup-unencrypted', 'backup-delivery', 'backup-age', 'certificate', 'storage', 'security-key', 'hmip-local-key', 'hmip-key-declined', 'hmip-pairing-failed', 'hmip-adapter', 'hmip-local-swap', 'hmip-module-missing', 'devices-import', 'hmip-security-counter', 'rpc-stalled', 'radio-load', 'radio-writes', 'radio-writes-duty-cycle', 'firewall', 'hmip-port-open', 'classic-rpc-open', 'app-public', 'radio-firmware', 'radio-module-unusable', 'hmip-clock-hold', 'hb-rf-eth', 'journal-target', 'journal-sync', 'store-target', 'trust-ca', 'system-update-available', 'device-update-ready', 'soc-hot', 'disk-hot', 'power-throttle']) {
             expect(known, id).toContain(id);
         }
     });

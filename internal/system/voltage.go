@@ -130,7 +130,8 @@ func isBootDip(eps []VoltageEpisode) bool {
 }
 
 // assess fills the throttle's history and its state. eps is nil when the kernel log could not be
-// read; late says the reader saw a sticky bit appear, or a condition hold, after the boot phase;
+// read; late says the reader saw a condition hold now after the boot phase (B-169: not a sticky
+// bit appearing - the kernel's episodes say when the supply dipped);
 // uptime closes an open episode for the total.
 func (th *Throttle) assess(eps []VoltageEpisode, read, late bool, uptime time.Duration) {
 	if read {
@@ -180,7 +181,7 @@ func (t *ThermalReader) voltage(ctx context.Context) ([]VoltageEpisode, bool) {
 	}
 	t.vmu.Lock()
 	defer t.vmu.Unlock()
-	if !t.vat.IsZero() && time.Since(t.vat) < voltageEvery && time.Since(t.vat) >= 0 {
+	if !t.reread.Swap(false) && !t.vat.IsZero() && time.Since(t.vat) < voltageEvery && time.Since(t.vat) >= 0 {
 		return t.eps, t.vok
 	}
 	lines, err := t.Kernel(ctx)

@@ -92,6 +92,16 @@ export function formatLimit(v: number, lang: string): string {
     return formatCelsius(v, lang, Number.isInteger(v) ? 0 : 1);
 }
 
+/**
+ * occulited task 173: the throttle state's level for the panel's edge - undervoltage now red, a
+ * throttling now or since the boot beyond a boot dip amber, a boot dip and normal nothing
+ */
+export function throttleLevel(th?: Throttle): TempLevel {
+    if (!th) return 'ok';
+    const s = throttleState(th);
+    return s === 'undervoltage' ? 'error' : s === 'throttled' || s === 'earlier' ? 'warn' : 'ok';
+}
+
 /** the throttle's state in one word for the pill: undervoltage before throttling before normal; a flag since the boot alone is "earlier" */
 export type ThrottleState = 'normal' | 'earlier' | 'throttled' | 'undervoltage';
 export function throttleState(th: Throttle): ThrottleState {
@@ -123,6 +133,47 @@ export function throttleFacts(th: Throttle): {flag: ThrottleFlag; now: boolean}[
 export function bootDip(th: Throttle): {n: number; seconds: number} | null {
     if (th.state !== 'boot_dip') return null;
     return {n: Math.max(1, th.events ?? 1), seconds: th.undervoltage_s ?? 0};
+}
+
+/** occulited task 172: a moment or stretch the chart marks with a vertical line (an undervoltage episode) */
+export interface ChartEvent {
+    /** start and end in ms since the epoch; equal for a moment */
+    start: number;
+    end: number;
+    /** the tooltip */
+    label: string;
+}
+
+/**
+ * occulited task 172 (the maintainer, 2026-11-23): the kernel's undervoltage episodes as the
+ * temperature chart's red lines - each from its start for its duration, one still open up to now,
+ * one of unknown length a moment; an episode without a wall-clock start cannot be placed. A boot
+ * dip's say so in their tooltip.
+ */
+export function episodeMarks(
+    th: Throttle | undefined,
+    words: {t: (key: string, params?: Record<string, string | number>) => string; clock: (d: Date) => string; seconds: (v: number) => string},
+    now = Date.now(),
+): ChartEvent[] {
+    const {t} = words;
+    const dip = th?.state === 'boot_dip';
+    const out: ChartEvent[] = [];
+    for (const e of th?.episodes ?? []) {
+        const start = e.start ? Date.parse(e.start) : NaN;
+        if (!Number.isFinite(start)) continue;
+        const at = words.clock(new Date(start));
+        const open = e.duration_s === undefined;
+        const known = !open && e.duration_s! >= 0;
+        const end = open ? Math.max(start, now) : known ? start + e.duration_s! * 1000 : start;
+        let label = open
+            ? t('Undervoltage since {time}', {time: at})
+            : known
+              ? t('Undervoltage {time}, {duration}', {time: at, duration: words.seconds(e.duration_s!)})
+              : t('Undervoltage {time}', {time: at});
+        if (dip) label += ' ' + t('(at start-up, normalised)');
+        out.push({start, end, label});
+    }
+    return out;
 }
 
 /** a duration as the panel writes it: "2 s", "1,5 s", "2 min 5 s" */

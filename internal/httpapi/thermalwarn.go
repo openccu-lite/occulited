@@ -75,7 +75,59 @@ func (a *SystemAPI) thermalWarnings(ctx context.Context) ([]warnings.Warning, bo
 		a.warn.thermal.update(nil)
 		return nil, true
 	}
-	return thermalRule(a.warn.thermal.update(th.Readings), th.Readings), true
+	out := thermalRule(a.warn.thermal.update(th.Readings), th.Readings)
+	if w := throttleRule(th.Throttle, out); w != nil {
+		out = append(out, *w)
+	}
+	return out, true
+}
+
+// occulited task 173 (the maintainer, 2026-11-23: "if my CCU has been throttled since the start,
+// shouldn't the panel have the yellow left border and a message on the status page?"): the
+// firmware's throttle state as the warning power-throttle - red while the supply is too low now,
+// yellow while the processor is throttled now or was since the boot beyond a boot dip (B-162);
+// a boot dip and a quiet firmware raise nothing. The variant is the state, so a silenced "since
+// the boot" comes back when it turns into "now". cause says what the page advises: supply (an
+// undervoltage now, since the boot, or an episode in the kernel log), heat (the soft temperature
+// limit alone), or unknown. A throttling now that is the heat's alone while soc-hot is raised is
+// soc-hot's matter: no second warning.
+const PowerThrottleID = "power-throttle"
+
+func throttleRule(th *system.Throttle, raised []warnings.Warning) *warnings.Warning {
+	if th == nil {
+		return nil
+	}
+	var variant, sev string
+	switch th.State {
+	case system.ThrottleUnderVoltage:
+		variant, sev = th.State, warnings.SeverityError
+	case system.ThrottleThrottled, system.ThrottleEarlier:
+		variant, sev = th.State, warnings.SeverityWarning
+	default:
+		return nil
+	}
+	cause := "unknown"
+	switch {
+	case th.Now.UnderVoltage || th.SinceBoot.UnderVoltage || (th.Events != nil && *th.Events > 0):
+		cause = "supply"
+	case th.Now.SoftTempLimit || th.SinceBoot.SoftTempLimit:
+		cause = "heat"
+	}
+	if variant == system.ThrottleThrottled && cause == "heat" {
+		for _, w := range raised {
+			if w.ID == "soc-hot" {
+				return nil
+			}
+		}
+	}
+	params := map[string]any{"cause": cause}
+	if th.Events != nil {
+		params["count"] = *th.Events
+	}
+	if th.Last != nil && th.Last.Start != "" {
+		params["last"] = th.Last.Start
+	}
+	return &warnings.Warning{ID: PowerThrottleID, Variant: variant, Severity: sev, Href: "#temperature", Params: params}
 }
 
 // thermalRule builds the two warnings from the readings' levels.

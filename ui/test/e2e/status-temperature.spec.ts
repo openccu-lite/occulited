@@ -81,7 +81,7 @@ test('a Pi with a USB SSD: two rings, the disk by its model, undervoltage since 
     await expect(disk).toContainText('Samsung PSSD T7');
     await expect(disk.locator('[data-celsius]')).toHaveText('38.0 °C');
     await expect(disk).toHaveAttribute('title', /USB drive Samsung PSSD T7 \(sda\).*read at/);
-    await expect(p.locator('.tp-pill')).toHaveText('throttled earlier');
+    await expect(p.locator('.tp-pill')).toHaveText('throttled since boot');
     await expect(p.locator('[data-fact="under_voltage"]')).toHaveText('Undervoltage since the boot');
     await expect(p.locator('[data-fact="throttled"]')).toHaveText('Throttled since the boot');
 });
@@ -147,7 +147,7 @@ test('undervoltage: a boot dip is an info line, a recurring one a warning, one n
             expect(c).not.toBe(warn.trim());
             await expect(p).not.toHaveClass(/\b(warn|err)\b/);
         } else if (v === 'recurring') {
-            await expect(pill).toHaveText('throttled earlier');
+            await expect(pill).toHaveText('throttled since boot');
             await expect(pill).toHaveClass(/\bwarn\b/);
             await expect(p.locator('[data-fact="under_voltage"]')).toHaveText(/^Undervoltage since the boot \(3×, last at \d\d:\d\d\)$/);
             await expect(p.locator('[data-fact="throttled"]')).toHaveText('Throttled since the boot');
@@ -180,7 +180,9 @@ test('the boot dip in German, in both themes, on a phone', async ({page, baseURL
         await expect(p.locator('[data-fact="boot_dip"]')).toHaveText('Kurze Unterspannung beim Start (2 s, normalisiert)');
         await expect(p.locator('[data-fact="boot_dip"]')).toBeVisible();
         expect(await pageWidth(page)).toBeLessThanOrEqual(360);
-        expect((await p.locator('[data-throttle-facts]').boundingBox())!.height).toBeLessThan(30);
+        // two lines high (B-168), on a phone too
+        expect((await p.locator('[data-throttle-facts]').boundingBox())!.height).toBeGreaterThan(30);
+        expect((await p.locator('[data-throttle-facts]').boundingBox())!.height).toBeLessThan(50);
     }
     await thermal(page, baseURL!, 'recurring');
     await page.goto('/');
@@ -203,8 +205,161 @@ test('in German, on a phone, in both themes', async ({page, baseURL}) => {
         await expect(page.locator('[data-notice="soc-hot"]')).toContainText('Der Prozessor hat 85,3 °C');
         await expect(page.locator('[data-notice="disk-hot"]')).toContainText('mit 72,0 °C (ausgelegt bis 70 °C)');
         expect(await pageWidth(page)).toBeLessThanOrEqual(360);
-        // the line of conditions stays one line high on a phone
+        // the box of conditions stays two lines high on a phone (B-168)
         const line = (await p.locator('[data-throttle-facts]').boundingBox())!;
-        expect(line.height).toBeLessThan(30);
+        expect(line.height).toBeGreaterThan(30);
+        expect(line.height).toBeLessThan(50);
     }
+});
+
+// occulited B-168 (the maintainer's screenshot, de, a panel ~570 px wide): "Unterspannung seit dem Start (1×,
+// zuletzt um 16:44)" and "Gedrosselt seit dem Start" in one line cut the second chip off mid-word. The box holds two
+// lines now, of the same height whatever it holds (nothing, the boot dip, two, three conditions), and every chip is
+// whole; the pill's word is "seit Start gedrosselt", and its tooltip says what that means
+// every chip inside the box; whole unless allowed an ellipsis (a phone's 300 px are a few pixels short of the longest
+// German chip, which then ends in "…" with its text as its tooltip)
+async function chipsWhole(page: Page, ellipsis = false) {
+    const line = panel(page).locator('[data-throttle-facts]');
+    const lb = (await line.boundingBox())!;
+    for (const chip of await line.locator('.tp-fact').all()) {
+        const b = (await chip.boundingBox())!;
+        expect(b.y + b.height).toBeLessThanOrEqual(lb.y + lb.height + 0.5);
+        expect(b.x + b.width).toBeLessThanOrEqual(lb.x + lb.width + 0.5);
+        if (!ellipsis) expect(await chip.evaluate((e) => e.scrollWidth <= e.clientWidth)).toBe(true);
+        else expect(await chip.evaluate((e) => getComputedStyle(e).textOverflow)).toBe('ellipsis');
+        await expect(chip).toHaveAttribute('title', (await chip.textContent())!);
+    }
+}
+
+test('the facts keep two lines in every state, and no chip is cut', async ({page, baseURL}) => {
+    await page.addInitScript(() => localStorage.setItem('ol.language', 'de'));
+    const p = panel(page);
+    const line = p.locator('[data-throttle-facts]');
+    const heights: {line: number; panel: number}[] = [];
+    for (const [v, n] of [['pi', 0], ['bootdip', 0], ['recurring', 2], ['capped', 3]] as const) {
+        await thermal(page, baseURL!, v);
+        await page.goto('/');
+        await expect(line).toHaveAttribute('data-throttle-facts', String(n));
+        if (v === 'recurring') {
+            await expect(p.locator('[data-fact="under_voltage"]')).toHaveText(/^Unterspannung seit dem Start \(3×, zuletzt um \d\d:\d\d\)$/);
+            await expect(p.locator('[data-fact="throttled"]')).toHaveText('Gedrosselt seit dem Start');
+            await expect(p.locator('.tp-pill')).toHaveText('seit Start gedrosselt');
+            await expect(p.locator('.tp-pill')).toHaveAttribute('title', /^Seit dem Start wurde der Prozessor mindestens einmal gedrosselt/);
+        }
+        await chipsWhole(page);
+        heights.push({line: (await line.boundingBox())!.height, panel: (await p.boundingBox())!.height});
+    }
+    for (const h of heights.slice(1)) {
+        expect(h.line).toBeCloseTo(heights[0]!.line, 0);
+        expect(h.panel).toBeCloseTo(heights[0]!.panel, 0);
+    }
+    // the maintainer's width, and a phone: the two chips of the screenshot whole
+    for (const width of [620, 360]) {
+        await page.setViewportSize({width, height: 900});
+        await thermal(page, baseURL!, 'recurring');
+        await page.goto('/');
+        await expect(p.locator('[data-fact="throttled"]')).toBeVisible();
+        await chipsWhole(page, width < 400);
+        expect((await line.boundingBox())!.height).toBeCloseTo(heights[0]!.line, 0);
+    }
+});
+
+// occulited task 173 (the maintainer, 2026-11-23: "if my CCU has been throttled since the start, shouldn't the panel
+// have the yellow left border and a message on the status page?"): undervoltage now red, a throttling now or since the
+// start beyond a boot dip yellow - the panel's edge and the Status warning power-throttle with the supply's advice; a
+// boot dip and a quiet firmware nothing; a throttling by the heat alone is soc-hot's
+test('the throttle state: the edge and the warning power-throttle', async ({page, baseURL}) => {
+    const p = panel(page);
+    const notice = page.locator('[data-warnings] [data-notice="power-throttle"]');
+    const heights: number[] = [];
+    for (const [v, sev] of [['pi', ''], ['bootdip', ''], ['recurring', 'warning'], ['capped', 'warning'], ['crit', 'error'], ['hot', '']] as const) {
+        await thermal(page, baseURL!, v);
+        await page.goto('/');
+        await expect(p).toBeVisible();
+        await expect(page.locator('[data-warnings]')).toBeAttached();
+        if (!sev) {
+            await expect(notice).toHaveCount(0);
+            if (v !== 'hot') await expect(p).not.toHaveClass(/\b(warn|err)\b/);
+        } else {
+            await expect(notice).toBeVisible();
+            await expect(notice).toHaveAttribute('data-severity', sev);
+            await expect(p).toHaveClass(sev === 'error' ? /\berr\b/ : /\bwarn\b/);
+        }
+        if (v === 'recurring') {
+            await expect(notice).toContainText(/Not now, but since the start the supply voltage was too low \(3×, the last on .+\), and the processor was slowed down\./);
+            await expect(notice).toContainText('power supply or its cable');
+            await expect(notice).toContainText('The firmware keeps this until the next start.');
+        }
+        if (v === 'crit') await expect(notice).toContainText('The supply voltage is too low now');
+        if (v === 'hot') await expect(page.locator('[data-warnings] [data-notice="soc-hot"]')).toBeVisible();
+        heights.push((await p.boundingBox())!.height);
+    }
+    // the edge moves nothing: the panels without a disk keep their height
+    for (const i of [1, 2, 3, 5]) expect(heights[i]).toBeCloseTo(heights[0]!, 0);
+    await thermal(page, baseURL!, 'recurring');
+    await page.goto('/');
+    await notice.getByRole('link', {name: 'Temperature', exact: true}).click();
+    await expect(page).toHaveURL(/\/#temperature$/);
+    await expect(p).toBeInViewport();
+});
+
+test('the warning power-throttle in German', async ({page, baseURL}) => {
+    await page.addInitScript(() => localStorage.setItem('ol.language', 'de'));
+    await thermal(page, baseURL!, 'recurring');
+    await page.goto('/');
+    const notice = page.locator('[data-warnings] [data-notice="power-throttle"]');
+    await expect(notice).toContainText(/Jetzt nicht, aber seit dem Start war die Versorgungsspannung zu niedrig \(3×, zuletzt am .+\), und der Prozessor wurde gebremst\./);
+    await expect(notice).toContainText('Meist liegt es am Netzteil oder am Kabel');
+    await expect(notice).toContainText('Die Firmware merkt sich das bis zum nächsten Start.');
+});
+
+// occulited task 172 (the maintainer, 2026-11-23): the undervoltage episodes as red vertical lines in the temperature
+// chart, each with its time and length as the tooltip; a boot dip's says it was at start-up and normalised. The panel
+// keeps its box.
+test('the undervoltage episodes as red lines in the chart', async ({page, baseURL}) => {
+    const p = panel(page);
+    const chart = p.locator('.ol-card-foot svg').first();
+    const heights: number[] = [];
+    for (const [v, n] of [['pi', 0], ['recurring', 3], ['capped', 2], ['bootdip', 1]] as const) {
+        await thermal(page, baseURL!, v);
+        await page.goto('/');
+        await expect(chart).toBeVisible();
+        await expect(chart.locator('rect.event')).toHaveCount(n);
+        heights.push((await p.boundingBox())!.height);
+    }
+    for (const h of heights.slice(1)) expect(h).toBeCloseTo(heights[0]!, 0);
+    // the boot dip's line (the last state of the loop)
+    await expect(chart.locator('rect.event').first()).toHaveAttribute('data-event-label', /^Undervoltage \d\d:\d\d, 2 s \(at start-up, normalised\)$/);
+    // in the error colour, and its tooltip under the pointer
+    for (const scheme of ['light', 'dark'] as const) {
+        await page.emulateMedia({colorScheme: scheme});
+        await thermal(page, baseURL!, 'recurring');
+        await page.goto('/');
+        const line = chart.locator('rect.event').last();
+        await expect(line).toHaveAttribute('data-event-label', /^Undervoltage \d\d:\d\d, 6 s$/);
+        await expect(line.locator('title')).toHaveText(/^Undervoltage \d\d:\d\d, 6 s$/);
+        const [fill, err] = await line.evaluate((e) => {
+            const s = document.createElement('span');
+            s.style.color = 'var(--hmm-error)';
+            document.body.append(s);
+            const c = getComputedStyle(s).color;
+            s.remove();
+            return [getComputedStyle(e).fill, c];
+        });
+        expect(fill).toBe(err);
+        await line.scrollIntoViewIfNeeded();
+        const b = (await line.boundingBox())!;
+        expect(b.width).toBeGreaterThanOrEqual(1.5);
+        // a finger taps where a mouse hovers
+        if (test.info().project.name === 'phone') await page.touchscreen.tap(b.x + b.width / 2, b.y + b.height / 2);
+        else await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2);
+        await expect(chart.locator('[data-event-hover]')).toHaveText(/^Undervoltage \d\d:\d\d, 6 s$/);
+    }
+});
+
+test('the chart lines in German', async ({page, baseURL}) => {
+    await page.addInitScript(() => localStorage.setItem('ol.language', 'de'));
+    await thermal(page, baseURL!, 'bootdip');
+    await page.goto('/');
+    await expect(panel(page).locator('.ol-card-foot svg rect.event')).toHaveAttribute('data-event-label', /^Unterspannung \d\d:\d\d, 2 s \(beim Start, normalisiert\)$/);
 });

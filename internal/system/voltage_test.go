@@ -3,6 +3,7 @@ package system
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strings"
 	"testing"
 	"time"
@@ -144,12 +145,22 @@ func TestThermalReaderVoltage(t *testing.T) {
 	if th.State != ThrottleNormal || kernel != 0 || th.Events != nil {
 		t.Fatalf("%+v, %d reads", th, kernel)
 	}
-	// the bits appear between two reads, past the boot phase: not the boot's, whatever the kernel says
+	// the bits appear between two reads, past the boot phase (B-169): the kernel's episodes decide -
+	// here the one dip at boot - and are read at once, not after the minute's cache
 	r.at = time.Time{}
 	word = "throttled=0x50000"
 	th = r.Read(context.Background()).Throttle
-	if th.State != ThrottleEarlier || kernel != 1 || *th.Events != 1 || !r.late {
-		t.Fatalf("late %+v, %d reads", th, kernel)
+	if th.State != ThrottleBootDip || kernel != 1 || *th.Events != 1 || r.late || r.appeared != 0x5 {
+		t.Fatalf("appeared %+v, %d reads", th, kernel)
+	}
+	// a condition that holds now past the boot phase is late, and stays so when it is gone
+	r.at, word = time.Time{}, "throttled=0x50004"
+	if th = r.Read(context.Background()).Throttle; th.State != ThrottleThrottled || !r.late {
+		t.Fatalf("now %+v", th)
+	}
+	r.at, word = time.Time{}, "throttled=0x50000"
+	if th = r.Read(context.Background()).Throttle; th.State != ThrottleEarlier {
+		t.Fatalf("after now %+v", th)
 	}
 	// a reader that finds them set at its first read: the kernel's episodes decide, read once a minute
 	r1 := &ThermalReader{Root: Root(root), Platform: "rpi3",
@@ -203,6 +214,52 @@ func TestThermalReaderVoltage(t *testing.T) {
 	put(t, root, "/sys/class/hwmon/hwmon1/in0_lcrit_alarm", "0\n")
 	if th := r4.Read(context.Background()).Throttle; !r4.late || th.State != ThrottleEarlier {
 		t.Errorf("hwmon late %+v", th)
+	}
+}
+
+// B-169: the reader over a boot, as the production Pi 3 saw it (2.0.0-rc.2, 2026-11-22): one dip at
+// 9.4 s that normalised at 11.4 s, get_throttled 0x50000 at the end. Each step is a read at an
+// uptime with the firmware's word; the kernel's lines are the dip's (or the supply problem's).
+func TestThermalReaderOverABoot(t *testing.T) {
+	type step struct {
+		up   float64
+		word uint32
+	}
+	cases := []struct {
+		name   string
+		steps  []step
+		kernel string
+		state  string
+	}{
+		{"set at the first read", []step{{25, 0x50000}, {300, 0x50000}, {93600, 0x50000}}, prodBootDip, ThrottleBootDip},
+		{"first read after the boot phase", []step{{600, 0x50000}, {93600, 0x50000}}, prodBootDip, ThrottleBootDip},
+		// the firmware's word shows the throttling bit later than the dip (the production case)
+		{"the throttled bit appears past the boot phase", []step{{25, 0x10000}, {150, 0x50000}, {93600, 0x50000}}, prodBootDip, ThrottleBootDip},
+		{"both bits appear past the boot phase", []step{{25, 0}, {150, 0x50000}, {93600, 0x50000}}, prodBootDip, ThrottleBootDip},
+		{"a condition now in the boot phase", []step{{10, 0x50005}, {30, 0x50000}, {93600, 0x50000}}, prodBootDip, ThrottleBootDip},
+		// what stays a warning
+		{"throttled now past the boot phase, gone again", []step{{25, 0x50000}, {400, 0x50004}, {93600, 0x50000}}, prodBootDip, ThrottleEarlier},
+		{"undervoltage now", []step{{25, 0x50000}, {93600, 0x50005}}, prodBootDip, ThrottleUnderVoltage},
+		{"a dip after the boot phase in the kernel log", []step{{25, 0x50000}, {9100, 0x50000}}, supplyProblem, ThrottleEarlier},
+		{"a soft temperature limit appears", []step{{25, 0x50000}, {9100, 0xd0000}}, prodBootDip, ThrottleEarlier},
+		{"the sticky bits without an episode", []step{{25, 0}, {9100, 0x50000}}, "", ThrottleEarlier},
+	}
+	for _, c := range cases {
+		root := piTree(t, "50000")
+		var word uint32
+		r := &ThermalReader{Root: Root(root), Platform: "rpi3",
+			Throttled: func(context.Context) (string, error) { return fmt.Sprintf("throttled=0x%x", word), nil },
+			Kernel:    func(context.Context) ([]LogLine, error) { return kmsg(c.kernel), nil }}
+		var th *Throttle
+		for _, s := range c.steps {
+			put(t, root, "/proc/uptime", fmt.Sprintf("%.2f 1.00\n", s.up))
+			word = s.word
+			r.at, r.vat = time.Time{}, time.Time{}
+			th = r.Read(context.Background()).Throttle
+		}
+		if th.State != c.state {
+			t.Errorf("%s: %s, want %s (late %v)", c.name, th.State, c.state, r.late)
+		}
 	}
 }
 

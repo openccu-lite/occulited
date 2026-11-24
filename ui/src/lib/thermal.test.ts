@@ -1,5 +1,5 @@
 import {describe, expect, it} from 'vitest';
-import {bootDip, formatCelsius, formatLimit, formatSeconds, panelLevel, ringFraction, socSeries, tempColours, tempLevel, throttleFacts, throttleState, type TempReading, type Throttle} from './thermal';
+import {bootDip, episodeMarks, formatCelsius, formatLimit, formatSeconds, panelLevel, ringFraction, socSeries, tempColours, tempLevel, throttleFacts, throttleLevel, throttleState, type TempReading, type Throttle} from './thermal';
 
 // occulited task 148: the temperature panel's figures and words
 const soc = (celsius: number): TempReading => ({id: 'thermal_zone0', kind: 'soc', name: 'cpu-thermal', celsius, warn_c: 80, max_c: 85});
@@ -66,11 +66,40 @@ describe('thermal', () => {
         const hw: Throttle = {source: 'hwmon', now: flags(), since_boot: flags(), state: 'earlier', events: 2};
         expect(throttleFacts(hw)).toEqual([{flag: 'under_voltage', now: false}]);
         expect(throttleState({...prod, state: 'undervoltage', now: flags({under_voltage: true})})).toBe('undervoltage');
+        // occulited task 173: the panel's edge from the state - a boot dip and normal none
+        expect(throttleLevel(undefined)).toBe('ok');
+        expect(throttleLevel(prod)).toBe('ok');
+        expect(throttleLevel(later)).toBe('warn');
+        expect(throttleLevel({...prod, state: 'throttled', now: flags({throttled: true})})).toBe('warn');
+        expect(throttleLevel({...prod, state: 'undervoltage', now: flags({under_voltage: true})})).toBe('error');
+        expect(throttleLevel({source: 'firmware', now: flags(), since_boot: flags()})).toBe('ok');
         expect(formatSeconds(2, 'de')).toBe('2 s');
         expect(formatSeconds(1.5, 'de')).toBe('1,5 s');
         expect(formatSeconds(17, 'en')).toBe('17 s');
         expect(formatSeconds(125, 'en')).toBe('2 min 5 s');
         expect(formatSeconds(120, 'en')).toBe('2 min');
+    });
+
+    // occulited task 172: the episodes as the chart's red lines
+    it('marks the undervoltage episodes for the chart', () => {
+        const words = {t: (k: string, p?: Record<string, string | number>) => Object.entries(p ?? {}).reduce((s, [a, b]) => s.replaceAll(`{${a}}`, String(b)), k), clock: (d: Date) => d.toISOString().slice(11, 16), seconds: (v: number) => `${v} s`};
+        const base: Throttle = {source: 'firmware', now: flags(), since_boot: flags({under_voltage: true}), state: 'earlier', events: 4};
+        const now = Date.parse('2026-11-22T12:00:00Z');
+        const marks = episodeMarks({...base, episodes: [
+            {start: '2026-11-22T08:00:08Z', start_s: 8, duration_s: 2},
+            {start: '2026-11-22T10:00:00Z', start_s: 7200, duration_s: -1},
+            {start_s: 9000, duration_s: 1},
+            {start: '2026-11-22T11:30:00Z', start_s: 12600},
+        ]}, words, now);
+        expect(marks).toEqual([
+            {start: Date.parse('2026-11-22T08:00:08Z'), end: Date.parse('2026-11-22T08:00:10Z'), label: 'Undervoltage 08:00, 2 s'},
+            {start: Date.parse('2026-11-22T10:00:00Z'), end: Date.parse('2026-11-22T10:00:00Z'), label: 'Undervoltage 10:00'},
+            {start: Date.parse('2026-11-22T11:30:00Z'), end: now, label: 'Undervoltage since 11:30'},
+        ]);
+        const dip = episodeMarks({...base, state: 'boot_dip', episodes: [{start: '2026-11-22T08:00:09Z', start_s: 9.7, duration_s: 2}]}, words, now);
+        expect(dip[0]!.label).toBe('Undervoltage 08:00, 2 s (at start-up, normalised)');
+        expect(episodeMarks(undefined, words)).toEqual([]);
+        expect(episodeMarks(base, words)).toEqual([]);
     });
 
     it('draws the processor history, breaking the line where a sample has none', () => {
