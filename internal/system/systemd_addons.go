@@ -9,6 +9,7 @@ import (
 	"io"
 	"log/slog"
 	"os"
+	"runtime"
 	"slices"
 	"sort"
 	"strconv"
@@ -35,6 +36,9 @@ type SystemdAddons struct {
 	// 2026-09-07 - its own user addon-<id> with what its manifest declares) or "root", the
 	// whole-box opt-out. Empty means AddonDefaultMode. Config: addons.default_mode.
 	DefaultMode string
+	// Arch is the system's architecture as uname -m says it; empty = MachineName(), this
+	// binary's own. A package for another one is refused (occulited B-167).
+	Arch string
 	// Tokens are the addon control tokens (28.8) and the addons' API tokens (task 66); nil until
 	// RefreshAddonTokens ran.
 	Tokens *AddonTokens
@@ -148,6 +152,26 @@ type rcdEntry struct {
 	wrapper int // 1 the wrapper, -1 a script of its own, 0 unreadable
 }
 
+func (a *SystemdAddons) arch() string {
+	if a.Arch != "" {
+		return a.Arch
+	}
+	return MachineName()
+}
+
+// MachineName maps GOARCH to what uname -m and the addon packages say.
+func MachineName() string {
+	switch runtime.GOARCH {
+	case "amd64":
+		return "x86_64"
+	case "arm64":
+		return "aarch64"
+	case "arm":
+		return "armv7l"
+	}
+	return runtime.GOARCH
+}
+
 // addonRCMark is the line lite-addon-rc looks for in a wrapper (the fork's MARK).
 const addonRCMark = "openccu-lite addon-rc wrapper"
 
@@ -200,6 +224,14 @@ func (a *SystemdAddons) Install(ctx context.Context, archive io.Reader) (*Instal
 	}
 	// occulited task 134: a package for a newer system is refused before any of its code runs
 	if err := m.CheckLite(a.Scripts.Root.ReadVersion().Lite); err != nil {
+		a.journalAddonRun(addonRun{action: "install", id: addonIDFrom(ctx), err: err})
+		return nil, err
+	}
+	// occulited B-167: and so is a package for another architecture - by the manifest's own
+	// list, and by the programs in the archive, none of which this system could run (a package
+	// of scripts has none). An archive that cannot be read is the installer's to report.
+	programs, _ := manifest.ProgramArchsOfFile(staged.Path)
+	if err := m.CheckArch(a.arch(), programs, addonIDFrom(ctx)); err != nil {
 		a.journalAddonRun(addonRun{action: "install", id: addonIDFrom(ctx), err: err})
 		return nil, err
 	}

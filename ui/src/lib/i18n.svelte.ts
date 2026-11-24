@@ -3491,6 +3491,12 @@ const CATALOGUE: Record<string, {de: string; en?: string}> = {
     'Unassigned channels': {de: 'Nicht zugeordnete Kanäle'},
     'Requires openccu-lite {version} or later': {de: 'Benötigt openccu-lite {version} oder neuer'},
     '{id} requires openccu-lite {version} or later; this system runs {running}. Nothing was installed.': {de: '{id} benötigt openccu-lite {version} oder neuer; dieses System läuft mit {running}. Es wurde nichts installiert.'},
+    // occulited B-167: a package for another architecture, refused before any of its code runs
+    'This package of {id} is for {package}; this system is {system}.': {de: 'Dieses Paket von {id} ist für {package}; dieses System ist {system}.'},
+    'This package is for {package}; this system is {system}.': {de: 'Dieses Paket ist für {package}; dieses System ist {system}.'},
+    'Take the package for {system}: {file}.': {de: 'Das Paket für {system} ist {file}.'},
+    'The addon has no package for {system}.': {de: 'Das Addon hat kein Paket für {system}.'},
+    'Take the package for {system}, where the addon has one.': {de: 'Das Paket für {system} verwenden, sofern das Addon eines hat.'},
     'Power off, nothing else': {de: 'Ausschalten, sonst nichts'},
     'Show virtual channels': {de: 'Zeige virtuelle Kanäle'},
     'Show virtual keys': {de: 'Zeige virtuelle Taster'},

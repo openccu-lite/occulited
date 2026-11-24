@@ -3485,7 +3485,11 @@ function variant(req, u, res) {
         req.on('end', () => {
             const stopped = jar['stub-install-stopped'];
             let job;
-            if (stopped === 'failed') job = {state: 'failed', result: {exit: 1, meaning: 'exit 1', reboot_required: false, output: 'update_script: exit 1', seconds: 1.4, stopped_addons: [{id: 'mosquitto', starts_at_boot: true}]}};
+            // occulited B-167: stub-install=wrong-arch - refused before the installer ran;
+            // stub-install=exit13 - the update_script's own refusal, its last lines as the output
+            if (jar['stub-install'] === 'wrong-arch') job = {state: 'failed', error: 'This package of battery is for aarch64; this system is x86_64. Take the package for x86_64: battery-x86_64-1.5.5.tar.gz. Nothing was installed.'};
+            else if (jar['stub-install'] === 'exit13') job = {state: 'failed', result: {exit: 13, meaning: 'unsupported platform', reboot_required: false, output: 'update_script (exit 13):\nthis package is for aarch64, this system is x86_64: take battery-x86_64-1.5.5.tar.gz', seconds: 0.4}};
+            else if (stopped === 'failed') job = {state: 'failed', result: {exit: 1, meaning: 'exit 1', reboot_required: false, output: 'update_script: exit 1', seconds: 1.4, stopped_addons: [{id: 'mosquitto', starts_at_boot: true}]}};
             else if (stopped === 'reboot') job = {state: 'done', result: {exit: 10, meaning: 'installed, reboot required', reboot_required: true, output: '', seconds: 2.1, stopped_addons: [{id: 'mosquitto', starts_at_boot: false}]}};
             else job = {state: 'done', result: {exit: 0, meaning: 'installed', reboot_required: false, output: '', seconds: 1.8}};
             const id = `job${++installJobSeq}`;

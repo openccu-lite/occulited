@@ -40,7 +40,6 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
-	"runtime"
 	"strings"
 	"sync"
 	"time"
@@ -2481,17 +2480,7 @@ func (a *SystemAPI) catalogProgress(w http.ResponseWriter, _ *http.Request) {
 }
 
 // ArchName maps GOARCH to what uname -m and the addon packages say.
-func ArchName() string {
-	switch runtime.GOARCH {
-	case "amd64":
-		return "x86_64"
-	case "arm64":
-		return "aarch64"
-	case "arm":
-		return "armv7l"
-	}
-	return runtime.GOARCH
-}
+func ArchName() string { return system.MachineName() }
 
 // backup creates a .sbk and streams it. A backup carries the radio keys, so a GET is not enough:
 // the session needs the scope backup. With encryption on (task 91) the stream is the .sbk.age for

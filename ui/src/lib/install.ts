@@ -4,6 +4,7 @@
  * question through the shell's own dialog, the same POST; the run itself is the box's, and
  * `InstallProgress.svelte` shows it on whichever page is open.
  */
+import {refusalPhrases} from './installrefusal';
 import {api, ApiError} from './api';
 import {ask} from './dialog.svelte';
 import {t} from './i18n.svelte';
@@ -21,10 +22,14 @@ export function installError(err: unknown): string {
     return liteRefusal((err as Error)?.message ?? String(err));
 }
 
-/** occulited task 134: the system's refusal of a package for a newer openccu-lite, in the user's language */
+/**
+ * The system's refusal of a package before any of its code ran, in the user's language (occulited
+ * task 134: a newer openccu-lite; occulited B-167: another architecture). Any other message is
+ * returned as it came.
+ */
 export function liteRefusal(message: string): string {
-    const m = /^(\S+) requires openccu-lite (\S+) or later; this system runs (\S+)\./.exec(message);
-    return m ? t('{id} requires openccu-lite {version} or later; this system runs {running}. Nothing was installed.', {id: m[1]!, version: m[2]!, running: m[3]!}) : message;
+    const phrases = refusalPhrases(message);
+    return phrases ? phrases.map(([key, params]) => t(key, params)).join(' ') : message;
 }
 
 /** B-98 (D-67): an addon that ran before an install that failed or asks for a reboot, and is stopped now */
