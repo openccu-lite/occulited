@@ -3087,6 +3087,9 @@
               "null"
             ]
           },
+          "install_mode": {
+            "type": "string"
+          },
           "latest": {
             "anyOf": [
               {

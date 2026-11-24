@@ -86,6 +86,20 @@ export interface Installable {
     name: string;
     status?: string;
     latest?: {version: string; prerelease?: boolean};
+    /** occulited B-174: the catalogue's word on how it would run; absent = not known (no manifest read) */
+    install_mode?: 'root' | 'confined';
+}
+
+/**
+ * occulited B-174: the install question says what the system will do - root only when the addon
+ * will run as root, its own user when it runs confined, and that it cannot tell yet when no
+ * manifest was read (the dialog used to claim root for every addon, Logic's card said it needs no
+ * extra right).
+ */
+export function installQuestion(e: Pick<Installable, 'name' | 'install_mode'>): string {
+    if (e.install_mode === 'root') return t('Install {name}? It runs as root and can do anything on this system.', {name: e.name});
+    if (e.install_mode === 'confined') return t('Install {name}? It runs as its own user and can write only to its own directories and what its manifest declares.', {name: e.name});
+    return t('Install {name}? Its manifest has not been read yet, so whether it runs as its own user or as root is not known before the install.', {name: e.name});
 }
 
 /**
@@ -99,7 +113,7 @@ export async function installFromCatalog(e: Installable, installed?: string): Pr
         ? t('Update {name} from {installed} to {version}? The addon replaces its own installation; its configuration is kept.', {name: e.name, installed, version: e.latest?.version ?? '?'})
         : e.status === 'incompatible'
           ? t('This addon is known not to work without ReGa. Install anyway?')
-          : t('Install {name}? It runs as root and can do anything on this system.', {name: e.name});
+          : installQuestion(e);
     // occulited task 171: the question says it when what comes is a pre-release
     const pre = prereleaseKind(e.latest?.version, e.latest?.prerelease) ? '\n\n' + t('{version} is a pre-release: not all functions have been tested yet.', {version: e.latest?.version ?? ''}) : '';
     if (!(await ask({message: warn + pre, confirm: installed ? t('Update') : t('Install')}))) return null;

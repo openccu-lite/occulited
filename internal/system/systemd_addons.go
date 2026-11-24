@@ -924,6 +924,17 @@ func (a *SystemdAddons) Reload(ctx context.Context) { _, _ = a.Systemd.run(ctx, 
 // defaultMode is the box's default. Anything but an explicit "root" is AddonDefaultMode: an
 // unreadable or misspelt addons.default_mode confines rather than opening the box, which is the
 // direction a default should fail in.
+// InstallMode is how an addon with manifest m runs once installed (occulited B-174): root when
+// its runtime block says root, else the system's default - ApplyManifest's rule for a new
+// install; a mode the user chose on the Services page for an addon installed before stands
+// instead, which the install question does not need (it asks about a new install).
+func (a *SystemdAddons) InstallMode(m *manifest.Manifest) string {
+	if m != nil && m.Runtime != nil && m.Runtime.Root {
+		return "root"
+	}
+	return a.defaultMode()
+}
+
 func (a *SystemdAddons) defaultMode() string {
 	if a.DefaultMode == "root" {
 		return "root"

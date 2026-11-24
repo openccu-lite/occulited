@@ -2252,9 +2252,18 @@ func (a *SystemAPI) catalogIndex(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	running := a.Root.ReadVersion().Lite
+	pm := a.policyManager()
 	// the view is the caller's copy; the update flag goes on it
 	for i := range view.Addons {
 		it := &view.Addons[i]
+		if it.Manifest != nil {
+			// B-174: what the install question says - a system without the systemd manager runs
+			// every addon as root
+			it.InstallMode = "root"
+			if pm != nil {
+				it.InstallMode = pm.InstallMode(it.Manifest)
+			}
+		}
 		if it.Manifest != nil && it.Latest != nil {
 			it.UpdateAvailable = catalog.UpdateAvailable(installed[it.ID], it.Latest.Version)
 		}

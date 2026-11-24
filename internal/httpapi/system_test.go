@@ -892,6 +892,16 @@ func TestCatalogLatestAndUpdateAvailable(t *testing.T) {
 	if unfetched != 1 || len(got) != 3 || !untested {
 		t.Fatalf("entries: %d unfetched, %v", unfetched, got)
 	}
+	// B-174: a system without the systemd manager runs every addon as root; an entry without a
+	// manifest says nothing
+	if got["mosquitto"]["install_mode"] != "root" {
+		t.Errorf("install_mode: %v", got["mosquitto"]["install_mode"])
+	}
+	for _, a := range addons {
+		if e := a.(map[string]any); e["id"] == nil && e["install_mode"] != nil {
+			t.Errorf("an unfetched entry claims a mode: %v", e)
+		}
+	}
 	if _, ok := got["mosquitto"]["untested"]; ok || got["mosquitto"]["verified"] != nil || got["mosquitto"]["name"].(map[string]any)["en"] != "mosquitto" {
 		t.Fatalf("the manifest's fields are flattened into the item: %v", got["mosquitto"])
 	}

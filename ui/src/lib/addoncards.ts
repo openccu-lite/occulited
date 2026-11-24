@@ -33,6 +33,8 @@ export interface Entry {
     latest?: {version: string; asset?: string; notes_url?: string; prerelease?: boolean}; update_available?: boolean;
     /** task 26: the release notes of the offered version (the manifest's changelog, else the release's page) */
     release_notes?: string;
+    /** occulited B-174: how the system would run it once installed; absent while no manifest is known */
+    install_mode?: 'root' | 'confined';
 }
 
 /**
@@ -121,6 +123,7 @@ export function readEntry(x: unknown): Entry | BrokenWhy {
         latest,
         update_available: yes(x.update_available),
         release_notes: str(x.release_notes),
+        install_mode: x.install_mode === 'root' || x.install_mode === 'confined' ? x.install_mode : undefined,
     };
 }
 

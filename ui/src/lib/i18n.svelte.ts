@@ -420,6 +420,8 @@ const CATALOGUE: Record<string, {de: string; en?: string}> = {
     },
     'This addon is known not to work without ReGa. Install anyway?': {de: 'Diese Zusatzsoftware funktioniert bekanntermaßen nicht ohne ReGa. Trotzdem installieren?'},
     'Install {name}? It runs as root and can do anything on this system.': {de: '{name} installieren? Sie läuft als root und kann auf diesem System alles.'},
+    'Install {name}? It runs as its own user and can write only to its own directories and what its manifest declares.': {de: '{name} installieren? Sie läuft als eigener Benutzer und kann nur in ihre eigenen Verzeichnisse schreiben und in das, was ihr Manifest deklariert.'},
+    'Install {name}? Its manifest has not been read yet, so whether it runs as its own user or as root is not known before the install.': {de: '{name} installieren? Ihr Manifest wurde noch nicht gelesen; ob sie als eigener Benutzer oder als root läuft, ist vor der Installation nicht bekannt.'},
     'Update {name} from {installed} to {version}? The addon replaces its own installation; its configuration is kept.': {
         de: '{name} von {installed} auf {version} aktualisieren? Die Zusatzsoftware ersetzt ihre eigene Installation; die Konfiguration bleibt erhalten.',
     },

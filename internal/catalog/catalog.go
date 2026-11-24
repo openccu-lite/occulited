@@ -99,6 +99,11 @@ type Item struct {
 	// ReleaseNotes is set by the API (task 26): the manifest's changelog, else the latest
 	// release's page; absent when neither is known, so the page never shows a dead link.
 	ReleaseNotes string `json:"release_notes,omitempty"`
+	// InstallMode is set by the API (occulited B-174): how this system would run the addon once
+	// installed from the catalogue - "root" or "confined" by its manifest's runtime block and the
+	// system's default; absent while no manifest is known, so the install question says it cannot
+	// tell instead of claiming root.
+	InstallMode string `json:"install_mode,omitempty"`
 	// ImageHashes are the images the check fetched with the manifest (openccu-lite task 100):
 	// kind → the content's sha256, the name of the file in ImagesDir. Images is set by the API:
 	// kind → the URL the shell loads it from.

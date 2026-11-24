@@ -330,7 +330,7 @@
         if (!c.entry?.id) return;
         notice = '';
         cardNotice = null;
-        const r = await installFromCatalog({id: c.entry.id, name: c.name, latest: c.entry.latest}, c.addon?.version ?? installedVersions[c.id]);
+        const r = await installFromCatalog({id: c.entry.id, name: c.name, latest: c.entry.latest, install_mode: c.entry.install_mode}, c.addon?.version ?? installedVersions[c.id]);
         if (r === null) return;
         if (r) {
             notice = r;
