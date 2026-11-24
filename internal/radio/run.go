@@ -63,6 +63,8 @@ func Run(ctx context.Context, root string, d Detector, logf func(string, ...any)
 	}
 	in := Load(ctx, root, d.Run, det)
 	in.Diagrams = d.Diagrams
+	// B-175: a switched system that had no HmIP radio runs its virtual devices alone, as before
+	in, _ = RadiolessSwitch(d, in, logf)
 	return write(ctx, root, d, det, in, MakePlan(in), logf)
 }
 
