@@ -1,6 +1,6 @@
 {
   "format": 1,
-  "generated_at": "2026-11-24T17:41:33Z",
+  "generated_at": "2026-11-24T18:29:27Z",
   "catalog": "file:///home/runner/work/occulited/occulited/catalog/catalog.json",
   "repos": {
     "SukramJ/openccu-loom": {
@@ -1174,6 +1174,46 @@
     "hobbyquaker/ccu-addon-battery": {
       "releases": [
         {
+          "tag_name": "v1.5.7",
+          "name": "v1.5.7",
+          "draft": false,
+          "prerelease": false,
+          "html_url": "https://github.com/hobbyquaker/ccu-addon-battery/releases/tag/v1.5.7",
+          "published_at": "2026-11-24T17:57:35Z",
+          "assets": [
+            {
+              "name": "battery-aarch64-1.5.7.tar.gz",
+              "size": 5025835,
+              "browser_download_url": "https://github.com/hobbyquaker/ccu-addon-battery/releases/download/v1.5.7/battery-aarch64-1.5.7.tar.gz"
+            },
+            {
+              "name": "battery-aarch64-1.5.7.tar.gz.sha256",
+              "size": 95,
+              "browser_download_url": "https://github.com/hobbyquaker/ccu-addon-battery/releases/download/v1.5.7/battery-aarch64-1.5.7.tar.gz.sha256"
+            },
+            {
+              "name": "battery-armv7l-1.5.7.tar.gz",
+              "size": 5122419,
+              "browser_download_url": "https://github.com/hobbyquaker/ccu-addon-battery/releases/download/v1.5.7/battery-armv7l-1.5.7.tar.gz"
+            },
+            {
+              "name": "battery-armv7l-1.5.7.tar.gz.sha256",
+              "size": 94,
+              "browser_download_url": "https://github.com/hobbyquaker/ccu-addon-battery/releases/download/v1.5.7/battery-armv7l-1.5.7.tar.gz.sha256"
+            },
+            {
+              "name": "battery-x86_64-1.5.7.tar.gz",
+              "size": 5382993,
+              "browser_download_url": "https://github.com/hobbyquaker/ccu-addon-battery/releases/download/v1.5.7/battery-x86_64-1.5.7.tar.gz"
+            },
+            {
+              "name": "battery-x86_64-1.5.7.tar.gz.sha256",
+              "size": 94,
+              "browser_download_url": "https://github.com/hobbyquaker/ccu-addon-battery/releases/download/v1.5.7/battery-x86_64-1.5.7.tar.gz.sha256"
+            }
+          ]
+        },
+        {
           "tag_name": "v1.5.6",
           "name": "v1.5.6",
           "draft": false,
@@ -1530,46 +1570,6 @@
               "name": "battery-x86_64-1.4.0.tar.gz.sha256",
               "size": 94,
               "browser_download_url": "https://github.com/hobbyquaker/ccu-addon-battery/releases/download/v1.4.0/battery-x86_64-1.4.0.tar.gz.sha256"
-            }
-          ]
-        },
-        {
-          "tag_name": "v1.3.0",
-          "name": "v1.3.0",
-          "draft": false,
-          "prerelease": false,
-          "html_url": "https://github.com/hobbyquaker/ccu-addon-battery/releases/tag/v1.3.0",
-          "published_at": "2026-11-20T18:51:10Z",
-          "assets": [
-            {
-              "name": "battery-aarch64-1.3.0.tar.gz",
-              "size": 4950234,
-              "browser_download_url": "https://github.com/hobbyquaker/ccu-addon-battery/releases/download/v1.3.0/battery-aarch64-1.3.0.tar.gz"
-            },
-            {
-              "name": "battery-aarch64-1.3.0.tar.gz.sha256",
-              "size": 95,
-              "browser_download_url": "https://github.com/hobbyquaker/ccu-addon-battery/releases/download/v1.3.0/battery-aarch64-1.3.0.tar.gz.sha256"
-            },
-            {
-              "name": "battery-armv7l-1.3.0.tar.gz",
-              "size": 5042616,
-              "browser_download_url": "https://github.com/hobbyquaker/ccu-addon-battery/releases/download/v1.3.0/battery-armv7l-1.3.0.tar.gz"
-            },
-            {
-              "name": "battery-armv7l-1.3.0.tar.gz.sha256",
-              "size": 94,
-              "browser_download_url": "https://github.com/hobbyquaker/ccu-addon-battery/releases/download/v1.3.0/battery-armv7l-1.3.0.tar.gz.sha256"
-            },
-            {
-              "name": "battery-x86_64-1.3.0.tar.gz",
-              "size": 5299561,
-              "browser_download_url": "https://github.com/hobbyquaker/ccu-addon-battery/releases/download/v1.3.0/battery-x86_64-1.3.0.tar.gz"
-            },
-            {
-              "name": "battery-x86_64-1.3.0.tar.gz.sha256",
-              "size": 94,
-              "browser_download_url": "https://github.com/hobbyquaker/ccu-addon-battery/releases/download/v1.3.0/battery-x86_64-1.3.0.tar.gz.sha256"
             }
           ]
         }
@@ -4983,6 +4983,161 @@
     },
     "hobbyquaker/openccu-lite": {
       "releases": [
+        {
+          "tag_name": "v2.0.0-rc.3",
+          "name": "v2.0.0-rc.3",
+          "draft": false,
+          "prerelease": true,
+          "html_url": "https://github.com/openccu-lite/openccu-lite/releases/tag/v2.0.0-rc.3",
+          "published_at": "2026-11-24T18:27:59Z",
+          "assets": [
+            {
+              "name": "occulited-asyncapi-2.0.0-rc.3.json",
+              "size": 56717,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.0-rc.3/occulited-asyncapi-2.0.0-rc.3.json"
+            },
+            {
+              "name": "occulited-asyncapi-2.0.0-rc.3.json.sha256",
+              "size": 101,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.0-rc.3/occulited-asyncapi-2.0.0-rc.3.json.sha256"
+            },
+            {
+              "name": "occulited-lite-rpc-methods-2.0.0-rc.3.json",
+              "size": 5149,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.0-rc.3/occulited-lite-rpc-methods-2.0.0-rc.3.json"
+            },
+            {
+              "name": "occulited-lite-rpc-methods-2.0.0-rc.3.json.sha256",
+              "size": 109,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.0-rc.3/occulited-lite-rpc-methods-2.0.0-rc.3.json.sha256"
+            },
+            {
+              "name": "occulited-openapi-2.0.0-rc.3.json",
+              "size": 1061143,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.0-rc.3/occulited-openapi-2.0.0-rc.3.json"
+            },
+            {
+              "name": "occulited-openapi-2.0.0-rc.3.json.sha256",
+              "size": 100,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.0-rc.3/occulited-openapi-2.0.0-rc.3.json.sha256"
+            },
+            {
+              "name": "openccu-lite-aarch64-rpi3-2.0.0-rc.3-ccu3.tgz",
+              "size": 310133410,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.0-rc.3/openccu-lite-aarch64-rpi3-2.0.0-rc.3-ccu3.tgz"
+            },
+            {
+              "name": "openccu-lite-aarch64-rpi3-2.0.0-rc.3-ccu3.tgz.sha256",
+              "size": 112,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.0-rc.3/openccu-lite-aarch64-rpi3-2.0.0-rc.3-ccu3.tgz.sha256"
+            },
+            {
+              "name": "openccu-lite-aarch64-rpi3-2.0.0-rc.3.cdx.json",
+              "size": 2466034,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.0-rc.3/openccu-lite-aarch64-rpi3-2.0.0-rc.3.cdx.json"
+            },
+            {
+              "name": "openccu-lite-aarch64-rpi3-2.0.0-rc.3.cdx.json.sha256",
+              "size": 112,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.0-rc.3/openccu-lite-aarch64-rpi3-2.0.0-rc.3.cdx.json.sha256"
+            },
+            {
+              "name": "openccu-lite-aarch64-rpi3-2.0.0-rc.3.kernel-files.txt",
+              "size": 163013,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.0-rc.3/openccu-lite-aarch64-rpi3-2.0.0-rc.3.kernel-files.txt"
+            },
+            {
+              "name": "openccu-lite-aarch64-rpi3-2.0.0-rc.3.kernel-files.txt.sha256",
+              "size": 120,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.0-rc.3/openccu-lite-aarch64-rpi3-2.0.0-rc.3.kernel-files.txt.sha256"
+            },
+            {
+              "name": "openccu-lite-aarch64-rpi3-2.0.0-rc.3.zip",
+              "size": 313973584,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.0-rc.3/openccu-lite-aarch64-rpi3-2.0.0-rc.3.zip"
+            },
+            {
+              "name": "openccu-lite-aarch64-rpi3-2.0.0-rc.3.zip.sha256",
+              "size": 107,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.0-rc.3/openccu-lite-aarch64-rpi3-2.0.0-rc.3.zip.sha256"
+            },
+            {
+              "name": "openccu-lite-aarch64-rpi4-2.0.0-rc.3.cdx.json",
+              "size": 2473315,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.0-rc.3/openccu-lite-aarch64-rpi4-2.0.0-rc.3.cdx.json"
+            },
+            {
+              "name": "openccu-lite-aarch64-rpi4-2.0.0-rc.3.cdx.json.sha256",
+              "size": 112,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.0-rc.3/openccu-lite-aarch64-rpi4-2.0.0-rc.3.cdx.json.sha256"
+            },
+            {
+              "name": "openccu-lite-aarch64-rpi4-2.0.0-rc.3.kernel-files.txt",
+              "size": 162937,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.0-rc.3/openccu-lite-aarch64-rpi4-2.0.0-rc.3.kernel-files.txt"
+            },
+            {
+              "name": "openccu-lite-aarch64-rpi4-2.0.0-rc.3.kernel-files.txt.sha256",
+              "size": 120,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.0-rc.3/openccu-lite-aarch64-rpi4-2.0.0-rc.3.kernel-files.txt.sha256"
+            },
+            {
+              "name": "openccu-lite-aarch64-rpi4-2.0.0-rc.3.zip",
+              "size": 314005740,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.0-rc.3/openccu-lite-aarch64-rpi4-2.0.0-rc.3.zip"
+            },
+            {
+              "name": "openccu-lite-aarch64-rpi4-2.0.0-rc.3.zip.sha256",
+              "size": 107,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.0-rc.3/openccu-lite-aarch64-rpi4-2.0.0-rc.3.zip.sha256"
+            },
+            {
+              "name": "openccu-lite-x86_64-ova-2.0.0-rc.3.cdx.json",
+              "size": 2431747,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.0-rc.3/openccu-lite-x86_64-ova-2.0.0-rc.3.cdx.json"
+            },
+            {
+              "name": "openccu-lite-x86_64-ova-2.0.0-rc.3.cdx.json.sha256",
+              "size": 110,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.0-rc.3/openccu-lite-x86_64-ova-2.0.0-rc.3.cdx.json.sha256"
+            },
+            {
+              "name": "openccu-lite-x86_64-ova-2.0.0-rc.3.kernel-files.txt",
+              "size": 108220,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.0-rc.3/openccu-lite-x86_64-ova-2.0.0-rc.3.kernel-files.txt"
+            },
+            {
+              "name": "openccu-lite-x86_64-ova-2.0.0-rc.3.kernel-files.txt.sha256",
+              "size": 118,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.0-rc.3/openccu-lite-x86_64-ova-2.0.0-rc.3.kernel-files.txt.sha256"
+            },
+            {
+              "name": "openccu-lite-x86_64-ova-2.0.0-rc.3.ova",
+              "size": 311726080,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.0-rc.3/openccu-lite-x86_64-ova-2.0.0-rc.3.ova"
+            },
+            {
+              "name": "openccu-lite-x86_64-ova-2.0.0-rc.3.ova.sha256",
+              "size": 105,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.0-rc.3/openccu-lite-x86_64-ova-2.0.0-rc.3.ova.sha256"
+            },
+            {
+              "name": "openccu-lite-x86_64-ova-2.0.0-rc.3.zip",
+              "size": 306566017,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.0-rc.3/openccu-lite-x86_64-ova-2.0.0-rc.3.zip"
+            },
+            {
+              "name": "openccu-lite-x86_64-ova-2.0.0-rc.3.zip.sha256",
+              "size": 105,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.0-rc.3/openccu-lite-x86_64-ova-2.0.0-rc.3.zip.sha256"
+            },
+            {
+              "name": "SHA256SUMS",
+              "size": 3174,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.0-rc.3/SHA256SUMS"
+            }
+          ]
+        },
         {
           "tag_name": "v2.0.0-rc.2",
           "name": "v2.0.0-rc.2",
@@ -13571,6 +13726,161 @@
     "openccu-lite/openccu-lite": {
       "releases": [
         {
+          "tag_name": "v2.0.0-rc.3",
+          "name": "v2.0.0-rc.3",
+          "draft": false,
+          "prerelease": true,
+          "html_url": "https://github.com/openccu-lite/openccu-lite/releases/tag/v2.0.0-rc.3",
+          "published_at": "2026-11-24T18:27:59Z",
+          "assets": [
+            {
+              "name": "occulited-asyncapi-2.0.0-rc.3.json",
+              "size": 56717,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.0-rc.3/occulited-asyncapi-2.0.0-rc.3.json"
+            },
+            {
+              "name": "occulited-asyncapi-2.0.0-rc.3.json.sha256",
+              "size": 101,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.0-rc.3/occulited-asyncapi-2.0.0-rc.3.json.sha256"
+            },
+            {
+              "name": "occulited-lite-rpc-methods-2.0.0-rc.3.json",
+              "size": 5149,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.0-rc.3/occulited-lite-rpc-methods-2.0.0-rc.3.json"
+            },
+            {
+              "name": "occulited-lite-rpc-methods-2.0.0-rc.3.json.sha256",
+              "size": 109,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.0-rc.3/occulited-lite-rpc-methods-2.0.0-rc.3.json.sha256"
+            },
+            {
+              "name": "occulited-openapi-2.0.0-rc.3.json",
+              "size": 1061143,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.0-rc.3/occulited-openapi-2.0.0-rc.3.json"
+            },
+            {
+              "name": "occulited-openapi-2.0.0-rc.3.json.sha256",
+              "size": 100,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.0-rc.3/occulited-openapi-2.0.0-rc.3.json.sha256"
+            },
+            {
+              "name": "openccu-lite-aarch64-rpi3-2.0.0-rc.3-ccu3.tgz",
+              "size": 310133410,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.0-rc.3/openccu-lite-aarch64-rpi3-2.0.0-rc.3-ccu3.tgz"
+            },
+            {
+              "name": "openccu-lite-aarch64-rpi3-2.0.0-rc.3-ccu3.tgz.sha256",
+              "size": 112,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.0-rc.3/openccu-lite-aarch64-rpi3-2.0.0-rc.3-ccu3.tgz.sha256"
+            },
+            {
+              "name": "openccu-lite-aarch64-rpi3-2.0.0-rc.3.cdx.json",
+              "size": 2466034,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.0-rc.3/openccu-lite-aarch64-rpi3-2.0.0-rc.3.cdx.json"
+            },
+            {
+              "name": "openccu-lite-aarch64-rpi3-2.0.0-rc.3.cdx.json.sha256",
+              "size": 112,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.0-rc.3/openccu-lite-aarch64-rpi3-2.0.0-rc.3.cdx.json.sha256"
+            },
+            {
+              "name": "openccu-lite-aarch64-rpi3-2.0.0-rc.3.kernel-files.txt",
+              "size": 163013,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.0-rc.3/openccu-lite-aarch64-rpi3-2.0.0-rc.3.kernel-files.txt"
+            },
+            {
+              "name": "openccu-lite-aarch64-rpi3-2.0.0-rc.3.kernel-files.txt.sha256",
+              "size": 120,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.0-rc.3/openccu-lite-aarch64-rpi3-2.0.0-rc.3.kernel-files.txt.sha256"
+            },
+            {
+              "name": "openccu-lite-aarch64-rpi3-2.0.0-rc.3.zip",
+              "size": 313973584,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.0-rc.3/openccu-lite-aarch64-rpi3-2.0.0-rc.3.zip"
+            },
+            {
+              "name": "openccu-lite-aarch64-rpi3-2.0.0-rc.3.zip.sha256",
+              "size": 107,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.0-rc.3/openccu-lite-aarch64-rpi3-2.0.0-rc.3.zip.sha256"
+            },
+            {
+              "name": "openccu-lite-aarch64-rpi4-2.0.0-rc.3.cdx.json",
+              "size": 2473315,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.0-rc.3/openccu-lite-aarch64-rpi4-2.0.0-rc.3.cdx.json"
+            },
+            {
+              "name": "openccu-lite-aarch64-rpi4-2.0.0-rc.3.cdx.json.sha256",
+              "size": 112,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.0-rc.3/openccu-lite-aarch64-rpi4-2.0.0-rc.3.cdx.json.sha256"
+            },
+            {
+              "name": "openccu-lite-aarch64-rpi4-2.0.0-rc.3.kernel-files.txt",
+              "size": 162937,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.0-rc.3/openccu-lite-aarch64-rpi4-2.0.0-rc.3.kernel-files.txt"
+            },
+            {
+              "name": "openccu-lite-aarch64-rpi4-2.0.0-rc.3.kernel-files.txt.sha256",
+              "size": 120,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.0-rc.3/openccu-lite-aarch64-rpi4-2.0.0-rc.3.kernel-files.txt.sha256"
+            },
+            {
+              "name": "openccu-lite-aarch64-rpi4-2.0.0-rc.3.zip",
+              "size": 314005740,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.0-rc.3/openccu-lite-aarch64-rpi4-2.0.0-rc.3.zip"
+            },
+            {
+              "name": "openccu-lite-aarch64-rpi4-2.0.0-rc.3.zip.sha256",
+              "size": 107,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.0-rc.3/openccu-lite-aarch64-rpi4-2.0.0-rc.3.zip.sha256"
+            },
+            {
+              "name": "openccu-lite-x86_64-ova-2.0.0-rc.3.cdx.json",
+              "size": 2431747,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.0-rc.3/openccu-lite-x86_64-ova-2.0.0-rc.3.cdx.json"
+            },
+            {
+              "name": "openccu-lite-x86_64-ova-2.0.0-rc.3.cdx.json.sha256",
+              "size": 110,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.0-rc.3/openccu-lite-x86_64-ova-2.0.0-rc.3.cdx.json.sha256"
+            },
+            {
+              "name": "openccu-lite-x86_64-ova-2.0.0-rc.3.kernel-files.txt",
+              "size": 108220,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.0-rc.3/openccu-lite-x86_64-ova-2.0.0-rc.3.kernel-files.txt"
+            },
+            {
+              "name": "openccu-lite-x86_64-ova-2.0.0-rc.3.kernel-files.txt.sha256",
+              "size": 118,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.0-rc.3/openccu-lite-x86_64-ova-2.0.0-rc.3.kernel-files.txt.sha256"
+            },
+            {
+              "name": "openccu-lite-x86_64-ova-2.0.0-rc.3.ova",
+              "size": 311726080,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.0-rc.3/openccu-lite-x86_64-ova-2.0.0-rc.3.ova"
+            },
+            {
+              "name": "openccu-lite-x86_64-ova-2.0.0-rc.3.ova.sha256",
+              "size": 105,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.0-rc.3/openccu-lite-x86_64-ova-2.0.0-rc.3.ova.sha256"
+            },
+            {
+              "name": "openccu-lite-x86_64-ova-2.0.0-rc.3.zip",
+              "size": 306566017,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.0-rc.3/openccu-lite-x86_64-ova-2.0.0-rc.3.zip"
+            },
+            {
+              "name": "openccu-lite-x86_64-ova-2.0.0-rc.3.zip.sha256",
+              "size": 105,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.0-rc.3/openccu-lite-x86_64-ova-2.0.0-rc.3.zip.sha256"
+            },
+            {
+              "name": "SHA256SUMS",
+              "size": 3174,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.0-rc.3/SHA256SUMS"
+            }
+          ]
+        },
+        {
           "tag_name": "v2.0.0-rc.2",
           "name": "v2.0.0-rc.2",
           "draft": false,
@@ -21402,7 +21712,7 @@
       "git": "https://github.com/hobbyquaker/ccu-addon-battery",
       "manifest": "addon/openccu-lite.json",
       "id": "battery",
-      "tag": "v1.5.6",
+      "tag": "v1.5.7",
       "release_repo": "hobbyquaker/ccu-addon-battery",
       "images": {
         "icon": "ok",
