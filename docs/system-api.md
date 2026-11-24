@@ -1321,6 +1321,14 @@ other file `Cache-Control: no-cache`. lighttpd passes an answer's own `Cache-Con
 base `setenv.conf`'s value (`private, no-cache, must-revalidate, no-transform, max-age=0`, a picture
 `private, must-revalidate, no-transform, max-age=120`) only to an answer without one (occulited B-121:
 `deploy/lighttpd/occulited.conf` takes it out of setenv, `occulite-starting.lua` sets the default).
+The same goes for the security headers `setenv.conf` adds to every answer (`X-Frame-Options: SAMEORIGIN`,
+`X-Content-Type-Options: nosniff`, `Referrer-Policy: no-referrer`, `X-XSS-Protection`, `X-Robots-Tag`,
+`X-Download-Options`, `X-Permitted-Cross-Domain-Policies`): an answer that brings one of its own - an
+addon's daemon behind its proxy rule that sends `X-Frame-Options: DENY` - arrives with its own, once and
+unchanged, and an answer without one gets the system's (openccu-lite B-356: `occulite-starting.lua`
+takes setenv's added line away where the answer had its own; before, both arrived). A
+`Content-Security-Policy` is never the system's on an addon page. Not on an addon's own socket
+(`$SERVER["socket"]` in its fragment), which is outside these blocks.
 
 **CGIs**: a `*.cgi` or `*.ccc` (or a directory whose index is `index.cgi`) is run: occulited builds
 the CGI environment mod_cgi built (`REQUEST_METHOD`, `QUERY_STRING`,

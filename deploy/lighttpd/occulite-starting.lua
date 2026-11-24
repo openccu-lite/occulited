@@ -45,6 +45,30 @@ if not r.resp_header["Cache-Control"] then
     r.resp_header["Cache-Control"] = "private, no-cache, must-revalidate, no-transform, max-age=0"
   end
 end
+-- openccu-lite B-356: the base setenv.conf adds its security headers to every answer
+-- (setenv.add-response-header), also to one that brings its own: an addon's daemon behind its
+-- proxy rule that sent X-Frame-Options: DENY arrived with SAMEORIGIN beside it, nosniff came twice.
+-- mod_setenv has run when this script does (it is loaded before mod_magnet) and has put its line
+-- after the answer's own - lighttpd keeps a repeated header as one value with the further lines
+-- in it. So where an answer has more than setenv.conf's one line, that last line is taken away
+-- again: the answer's own stays, once and unchanged; an answer without one keeps the default.
+-- setenv.conf's list and values, the fork's lite-lighttpd-redirect-test.sh checks them together.
+-- Strict-Transport-Security is not on the list: it is the system's alone (conf.d/hsts.conf).
+for _, d in ipairs({
+  { "X-Frame-Options", "SAMEORIGIN" },
+  { "X-Content-Type-Options", "nosniff" },
+  { "X-XSS-Protection", "1; mode=block" },
+  { "X-Robots-Tag", "none" },
+  { "X-Download-Options", "noopen" },
+  { "X-Permitted-Cross-Domain-Policies", "none" },
+  { "Referrer-Policy", "no-referrer" },
+}) do
+  local v = r.resp_header[d[1]]
+  local tail = "\r\n" .. d[1] .. ": " .. d[2]
+  if v and #v > #tail and string.lower(string.sub(v, -#tail)) == string.lower(tail) then
+    r.resp_header[d[1]] = string.sub(v, 1, #v - #tail)
+  end
+end
 if string.find(path, "^/addons/") then
   return 0
 end
