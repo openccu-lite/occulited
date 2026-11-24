@@ -22,6 +22,10 @@ import (
 // removed). Such an addon's empty, finished unit is Ended: shown red as Exited, with Start
 // offered (a start of the active unit is a restart, SystemdServices.Control), the time and the
 // unit's last journal lines, and a Status warning.
+//
+// occulited B-166: unless the addon chose not to run - its start left nothing running, which the
+// supervisor finds out (CrashLoops.Idle). That one is Idle: not running, with the same last
+// lines (the script's reason), no red and no warning.
 
 // AddonDaemons is what occulited learned: the addons whose unit held a process after a start.
 type AddonDaemons struct {
@@ -156,14 +160,21 @@ func (a *SystemdAddons) markEnded(ctx context.Context, list []Service) []Service
 		if !a.KeepsDaemon(id) {
 			continue
 		}
-		s.Ended, s.Running = true, false
+		s.Running = false
 		s.EndedAt, s.EndedLog = a.lastLines(ctx, s.Script)
+		// occulited B-166: a start that left nothing running is the addon's choice, not a daemon
+		// that ended
+		if a.Idle != nil && a.Idle(id) {
+			s.Idle = true
+			continue
+		}
+		s.Ended = true
 	}
 	return list
 }
 
-// lastLines is the unit's last journal lines of this boot and the time of the last one - where
-// the reason an ended daemon gave usually is.
+// lastLines is the last journal lines of the unit's processes in this boot and the time of the
+// last one - where the reason an ended daemon gave usually is.
 func (a *SystemdAddons) lastLines(ctx context.Context, unit string) (string, []string) {
 	if d := a.Daemons; d != nil {
 		d.mu.Lock()
@@ -187,7 +198,11 @@ func (a *SystemdAddons) lastLines(ctx context.Context, unit string) (string, []s
 func (a *SystemdAddons) readLastLines(ctx context.Context, unit string) (string, []string) {
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
-	args := append([]string{"-b", "-q", "--no-pager", "-o", "json", "--output-fields=MESSAGE", "-n", strconv.Itoa(endedLogLines), "-u", unit}, JournalFileArgs(a.Scripts.Root)...)
+	// what the unit's own processes said (_SYSTEMD_UNIT), not systemd's lines about the unit, which
+	// -u would add: an addon that chose not to run (occulited B-166) says why in its start
+	// script's last line, and "Finished Addon …" after it says nothing
+	args := append([]string{"-b", "-q", "--no-pager", "-o", "json", "--output-fields=MESSAGE", "-n", strconv.Itoa(endedLogLines)}, JournalFileArgs(a.Scripts.Root)...)
+	args = append(args, "_SYSTEMD_UNIT="+unit)
 	var out []byte
 	var err error
 	if a.Journalctl != nil {

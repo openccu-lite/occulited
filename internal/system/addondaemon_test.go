@@ -63,13 +63,24 @@ func TestMarkEnded(t *testing.T) {
 	if a.Daemons.Learned("stray") {
 		t.Fatal("a process outside the unit teaches nothing")
 	}
+	// occulited B-166: hmm's start left nothing running - the supervisor says idle. Not ended, not
+	// running, with the same last lines (where its start script says why)
+	a.Idle = func(id string) bool { return id == "hmm" }
+	list = a.markEnded(t.Context(), []Service{finished("mosquitto"), finished("hmm")})
+	if h := list[1]; !h.Idle || h.Ended || h.Running || len(h.EndedLog) != 2 {
+		t.Fatalf("an idle addon: %+v", h)
+	}
+	if m := list[0]; m.Idle || !m.Ended {
+		t.Fatalf("an ended addon beside it: %+v", m)
+	}
+	a.Idle = nil
 	// the journal once per ended unit within the TTL
 	n := len(asked)
 	a.markEnded(t.Context(), []Service{finished("mosquitto")})
 	if len(asked) != n {
 		t.Fatalf("the last lines are cached: %v", asked)
 	}
-	if !strings.Contains(asked[0], "-u addon-mosquitto.service") || !strings.Contains(asked[0], "-n 3") {
+	if !strings.HasSuffix(asked[0], " _SYSTEMD_UNIT=addon-mosquitto.service") || strings.Contains(asked[0], "-u ") || !strings.Contains(asked[0], "-n 3") {
 		t.Fatalf("journalctl args: %q", asked[0])
 	}
 	// learned survives a restart, and an uninstall forgets it

@@ -256,6 +256,9 @@
             }
             case 'completed':
                 return t('Completed');
+            case 'idle':
+                // occulited B-166: the addon's start left nothing running, by its choice
+                return t('Not running');
             case 'ended':
                 // B-158: the addon's daemon ended; when, from its last journal line
                 return s.ended_at ? t('Exited · {time}', {time: timeOnly(s.ended_at)}) : t('Exited');
@@ -664,7 +667,7 @@
                     <!-- task 49: whether it is enabled has a column of its own now; task 48: Restart
                          puts a stray addon back into its unit, and the popup says so (task 51: the
                          state itself opens it). Task 94: a unit systemd is starting says so, with its seconds -->
-                    <td data-cell="status">{statusText(s)}{#if statusKind(s) === 'skipped'}{' · '}<Help class="ol-muted">{#snippet trigger()}{t('condition not met')}{/snippet}{t('systemd did not start it: a condition in its unit (ConditionPathExists=, ExecCondition= and the like) is not met on this system. That is how a unit stays off where it does not apply, such as the wired interface without its hardware; it is not a failure.')}{#if s.note}{'\n\n'}{t('The radio plan says: {reason}', {reason: s.note})}{/if}</Help>{/if}{#if s.ended}{' · '}<Help class="ol-warn">{#snippet trigger()}{t('why')}{/snippet}{t('The addon keeps a program running, and nothing of it runs any more. Its last lines in the log:')}{'\n\n'}{(s.ended_log ?? []).join('\n') || t('(none)')}</Help>{/if}{#if s.stray}{' · '}<Help class="ol-warn">{#snippet trigger()}{t('outside its unit')}{/snippet}{t('Runs outside its unit (started by an installer or by hand). Restart puts it back into the unit.')}</Help>{/if}</td>
+                    <td data-cell="status">{statusText(s)}{#if statusKind(s) === 'skipped'}{' · '}<Help class="ol-muted">{#snippet trigger()}{t('condition not met')}{/snippet}{t('systemd did not start it: a condition in its unit (ConditionPathExists=, ExecCondition= and the like) is not met on this system. That is how a unit stays off where it does not apply, such as the wired interface without its hardware; it is not a failure.')}{#if s.note}{'\n\n'}{t('The radio plan says: {reason}', {reason: s.note})}{/if}</Help>{/if}{#if s.idle}{' · '}<Help class="ol-muted">{#snippet trigger()}{t('why')}{/snippet}{t('The start of this addon left nothing running, and that is its own choice: it is usually not set up yet. It is not restarted until it is started again. Its last lines in the log:')}{'\n\n'}{(s.ended_log ?? []).join('\n') || t('(none)')}</Help>{/if}{#if s.ended}{' · '}<Help class="ol-warn">{#snippet trigger()}{t('why')}{/snippet}{t('The addon keeps a program running, and nothing of it runs any more. Its last lines in the log:')}{'\n\n'}{(s.ended_log ?? []).join('\n') || t('(none)')}</Help>{/if}{#if s.stray}{' · '}<Help class="ol-warn">{#snippet trigger()}{t('outside its unit')}{/snippet}{t('Runs outside its unit (started by an installer or by hand). Restart puts it back into the unit.')}</Help>{/if}</td>
                     <td class="ol-enabledcell" data-label={t('Enabled')}>{@render enabledCell(s.unit_file_state, s.enabled)}</td>
                     <!-- the user column (maintainer, 2026-09-09): root is root, and why it matters is
                          what `root` and `undeclared` open (task 51) -->

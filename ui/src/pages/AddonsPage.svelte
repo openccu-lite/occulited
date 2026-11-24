@@ -234,14 +234,20 @@
     const ADDON_WARNINGS = ADDON_CARD_WARNINGS;
     const cardEdge = (a: Addon | null | undefined): Edge => {
         if (!a) return '';
-        const own: Edge = ['failed', 'ended'].includes(statusKind(unitOf(a) ?? {running: a.running, oneshot: a.oneshot, result: a.result, ended: a.ended})) ? 'err' : '';
+        const own: Edge = ['failed', 'ended'].includes(statusKind(unitOf(a) ?? {running: a.running, oneshot: a.oneshot, result: a.result, ended: a.ended, idle: a.idle})) ? 'err' : '';
         return worse(own, warnEdge(ADDON_WARNINGS, a.id));
     };
-    const dotOf = (a: Addon) => statusDot(unitOf(a) ?? {running: a.running, oneshot: a.oneshot, result: a.result, ended: a.ended});
+    const dotOf = (a: Addon) => statusDot(unitOf(a) ?? {running: a.running, oneshot: a.oneshot, result: a.result, ended: a.ended, idle: a.idle});
     const stateWord = (a: Addon): string => {
-        const k = statusKind(unitOf(a) ?? {running: a.running, oneshot: a.oneshot, result: a.result, ended: a.ended});
+        const k = statusKind(unitOf(a) ?? {running: a.running, oneshot: a.oneshot, result: a.result, ended: a.ended, idle: a.idle});
         if (!a.enabled && k === 'stopped') return t('disabled');
-        return k === 'running' ? t('Running') : k === 'starting' ? t('Starting') : k === 'completed' ? t('Completed') : k === 'ended' ? t('Exited') : k === 'failed' ? t('Failed') : k === 'skipped' ? t('skipped') : t('Stopped');
+        return k === 'running' ? t('Running') : k === 'starting' ? t('Starting') : k === 'completed' ? t('Completed') : k === 'ended' ? t('Exited') : k === 'idle' ? t('Not running') : k === 'failed' ? t('Failed') : k === 'skipped' ? t('skipped') : t('Stopped');
+    };
+    // occulited B-166: an addon that chose not to run says why in its last log line - the state's tooltip
+    const stateTitle = (a: Addon): string => {
+        const k = statusKind(unitOf(a) ?? {running: a.running, oneshot: a.oneshot, result: a.result, ended: a.ended, idle: a.idle});
+        const last = (unitOf(a)?.ended_log ?? a.ended_log)?.at(-1);
+        return k === 'idle' && last ? t('Not running: {reason}', {reason: last}) : stateWord(a);
     };
     const catKnows = (a: Addon) => !!entryOf(a.id)?.latest;
 
@@ -737,7 +743,7 @@
                         </AddonImage>
                     </span>
                     <div class="ad-titles">
-                        <h3 class="ad-name">{#if a}<span class="ol-dot {dotOf(a)}" role="img" aria-label={stateWord(a)} title={stateWord(a)} data-addon-dot={statusKind(unitOf(a) ?? {running: a.running, oneshot: a.oneshot, result: a.result, ended: a.ended})}></span>{/if}{c.name}</h3>
+                        <h3 class="ad-name">{#if a}<span class="ol-dot {dotOf(a)}" role="img" aria-label={stateWord(a)} title={stateWord(a)} data-addon-dot={statusKind(unitOf(a) ?? {running: a.running, oneshot: a.oneshot, result: a.result, ended: a.ended, idle: a.idle})}></span>{/if}{c.name}</h3>
                         <div class="ad-sub ol-muted">
                             {#if a?.payload_missing}
                                 <!-- occulited task 12: a restore brought it back without its program files (task 146) -->
@@ -746,7 +752,7 @@
                             {:else if a}
                                 <span class="ad-version">{a.version}</span>{@render pre(a.version, false)}
                                 {#if c.update}<span class="ol-upd"> → {c.update}</span>{@render pre(c.update, e?.latest?.prerelease)}{/if}
-                                <span class="ad-state" data-addon-state>· {stateWord(a)}</span>
+                                <span class="ad-state" data-addon-state title={stateTitle(a)}>· {stateWord(a)}</span>
                                 {#if a.stray}{' · '}<Help class="ol-warn">{#snippet trigger()}{t('outside its unit')}{/snippet}{t('Runs outside its unit (started by an installer or by hand). Restart puts it back into the unit.')}</Help>{/if}
                             {:else if e?.latest}
                                 <span class="ad-version" title={t('Latest release')}>{e.latest.version}</span>{@render pre(e.latest.version, e.latest.prerelease)} <span>· {t('Not installed')}</span>

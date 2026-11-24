@@ -69,6 +69,10 @@ type SystemdAddons struct {
 	// nil = nothing is learned, only runtime.daemon counts.
 	Daemons *AddonDaemons
 
+	// Idle says whether an addon that keeps a daemon is not running by its own choice - its start
+	// left nothing running (CrashLoops.Idle, occulited B-166); nil = never.
+	Idle func(id string) bool
+
 	// Journalctl runs journalctl for the refused-remount scan (addonremount.go) and an ended
 	// addon's last lines (addondaemon.go); nil = the box's journalctl. Tests hand in the JSON lines.
 	Journalctl func(ctx context.Context, args ...string) ([]byte, error)
@@ -811,6 +815,7 @@ func overlayUnitState(list []Addon, units []Service) []Addon {
 			list[i].Running, list[i].PID = u.Running, u.PID
 			list[i].OneShot, list[i].Result, list[i].Stray = u.OneShot, u.Result, u.Stray
 			list[i].Ended, list[i].EndedAt, list[i].EndedLog = u.Ended, u.EndedAt, u.EndedLog
+			list[i].Idle = u.Idle
 			list[i].Failed, list[i].Skipped = u.Failed, u.Skipped
 		}
 	}

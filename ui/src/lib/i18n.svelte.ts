@@ -744,6 +744,10 @@ const CATALOGUE: Record<string, {de: string; en?: string}> = {
     wireless: {de: 'drahtlos'},
     virtual: {de: 'virtuell'},
     'no link': {de: 'keine Verbindung'},
+    // occulited B-166: an addon whose start left nothing running, by its own choice
+    'Not running': {de: 'Läuft nicht'},
+    'Not running: {reason}': {de: 'Läuft nicht: {reason}'},
+    'The start of this addon left nothing running, and that is its own choice: it is usually not set up yet. It is not restarted until it is started again. Its last lines in the log:': {de: 'Der Start dieses Addons hat nichts laufen lassen, und das ist seine eigene Entscheidung: Meist ist es noch nicht eingerichtet. Es wird nicht neu gestartet, bis es wieder gestartet wird. Seine letzten Zeilen im Log:'},
     // occulited task 174: an Ethernet interface held at 100 Mbit/s
     'Ethernet speed': {de: 'Ethernet-Geschwindigkeit'},
     'Gigabit Ethernet can disturb the 868 MHz radio on a Raspberry Pi 4 or 5: the network chip and its cable radiate in that range. Limited to 100 Mbit/s, the interface still negotiates with the switch, but offers nothing faster.': {de: 'Gigabit-Ethernet kann den 868-MHz-Funk an einem Raspberry Pi 4 oder 5 stören: Der Netzwerkchip und sein Kabel strahlen in diesem Bereich ab. Auf 100 Mbit/s begrenzt handelt die Schnittstelle die Verbindung weiter mit dem Switch aus, bietet aber nichts Schnelleres an.'},

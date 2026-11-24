@@ -1,8 +1,10 @@
 package system
 
 import (
+	"bytes"
 	"context"
 	"errors"
+	"log/slog"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -511,5 +513,231 @@ func TestSystemdAddonsBusyDuringAJob(t *testing.T) {
 	}
 	if a.Busy() {
 		t.Error("busy after")
+	}
+}
+
+// occulited B-166: an addon whose start script chose not to start anything (hm2mqtt without a
+// broker) is not a crashed daemon. Never seen holding a process, its unit is started once more,
+// quietly; nothing there right after that start - it is idle and left alone until its unit is
+// started again. One that holds a process then keeps a daemon, and an empty unit later is a
+// daemon that ended.
+func TestCrashLoopAddonThatChoseNotToRun(t *testing.T) {
+	f := &fakeUnits{boot: time.Date(2026, 11, 22, 14, 0, 0, 0, time.UTC)}
+	f.now = f.boot.Add(time.Hour)
+	running := map[string]bool{}
+	var restarted []string
+	startsDaemon := false
+	learned := map[string]bool{}
+	var logs bytes.Buffer
+	c := f.watcher()
+	c.Log = slog.New(slog.NewTextHandler(&logs, nil))
+	c.Supervised = func() []string { return []string{"hm2mqtt"} }
+	c.Procs = func(cg string) bool { return running[cg] }
+	c.Learned = func(id string) bool { return learned[id] }
+	c.Learn = func(id string) { learned[id] = true }
+	const unit = "addon-hm2mqtt.service"
+	cg := "/system.slice/" + unit
+	started := f.boot.Add(time.Minute)
+	c.Restart = func(_ context.Context, u string) error {
+		restarted = append(restarted, u)
+		started = f.now
+		f.set(unit, "active", "exited", started, 0, "success")
+		running[cg] = startsDaemon
+		return nil
+	}
+	f.set(unit, "active", "exited", started, 0, "success")
+
+	// the first sample: active, empty, never seen running - not running by its choice as far as
+	// anybody knows, and one more start is due
+	c.Sample(context.Background())
+	if !c.Idle("hm2mqtt") || len(restarted) != 0 {
+		t.Fatalf("before the probe: idle %v, restarted %v", c.Idle("hm2mqtt"), restarted)
+	}
+	f.now = f.now.Add(2 * time.Second)
+	c.Sample(context.Background())
+	if len(restarted) != 1 {
+		t.Fatalf("the one more start: %v", restarted)
+	}
+	if !strings.Contains(logs.String(), "level=INFO") || strings.Contains(logs.String(), "level=WARN") || strings.Contains(logs.String(), "level=ERROR") {
+		t.Errorf("the probe is said at info, nothing above:\n%s", logs.String())
+	}
+	if !strings.Contains(logs.String(), "leaves nothing running") {
+		t.Errorf("the verdict is not said:\n%s", logs.String())
+	}
+	// idle: never again, however long, and no crash loop, no attempt counted
+	for i := 0; i < 40; i++ {
+		f.now = f.now.Add(15 * time.Second)
+		c.Sample(context.Background())
+	}
+	if len(restarted) != 1 || len(c.Loops()) != 0 || c.attempts("hm2mqtt") != 0 || !c.Idle("hm2mqtt") {
+		t.Fatalf("an idle addon: restarted %v, loops %v, attempts %d, idle %v", restarted, c.Loops(), c.attempts("hm2mqtt"), c.Idle("hm2mqtt"))
+	}
+	if w := c.wait(); w != CrashLoopInterval {
+		t.Errorf("nothing is due for an idle addon: wait %v", w)
+	}
+	if h := c.units["addon-hm2mqtt"]; h == nil || len(h.restarts) != 0 || h.last != 0 {
+		t.Errorf("the probe was counted as a restart: %+v", h)
+	}
+
+	// the user starts the unit again and it still chooses not to run: looked at afresh, once
+	started = f.now
+	f.set(unit, "active", "exited", started, 0, "success")
+	c.Sample(context.Background())
+	f.now = f.now.Add(2 * time.Second)
+	c.Sample(context.Background())
+	if len(restarted) != 2 {
+		t.Fatalf("a unit started again is probed again: %v", restarted)
+	}
+	f.now = f.now.Add(10 * time.Minute)
+	c.Sample(context.Background())
+	if len(restarted) != 2 || !c.Idle("hm2mqtt") {
+		t.Fatalf("idle again: %v", restarted)
+	}
+
+	// the broker is configured and the unit started: the daemon runs, is learned, and is no
+	// longer idle
+	started = f.now
+	f.set(unit, "active", "exited", started, 0, "success")
+	running[cg] = true
+	c.Sample(context.Background())
+	if c.Idle("hm2mqtt") || !learned["hm2mqtt"] || len(restarted) != 2 {
+		t.Fatalf("a running daemon: idle %v, learned %v, restarted %v", c.Idle("hm2mqtt"), learned, restarted)
+	}
+	// it ends: now that is a daemon that ended - a warning, a restart, counted
+	logs.Reset()
+	running[cg] = false
+	startsDaemon = false
+	c.Sample(context.Background())
+	if c.Idle("hm2mqtt") {
+		t.Fatal("an ended daemon is called idle")
+	}
+	f.now = f.now.Add(2 * time.Second)
+	c.Sample(context.Background())
+	if len(restarted) != 3 || !strings.Contains(logs.String(), "level=WARN") || !strings.Contains(logs.String(), "daemon ended") || c.attempts("hm2mqtt") != 1 {
+		t.Fatalf("an ended daemon: restarted %v, attempts %d\n%s", restarted, c.attempts("hm2mqtt"), logs.String())
+	}
+	// and it stays supervised although the restart left nothing running: it was seen running
+	c.Sample(context.Background())
+	f.now = f.now.Add(4 * time.Second)
+	c.Sample(context.Background())
+	if len(restarted) != 4 {
+		t.Fatalf("a learned daemon is restarted again: %v", restarted)
+	}
+}
+
+// B-166: the probe finds a daemon - the addon keeps one, is learned, and is supervised from then on.
+func TestCrashLoopProbeFindsADaemon(t *testing.T) {
+	f := &fakeUnits{boot: time.Date(2026, 11, 22, 14, 0, 0, 0, time.UTC)}
+	f.now = f.boot.Add(time.Hour)
+	running := map[string]bool{}
+	restarts := 0
+	var learned []string
+	c := f.watcher()
+	c.Supervised = func() []string { return []string{"mosquitto"} }
+	c.Procs = func(cg string) bool { return running[cg] }
+	c.Learn = func(id string) { learned = append(learned, id) }
+	const unit = "addon-mosquitto.service"
+	cg := "/system.slice/" + unit
+	c.Restart = func(context.Context, string) error { restarts++; running[cg] = true; return nil }
+	// died between its start and the first sample: never seen, so the first restart is the probe
+	f.set(unit, "active", "exited", f.boot.Add(time.Minute), 0, "success")
+	c.Sample(context.Background())
+	f.now = f.now.Add(2 * time.Second)
+	c.Sample(context.Background())
+	if restarts != 1 || c.Idle("mosquitto") || len(learned) != 1 {
+		t.Fatalf("restarts %d, idle %v, learned %v", restarts, c.Idle("mosquitto"), learned)
+	}
+	// that restart counts: the daemon had ended
+	if c.attempts("mosquitto") != 1 || len(c.units["addon-mosquitto"].restarts) != 1 {
+		t.Errorf("attempts %d, restarts %v", c.attempts("mosquitto"), c.units["addon-mosquitto"].restarts)
+	}
+	running[cg] = false
+	c.Sample(context.Background())
+	f.now = f.now.Add(4 * time.Second)
+	c.Sample(context.Background())
+	if restarts != 2 {
+		t.Fatalf("an ended daemon after the probe: %d restarts", restarts)
+	}
+	// nobody asked: an addon that is not supervised, and no supervisor at all
+	if c.Idle("other") || (*CrashLoops)(nil).Idle("mosquitto") {
+		t.Error("idle without supervision")
+	}
+}
+
+// B-166: a restart that loses the race with an install or uninstall is not an error. A job that
+// began after the sample: the restart is not made; one that begins while it runs and makes it
+// fail: said at info. Neither counts.
+func TestCrashLoopRestartRacingAJob(t *testing.T) {
+	f := &fakeUnits{boot: time.Date(2026, 11, 22, 14, 0, 0, 0, time.UTC)}
+	f.now = f.boot.Add(time.Hour)
+	running := map[string]bool{}
+	var restarted []string
+	var logs bytes.Buffer
+	pausedCalls, busyFrom := 0, 0
+	var restartErr error
+	jobDuringRestart := false
+	busy := false
+	c := f.watcher()
+	c.Log = slog.New(slog.NewTextHandler(&logs, nil))
+	c.Supervised = func() []string { return []string{"hm2mqtt"} }
+	c.Procs = func(cg string) bool { return running[cg] }
+	// the sample asks once; busyFrom is the call from which a job runs
+	c.Paused = func() bool {
+		pausedCalls++
+		return busy || (busyFrom > 0 && pausedCalls >= busyFrom)
+	}
+	c.Restart = func(_ context.Context, unit string) error {
+		restarted = append(restarted, unit)
+		if jobDuringRestart {
+			busy = true
+		}
+		return restartErr
+	}
+	const unit = "addon-hm2mqtt.service"
+	cg := "/system.slice/" + unit
+	f.set(unit, "active", "exited", f.boot.Add(time.Minute), 0, "success")
+	running[cg] = true
+	c.Sample(context.Background()) // seen running
+	running[cg] = false
+	c.Sample(context.Background()) // schedules
+
+	// the job begins between the sample and the restart
+	f.now = f.now.Add(2 * time.Second)
+	pausedCalls, busyFrom = 0, 2
+	c.Sample(context.Background())
+	if len(restarted) != 0 {
+		t.Fatalf("restarted into a job: %v", restarted)
+	}
+	if c.attempts("hm2mqtt") != 0 || len(c.units["addon-hm2mqtt"].restarts) != 0 {
+		t.Errorf("a restart that was not made is counted: attempts %d", c.attempts("hm2mqtt"))
+	}
+	if logs.Len() != 0 {
+		t.Errorf("said something: %s", logs.String())
+	}
+
+	// the job is over; the next restart meets another job's stop and fails
+	busyFrom = 0
+	c.Sample(context.Background()) // the first sample after a job schedules afresh
+	f.now = f.now.Add(2 * time.Second)
+	restartErr, jobDuringRestart = errors.New("systemctl restart addon-hm2mqtt.service: exit status 1"), true
+	c.Sample(context.Background())
+	if len(restarted) != 1 {
+		t.Fatalf("the restart: %v", restarted)
+	}
+	if strings.Contains(logs.String(), "level=ERROR") || !strings.Contains(logs.String(), "met an addon install or uninstall") {
+		t.Errorf("a restart lost to a job is an error:\n%s", logs.String())
+	}
+	if c.attempts("hm2mqtt") != 0 || len(c.units["addon-hm2mqtt"].restarts) != 0 {
+		t.Errorf("a restart lost to a job is counted: attempts %d", c.attempts("hm2mqtt"))
+	}
+
+	// without a job a failing restart is an error, as before
+	busy, jobDuringRestart = false, false
+	logs.Reset()
+	c.Sample(context.Background())
+	f.now = f.now.Add(2 * time.Second)
+	c.Sample(context.Background())
+	if !strings.Contains(logs.String(), "level=ERROR") || !strings.Contains(logs.String(), "the restart failed") {
+		t.Errorf("a failing restart without a job:\n%s", logs.String())
 	}
 }

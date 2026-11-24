@@ -26,6 +26,15 @@ import (
 // the unit active with an empty cgroup (B-158's Ended) and systemd restarts nothing. CrashLoops
 // restarts such a unit itself - the rc.d stop, then start - with the core units' backoff, and
 // counts those restarts for the same warning.
+//
+// occulited B-166: an addon whose start script chose not to start anything is not a crashed
+// daemon. hm2mqtt without a broker logs why and returns; its unit is active and empty exactly as
+// if its daemon had died, and it was restarted with backoff for ever, each restart a warning. The
+// two are told apart by what the start leaves behind. An addon whose unit was never seen holding
+// a process is started once more, quietly, and looked at the moment the start returned: nothing
+// there - the start chose not to run, the addon is idle and left alone until its unit is started
+// again; a process there - it keeps a daemon, and from then on an empty unit is a daemon that
+// ended. An addon that was seen running is restarted as before.
 
 // CrashLoopClass is one class of units' thresholds.
 type CrashLoopClass struct {
@@ -83,6 +92,11 @@ type CrashLoops struct {
 	Procs func(cgroup string) bool
 	// Restart restarts an addon's unit (addon-<id>); nil = no supervision.
 	Restart func(ctx context.Context, unit string) error
+	// Learned says whether the addon's unit was ever seen holding a process, Learn notes that it
+	// does (AddonDaemons, kept over a restart of occulited and forgotten with an install); nil =
+	// only what this supervisor saw itself.
+	Learned func(id string) bool
+	Learn   func(id string)
 	// Paused says whether an addon install or uninstall runs (SystemdAddons.Busy, occulited B-30)
 	// or a radio connection change or coprocessor flash (openccu-lite B-307: an addon's restart
 	// would pull the stopped radio daemons in; main.go joins the two with AnyBusy):
@@ -117,6 +131,14 @@ type addonSupervision struct {
 	attempts  int       // restarts since the daemon last stayed up Stable
 	due       time.Time // the next restart; zero = none scheduled
 	runningAt time.Time // when the unit was last seen holding a process after a restart
+	cgroup    string    // the unit's cgroup at the last sample
+	ran       bool      // this supervisor saw the unit hold a process
+	empty     bool      // the last sample found the unit active, finished and empty
+	probe     bool      // the restart that is due finds out whether the addon keeps a daemon
+	// idle: the start left nothing running (B-166); idleStamp is the activation that was judged -
+	// "" until the first sample after the verdict reads it - and a later one is looked at afresh
+	idle      bool
+	idleStamp string
 }
 
 func (c *CrashLoops) now() time.Time {
@@ -263,12 +285,99 @@ func (c *CrashLoops) Sample(ctx context.Context) {
 		}
 	}
 	for _, id := range restart {
-		unit := "addon-" + id
-		c.log().Warn("addon supervisor: the addon's daemon ended, restarting its unit", "addon", id, "unit", unit+".service", "attempt", c.attempts(id))
-		if err := c.Restart(ctx, unit); err != nil {
-			c.log().Error("addon supervisor: the restart failed", "addon", id, "err", err)
-		}
+		c.restartAddon(ctx, id)
 	}
+}
+
+// restartAddon is one restart the sample decided on. An install or uninstall that began since
+// the sample owns the units now (B-166: the restart met the uninstall's stop, failed, and was
+// logged as an error): the restart is dropped, and one that fails while such a job runs is the
+// job's doing. Neither counts as a restart.
+func (c *CrashLoops) restartAddon(ctx context.Context, id string) {
+	unit := "addon-" + id
+	busy := func() bool { return c.Paused != nil && c.Paused() }
+	if busy() {
+		c.uncount(id)
+		return
+	}
+	c.mu.Lock()
+	probe, cgroup := false, ""
+	if s := c.addons[id]; s != nil {
+		probe, cgroup = s.probe, s.cgroup
+	}
+	c.mu.Unlock()
+	if probe {
+		c.log().Info("addon supervisor: nothing of the addon runs after its start, starting its unit once more to see whether it keeps a daemon", "addon", id, "unit", unit+".service")
+	} else {
+		c.log().Warn("addon supervisor: the addon's daemon ended, restarting its unit", "addon", id, "unit", unit+".service", "attempt", c.attempts(id))
+	}
+	if err := c.Restart(ctx, unit); err != nil {
+		if busy() {
+			c.uncount(id)
+			c.log().Info("addon supervisor: the restart met an addon install or uninstall and is left to it", "addon", id, "err", err)
+			return
+		}
+		c.log().Error("addon supervisor: the restart failed", "addon", id, "err", err)
+		return
+	}
+	if !probe {
+		return
+	}
+	if c.holdsProcess(cgroup) {
+		c.mu.Lock()
+		if s := c.addons[id]; s != nil {
+			s.ran, s.probe = true, false
+		}
+		c.mu.Unlock()
+		if c.Learn != nil {
+			c.Learn(id)
+		}
+		return
+	}
+	c.uncount(id)
+	c.mu.Lock()
+	if s := c.addons[id]; s != nil {
+		s.idle, s.idleStamp, s.probe, s.attempts = true, "", false, 0
+	}
+	c.mu.Unlock()
+	c.log().Info("addon supervisor: the addon's start leaves nothing running; it is not restarted until its unit is started again", "addon", id, "unit", unit+".service")
+}
+
+// uncount takes back the restart the last sample counted for the addon: it did not happen, or it
+// was no crash's.
+func (c *CrashLoops) uncount(id string) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if s := c.addons[id]; s != nil {
+		s.attempts = max(s.attempts-1, 0)
+		s.due = time.Time{}
+	}
+	if h := c.units["addon-"+id]; h != nil && len(h.restarts) > 0 {
+		h.restarts = h.restarts[:len(h.restarts)-1]
+		h.last = max(h.last-1, 0)
+	}
+}
+
+func (c *CrashLoops) holdsProcess(cgroup string) bool {
+	if c.Procs != nil {
+		return c.Procs(cgroup)
+	}
+	return len(cgroupProcs(c.Systemd.Root, cgroup)) > 0
+}
+
+// Idle says whether an addon the supervisor watches is not running by its own choice: its unit
+// is active and empty, and it was never seen holding a process - the start left nothing running,
+// or the one more start that finds that out is still to come (occulited B-166). Such an addon is
+// "not running", not one whose daemon ended.
+func (c *CrashLoops) Idle(id string) bool {
+	if c == nil {
+		return false
+	}
+	c.mu.Lock()
+	s := c.addons[id]
+	idle := s != nil && s.empty && !s.ran
+	c.mu.Unlock()
+	return idle && !(c.Learned != nil && c.Learned(id))
 }
 
 // activeSince answers when the unit became active, from the monotonic stamp; zero when unknown.
@@ -338,18 +447,23 @@ func (c *CrashLoops) observeAddon(id string, p map[string]string, up time.Durati
 	active := p["ActiveState"] == "active"
 	h.active = active
 	h.stableAt = time.Time{}
+	s.cgroup, s.empty = p["ControlGroup"], false
 	if !active {
 		// stopped (by the user, an update, the shutdown) or failed at its start: not the
 		// supervisor's - a failed start is systemd's failed state, the addon-failed warning
 		s.attempts, s.due = 0, time.Time{}
+		s.idle, s.idleStamp, s.probe = false, "", false
 		return false
 	}
-	procs := c.Procs
-	if procs == nil {
-		procs = func(cg string) bool { return len(cgroupProcs(c.Systemd.Root, cg)) > 0 }
-	}
-	if procs(p["ControlGroup"]) {
+	if c.holdsProcess(p["ControlGroup"]) {
 		// the daemon runs: once it has for Stable, the backoff starts from the beginning again
+		if !s.ran {
+			s.ran = true
+			if c.Learn != nil {
+				c.Learn(id)
+			}
+		}
+		s.idle, s.idleStamp, s.probe = false, "", false
 		if s.runningAt.IsZero() {
 			s.runningAt = now
 			if since := activeSince(p, up, now); !since.IsZero() && since.Before(now) {
@@ -369,12 +483,29 @@ func (c *CrashLoops) observeAddon(id string, p map[string]string, up time.Durati
 		return false
 	}
 	s.runningAt = time.Time{}
+	s.empty = true
+	if s.idle {
+		// B-166: the start left nothing running. That stands for the activation it was seen in;
+		// a unit started again since (the user configured the addon and started it) is looked
+		// at afresh
+		stamp := p["ActiveEnterTimestampMonotonic"]
+		if s.idleStamp == "" {
+			s.idleStamp = stamp
+		}
+		if stamp == s.idleStamp {
+			s.due = time.Time{}
+			return false
+		}
+		s.idle, s.idleStamp = false, ""
+	}
 	if s.due.IsZero() {
 		s.due = now.Add(addonBackoff(s.attempts))
 	}
 	if now.Before(s.due) {
 		return false
 	}
+	// never seen holding a process: this restart finds out whether it keeps one
+	s.probe = !s.ran && !(c.Learned != nil && c.Learned(id))
 	s.attempts++
 	s.due = time.Time{}
 	h.last++

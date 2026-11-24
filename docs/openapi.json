@@ -9970,6 +9970,9 @@
           "id": {
             "type": "string"
           },
+          "idle": {
+            "type": "boolean"
+          },
           "images": {
             "additionalProperties": {
               "type": "string"
@@ -14069,6 +14072,9 @@
           },
           "id": {
             "type": "string"
+          },
+          "idle": {
+            "type": "boolean"
           },
           "images": {
             "additionalProperties": {

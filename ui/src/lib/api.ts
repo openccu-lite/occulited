@@ -434,6 +434,9 @@ export interface Service {
     ended?: boolean;
     ended_at?: string;
     ended_log?: string[];
+    /** occulited B-166: such an addon's start left nothing running, by its own choice - not ended,
+     *  not restarted; ended_at and ended_log are the unit's last lines, where its script says why */
+    idle?: boolean;
     /** openccu-lite task 100: a generated addon unit's addon images, kind → URL (lib/addonimages.ts) */
     images?: AddonImages;
     /** systemd's MainPID, or (task 49) the leader of the unit's cgroup for a unit without one;
@@ -533,6 +536,9 @@ export interface Addon {
     ended?: boolean;
     ended_at?: string;
     ended_log?: string[];
+    /** occulited B-166: such an addon's start left nothing running, by its own choice - not ended,
+     *  not restarted; ended_at and ended_log are the unit's last lines, where its script says why */
+    idle?: boolean;
     /** task 88 (D-67): the settings page reads the gate's session header; the shell opens it without ?sid= */
     session_header?: boolean;
     /** task 125: the settings page gets the session's legacy alias as ?sid=@..@ (no header, and the legacy session on for it) */

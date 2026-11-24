@@ -20,12 +20,13 @@ describe('the Status column', () => {
         ['an addon whose start script still runs', {running: false, starting: true, oneshot: false}, 'starting', 'starting'],
         // B-158: an addon that keeps a daemon, its unit empty - red, not Completed
         ['an addon whose daemon ended', {running: false, oneshot: true, result: 'success', ended: true}, 'ended', 'err'],
+        ['an addon that chose not to run', {running: false, oneshot: true, result: 'success', idle: true}, 'idle', ''],
     ])('%s', (_, s, kind, dot) => {
         expect(statusKind(s)).toBe(kind);
         expect(statusDot(s)).toBe(dot);
     });
     it('sorts running first and stopped last', () => {
-        const order: StatusKind[] = ['running', 'starting', 'completed', 'ended', 'failed', 'skipped', 'stopped'];
+        const order: StatusKind[] = ['running', 'starting', 'completed', 'idle', 'ended', 'failed', 'skipped', 'stopped'];
         expect([...order].sort((a, b) => STATUS_RANK[a] - STATUS_RANK[b])).toEqual(order);
     });
 });

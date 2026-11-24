@@ -527,6 +527,10 @@ func run(opts daemonOptions) error {
 		// addons that declare a daemon restarted when it ended (the rc.d stop and start)
 		crashLoops = &system.CrashLoops{Systemd: sd, Supervised: sa.SupervisedDaemons, Paused: sa.Busy, Log: area("services"),
 			Restart: func(ctx context.Context, unit string) error { _, err := sd.Control(ctx, unit, "restart"); return err }}
+		// occulited B-166: an addon whose start leaves nothing running is idle, not crashed - told
+		// apart by whether its unit was ever seen holding a process
+		crashLoops.Learned, crashLoops.Learn = sa.Daemons.Learned, sa.Daemons.Learn
+		sa.Idle = crashLoops.Idle
 		manager = sa
 		// the addon list comes from the same object on a systemd box: its running state is the
 		// unit's, not a pid file most addons never write (B-29)

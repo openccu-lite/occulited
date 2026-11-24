@@ -76,6 +76,11 @@ type Service struct {
 	Ended    bool     `json:"ended,omitempty"`
 	EndedAt  string   `json:"ended_at,omitempty"`
 	EndedLog []string `json:"ended_log,omitempty"`
+	// Idle (occulited B-166): such an addon's start left nothing running - its start script chose
+	// not to start (hm2mqtt without a broker says why and returns). Not Ended, not a failure and
+	// never restarted by the supervisor; Running is false, EndedAt and EndedLog are the unit's
+	// last lines as for Ended, where the script says why.
+	Idle bool `json:"idle,omitempty"`
 	// Stray: the addon\'s daemon runs, but outside its unit (started by an installer or by hand);
 	// Running is true, and Restart puts it back into the unit (task 48).
 	Stray bool `json:"stray,omitempty"`
@@ -284,6 +289,8 @@ type Addon struct {
 	Ended    bool     `json:"ended,omitempty"`
 	EndedAt  string   `json:"ended_at,omitempty"`
 	EndedLog []string `json:"ended_log,omitempty"`
+	// Idle as on Service (occulited B-166): the addon's start left nothing running, by its choice.
+	Idle bool `json:"idle,omitempty"`
 	// Failed as on Service (B-65): the addon's unit is in systemd's failed state (task 248: the
 	// Addons dot's red)
 	Failed bool `json:"failed,omitempty"`

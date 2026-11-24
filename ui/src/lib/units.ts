@@ -48,7 +48,10 @@ export function switchable(state: string | undefined): boolean {
 // 40 s after the web UI is up at boot - neither running nor stopped, with the accent's dot.
 // openccu-lite B-158: `ended` is an addon that keeps a daemon whose unit is empty - the daemon
 // died, the unit (a oneshot) still says active. Red, with its own word (Exited).
-export type StatusKind = 'running' | 'starting' | 'completed' | 'ended' | 'failed' | 'skipped' | 'stopped';
+// occulited B-166: `idle` is such an addon whose start left nothing running by its own choice (its
+// start script says why and returns: hm2mqtt without a broker). Not running, not a failure: the
+// stopped dot, its own word (Not running).
+export type StatusKind = 'running' | 'starting' | 'completed' | 'idle' | 'ended' | 'failed' | 'skipped' | 'stopped';
 
 /** The part of a service the Status cell reads. */
 export interface UnitState {
@@ -59,10 +62,12 @@ export interface UnitState {
     skipped?: boolean;
     starting?: boolean;
     ended?: boolean;
+    idle?: boolean;
 }
 
 export function statusKind(s: UnitState): StatusKind {
     if (s.ended) return 'ended';
+    if (s.idle) return 'idle';
     if (s.oneshot) return s.failed || (s.result && s.result !== 'success') ? 'failed' : 'completed';
     if (s.running) return 'running';
     if (s.starting) return 'starting';
@@ -75,12 +80,13 @@ export function statusKind(s: UnitState): StatusKind {
 export function statusDot(s: UnitState): string {
     const k = statusKind(s);
     if (k === 'ended') return 'err';
+    if (k === 'idle') return '';
     if (s.oneshot) return k === 'failed' ? 'once failed' : 'once';
     return k === 'running' ? 'ok' : k === 'starting' ? 'starting' : k === 'failed' ? 'err' : k === 'skipped' ? 'skipped' : '';
 }
 
-/** The Status column's order: running first, then what starts, what completed, whose daemon ended, what failed, what was skipped, what is stopped. */
-export const STATUS_RANK: Record<StatusKind, number> = {running: 0, starting: 1, completed: 2, ended: 3, failed: 4, skipped: 5, stopped: 6};
+/** The Status column's order: running first, then what starts, what completed, what chose not to run, whose daemon ended, what failed, what was skipped, what is stopped. */
+export const STATUS_RANK: Record<StatusKind, number> = {running: 0, starting: 1, completed: 2, idle: 3, ended: 4, failed: 5, skipped: 6, stopped: 7};
 
 /** A span of seconds as the page writes it: `42 s`, `17 min`, `2 h 3 min`, `7 d 1 h`. */
 export function span(seconds: number): string {
