@@ -14172,6 +14172,12 @@
           "memory_bytes": {
             "type": "integer"
           },
+          "memory_cache_bytes": {
+            "type": "integer"
+          },
+          "memory_used_bytes": {
+            "type": "integer"
+          },
           "note": {
             "type": "string"
           },

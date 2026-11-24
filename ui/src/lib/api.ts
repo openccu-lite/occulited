@@ -469,6 +469,9 @@ export interface Service {
     /** D-66: this boot's log shows the addon's refused `mount -o remount,rw /` - a hint, not an error */
     remount_refused?: boolean;
     memory_bytes?: number;
+    /** occulited task 178: memory_bytes without the reclaimable page cache, and that cache */
+    memory_used_bytes?: number;
+    memory_cache_bytes?: number;
     cpu_seconds?: number;
     since?: string;
 }

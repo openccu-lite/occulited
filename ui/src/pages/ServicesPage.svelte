@@ -241,6 +241,13 @@
         if (!b) return '';
         return b >= 1048576 ? `${(b / 1048576).toFixed(1)} MB` : `${Math.round(b / 1024)} kB`;
     }
+    // occulited task 178: what a unit uses - its memory without the page cache the kernel frees
+    // when memory is needed (memory.current less inactive_file), memory.current from an older system
+    const used = (s: {memory_bytes?: number; memory_used_bytes?: number}) => s.memory_used_bytes ?? s.memory_bytes;
+    function memTitle(s: {memory_bytes?: number; memory_used_bytes?: number; memory_cache_bytes?: number}): string | undefined {
+        if (s.memory_used_bytes === undefined || !s.memory_bytes) return undefined;
+        return t('{used} in use, {cache} page cache that the kernel frees when memory is needed; {total} together', {used: mem(s.memory_used_bytes) || '0 kB', cache: mem(s.memory_cache_bytes) || '0 kB', total: mem(s.memory_bytes)});
+    }
     function uptime(since?: string) {
         return since ? span((Date.now() - new Date(since).getTime()) / 1000) : '';
     }
@@ -357,7 +364,7 @@
                 case 'category': return catRank[s.category ?? 'system'] ?? 9;
                 case 'running': return STATUS_RANK[statusKind(s)];
                 case 'enabled': return ENABLED_RANK[enabledKind(s.unit_file_state, s.enabled)];
-                case 'memory_bytes': return s.memory_bytes ?? -1;
+                case 'memory_bytes': return used(s) ?? -1;
                 case 'cpu_seconds': return cpuPct[s.id] ?? -1;
                 case 'since': return s.since ? new Date(s.since).getTime() : 0;
                 case 'description': return (s.description ?? '').toLowerCase();
@@ -674,7 +681,7 @@
                     <td data-label={t('User')}>{#if addonOff(s)}—{:else if s.user}<span class="hmm-mono">{s.user}</span>{:else if systemd && s.kind === 'addon'}<Help class="hmm-mono ol-warn">{#snippet trigger()}root{/snippet}{rootWhy(s)}</Help>{:else}<span class="hmm-mono ol-muted">root</span>{/if}{#if s.undeclared}{' '}<Help class="ol-muted">{#snippet trigger()}{t('undeclared')}{/snippet}{t('This addon declared no compatibility: its manifest carries no runtime block, so nobody has said what it needs. It runs on the system default and may want more than that — the log says what it could not do.')}</Help>{/if}{#if s.may_mount || s.remount_refused}<span class="sv-marks">{#if s.may_mount}<Help class="ol-warn">{#snippet trigger()}{t('may mount file systems')}{/snippet}{t('This addon runs as root and its manifest declares CAP_SYS_ADMIN, so it keeps the right to mount file systems and to remount the system partition, which every other root addon has lost.')}</Help>{/if}{#if s.remount_refused}{#if s.may_mount}{' '}{/if}<Help class="ol-muted">{#snippet trigger()}{t('remount refused')}{/snippet}{t('This addon tried to remount the system partition read-write, which openccu-lite does not allow. It still works: what it writes into the device descriptions lands in the writable extension directory instead.')}</Help>{/if}</span>{/if}</td>
                     {#if systemd}
                         <!-- B-75: where CPU and Uptime have no column of their own they stand under the memory -->
-                        <td class="hmm-mono">{mem(s.memory_bytes)}<span class="sv-stack">{cpu(s)}</span><span class="sv-stack">{uptime(s.since)}</span></td>
+                        <td class="hmm-mono"><span title={memTitle(s)} data-memory={s.memory_used_bytes !== undefined ? 'used' : 'current'}>{mem(used(s))}</span><span class="sv-stack">{cpu(s)}</span><span class="sv-stack">{uptime(s.since)}</span></td>
                         <td class="hmm-mono sv-cpu">{cpu(s)}</td>
                         <td class="sv-up">{uptime(s.since)}</td>
                     {/if}

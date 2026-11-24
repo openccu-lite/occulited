@@ -226,6 +226,11 @@ func (s SystemdServices) List() ([]Service, error) {
 		if list[i].Running {
 			if n, err := strconv.ParseInt(props["MemoryCurrent"], 10, 64); err == nil && n < 1<<60 {
 				list[i].MemoryBytes = n
+				// task 178: what of it is the reclaimable page cache
+				if cache, ok := inactiveFile(s.Root, props["ControlGroup"]); ok {
+					list[i].MemoryCacheBytes = min(cache, n)
+					list[i].MemoryUsedBytes = n - list[i].MemoryCacheBytes
+				}
 			}
 			if n, err := strconv.ParseInt(props["CPUUsageNSec"], 10, 64); err == nil && n < 1<<62 {
 				list[i].CPUSeconds = float64(n) / 1e9

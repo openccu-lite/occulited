@@ -270,3 +270,24 @@ func cgroupValue(dir, file string) string {
 	}
 	return v
 }
+
+// inactiveFile is memory.stat's inactive_file of a unit's cgroup (occulited task 178): the page
+// cache on the inactive list, which the kernel reclaims first when memory is needed - what a
+// unit's memory.current carries beyond what it uses (occulited's own read 231 MB on the
+// maintainer's Pi 3, 159 MB of it this cache). World-readable, no helper; false without the file.
+func inactiveFile(root Root, cg string) (int64, bool) {
+	if cg == "" || !strings.HasPrefix(cg, "/") || strings.Contains(cg, "..") {
+		return 0, false
+	}
+	b, err := os.ReadFile(filepath.Join(root.join("/sys/fs/cgroup"), cg, "memory.stat"))
+	if err != nil {
+		return 0, false
+	}
+	for _, line := range strings.Split(string(b), "\n") {
+		if v, ok := strings.CutPrefix(line, "inactive_file "); ok {
+			n, err := strconv.ParseInt(strings.TrimSpace(v), 10, 64)
+			return n, err == nil && n >= 0
+		}
+	}
+	return 0, false
+}

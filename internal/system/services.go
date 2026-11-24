@@ -125,9 +125,15 @@ type Service struct {
 	MayMount       bool `json:"may_mount,omitempty"`
 	RemountRefused bool `json:"remount_refused,omitempty"`
 	// Resource use, systemd only (cgroup accounting): bytes, seconds of CPU time, start time.
-	MemoryBytes int64   `json:"memory_bytes,omitempty"`
-	CPUSeconds  float64 `json:"cpu_seconds,omitempty"`
-	Since       string  `json:"since,omitempty"`
+	MemoryBytes int64 `json:"memory_bytes,omitempty"`
+	// MemoryUsedBytes is MemoryBytes without the unit's reclaimable page cache (occulited task
+	// 178: memory.current - memory.stat's inactive_file, as docker stats counts it), and
+	// MemoryCacheBytes that page cache - file pages the kernel frees when memory is needed.
+	// Absent where the cgroup's memory.stat cannot be read.
+	MemoryUsedBytes  int64   `json:"memory_used_bytes,omitempty"`
+	MemoryCacheBytes int64   `json:"memory_cache_bytes,omitempty"`
+	CPUSeconds       float64 `json:"cpu_seconds,omitempty"`
+	Since            string  `json:"since,omitempty"`
 	// Images as on Addon (openccu-lite task 100), for a generated addon unit whose addon declares
 	// them. Set per request by GET /services.
 	Images map[string]string `json:"images,omitempty"`

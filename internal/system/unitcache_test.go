@@ -343,3 +343,35 @@ func TestUnitCacheNoteCommand(t *testing.T) {
 		}
 	}
 }
+
+// occulited task 178: a unit's memory without its reclaimable page cache - memory.current less
+// memory.stat's inactive_file - beside memory.current, from the same cgroup; nothing extra
+// without memory.stat
+func TestUnitMemoryWithoutPageCache(t *testing.T) {
+	box := newCacheBox(t, true)
+	box.rows["occulited.service"] = [2]string{"active", "running"}
+	box.blocks["occulited.service"] = "MainPID=688\nUnitFileState=enabled\nCPUUsageNSec=1000000000\nTasksCurrent=5\nMemoryCurrent=1\nControlGroup=/system.slice/occulited.service\n"
+	box.process(688)
+	box.cgroup("occulited.service", 2500000, 5)
+	box.write("sys/fs/cgroup/system.slice/occulited.service/memory.current", "242221056\n")
+	box.write("sys/fs/cgroup/system.slice/occulited.service/memory.stat", "anon 66060288\nfile 171966464\nkernel 2936012\nactive_file 5242880\ninactive_file 166723584\n")
+	s := SystemdServices{Root: Root(box.root), Run: box.run, Now: time.Now, Cache: NewUnitCache()}
+	list, err := s.List()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(list) != 1 || list[0].MemoryBytes != 242221056 || list[0].MemoryCacheBytes != 166723584 || list[0].MemoryUsedBytes != 242221056-166723584 {
+		t.Fatalf("%+v", list)
+	}
+	// no memory.stat: memory.current alone, as before
+	if err := os.Remove(filepath.Join(box.root, "sys/fs/cgroup/system.slice/occulited.service/memory.stat")); err != nil {
+		t.Fatal(err)
+	}
+	list, _ = s.List()
+	if list[0].MemoryBytes != 242221056 || list[0].MemoryUsedBytes != 0 || list[0].MemoryCacheBytes != 0 {
+		t.Fatalf("without memory.stat: %+v", list[0])
+	}
+	if n, ok := inactiveFile(Root(box.root), "/../etc"); ok || n != 0 {
+		t.Error("a path out of the tree")
+	}
+}

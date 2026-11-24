@@ -3762,6 +3762,7 @@ const CATALOGUE: Record<string, {de: string; en?: string}> = {
     'throttled since boot': {de: 'seit Start gedrosselt'},
     'Since the start the processor was throttled (or its supply too low) at least once, but it is not now; the firmware keeps this until the next start.': {de: 'Seit dem Start wurde der Prozessor mindestens einmal gedrosselt (oder seine Versorgungsspannung war zu niedrig), jetzt aber nicht; die Firmware merkt sich das bis zum nächsten Start.'},
     Throttled: {de: 'Gedrosselt'},
+    '{used} in use, {cache} page cache that the kernel frees when memory is needed; {total} together': {de: '{used} in Benutzung, {cache} Seitencache, den der Kernel freigibt, wenn Speicher gebraucht wird; zusammen {total}'},
     'Clock capped': {de: 'Takt begrenzt'},
     '{what} since the start-up': {de: '{what} seit dem Start'},
     '{what} before {time} ({temp} then)': {de: '{what} vor {time} ({temp} da)'},

@@ -360,7 +360,7 @@ const routes = {
         poll_seconds: 5,
         services: [
             {id: 'rfd', kind: 'system', running: true, pid: 1204, enabled: true, unit_file_state: 'enabled', protocol: 'BidCos-RF', port: 2001, managed: true, category: 'core', description: 'BidCos-RF interface process', user: 'root', memory_bytes: 24117248, cpu_seconds: 812, since: '2026-09-04T18:02:00Z'},
-            {id: 'hmipserver', kind: 'system', running: true, pid: 1210, enabled: true, unit_file_state: 'enabled', protocol: 'HmIP-RF', port: 2010, managed: true, category: 'core', description: 'HmIP interface process', user: 'root', memory_bytes: 96468992, cpu_seconds: 1440, since: '2026-09-04T18:02:00Z'},
+            {id: 'hmipserver', kind: 'system', running: true, pid: 1210, enabled: true, unit_file_state: 'enabled', protocol: 'HmIP-RF', port: 2010, managed: true, category: 'core', description: 'HmIP interface process', user: 'root', memory_bytes: 96468992, memory_used_bytes: 41943040, memory_cache_bytes: 54525952, cpu_seconds: 1440, since: '2026-09-04T18:02:00Z'},
             {id: 'hs485d', kind: 'system', running: false, enabled: false, unit_file_state: 'disabled', protocol: 'HM-Wired', port: 2000, managed: true, category: 'core', description: 'HM-Wired interface process'},
             {id: 'lighttpd', kind: 'system', running: true, pid: 980, enabled: true, unit_file_state: 'enabled', port: 80, managed: true, category: 'core', ui: true, user: 'root'},
             {id: 'occulited', kind: 'system', running: true, pid: 1002, enabled: true, unit_file_state: 'enabled', port: 8081, managed: true, category: 'core', ui: true, user: 'occulite'},
