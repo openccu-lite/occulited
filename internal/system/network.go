@@ -43,7 +43,11 @@ type NetIface struct {
 	Speed int `json:"speed,omitempty"`
 	// Duplex is full or half; absent when unknown.
 	Duplex string `json:"duplex,omitempty"`
-	MTU    int    `json:"mtu,omitempty"`
+	// SpeedLimit is the stored Ethernet speed setting (occulited task 174), "auto" or "100" (only
+	// 100 Mbit/s is offered to the link partner); absent unless this is a wired interface that
+	// can do 1000 Mbit/s or more.
+	SpeedLimit string `json:"speed_limit,omitempty"`
+	MTU        int    `json:"mtu,omitempty"`
 	// Kind: ethernet, wireless, bridge, vlan, veth, virtual or other.
 	Kind   string `json:"kind"`
 	Driver string `json:"driver,omitempty"`
@@ -142,6 +146,7 @@ func (r Root) ReadNetwork() Network {
 			continue
 		}
 		i := r.readIface(name)
+		i.SpeedLimit = r.speedLimit(i)
 		i.DefaultRoute = name == v4dev || (v4dev == "" && name == v6dev)
 		for _, a := range addrs(name) {
 			if a.IP.To4() != nil {

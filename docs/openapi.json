@@ -13300,6 +13300,9 @@
           "speed": {
             "type": "integer"
           },
+          "speed_limit": {
+            "type": "string"
+          },
           "statistics": {
             "anyOf": [
               {
@@ -33825,6 +33828,9 @@
                     "settings": {
                       "$ref": "#/components/schemas/SystemNetworkSettings"
                     },
+                    "speed_limit_writable": {
+                      "type": "boolean"
+                    },
                     "writable": {
                       "type": "boolean"
                     }
@@ -33834,6 +33840,7 @@
                     "host_managed",
                     "network",
                     "settings",
+                    "speed_limit_writable",
                     "writable"
                   ],
                   "type": "object"
@@ -34527,6 +34534,73 @@
           }
         ],
         "summary": "Reverts the network change now",
+        "tags": [
+          "system/network"
+        ],
+        "x-occulite-scopes": [
+          "system:write"
+        ]
+      }
+    },
+    "/api/system/v1/network/speed-limit": {
+      "post": {
+        "operationId": "postSystemNetworkSpeedLimit",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "interface": {
+                    "type": "string"
+                  },
+                  "limit": {
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {},
+                  "type": [
+                    "object",
+                    "null"
+                  ]
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": [
+              "system:write"
+            ]
+          },
+          {
+            "cookie": [
+              "system:write"
+            ]
+          }
+        ],
+        "summary": "Holds an Ethernet interface at 100 Mbit/s, or lets it negotiate freely",
         "tags": [
           "system/network"
         ],

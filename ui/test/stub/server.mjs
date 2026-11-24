@@ -381,6 +381,8 @@ const routes = {
     },
     'GET /api/system/v1/network': {
         writable: true,
+        // occulited task 174: eth0 can do a gigabit and may be held at 100 Mbit/s
+        speed_limit_writable: true,
         pending: null,
         network: {
             hostname: 'openccu',
@@ -393,7 +395,7 @@ const routes = {
             // the interface panels: a Pi on Wi-Fi (the default route) with a second LAN on eth0 at a
             // gigabit, a USB adapter without a cable, and a veth; the API lists them by name
             interfaces: [
-                {name: 'eth0', mac: 'dc:a6:32:01:02:03', up: true, operstate: 'up', carrier: true, speed: 1000, duplex: 'full', mtu: 1500, kind: 'ethernet', driver: 'bcmgenet',
+                {name: 'eth0', mac: 'dc:a6:32:01:02:03', up: true, operstate: 'up', carrier: true, speed: 1000, duplex: 'full', speed_limit: 'auto', mtu: 1500, kind: 'ethernet', driver: 'bcmgenet',
                     ipv4: [{address: '10.10.0.2', prefix: 24}],
                     ipv6: [
                         {address: '2001:db8:1::119', prefix: 64, scope: 'global', flags: ['permanent']},
@@ -2816,6 +2818,29 @@ function dirsView(q) {
 }
 
 // openccu-lite task 227: the stub's IPv6 settings and the one pending change
+// occulited task 174: the stored speed limit of eth0 per browser; the negotiated speed follows it
+const SPEED = new Map();
+function speedLimitRoute(req, res, jar) {
+    const id = jar['stub-speed'] ?? '';
+    const view = () => {
+        const base = routes['GET /api/system/v1/network'];
+        const limit = SPEED.get(id) ?? 'auto';
+        return {...base, speed_limit_writable: !jar['stub-speed-ro'],
+            network: {...base.network, interfaces: base.network.interfaces.map((i) => (i.name === 'eth0' ? {...i, speed_limit: limit, speed: limit === '100' ? 100 : 1000} : i))}};
+    };
+    let body = '';
+    req.on('data', (c) => (body += c));
+    req.on('end', () => {
+        if (req.method === 'GET') return sendJSON(res, view());
+        const b = body ? JSON.parse(body) : {};
+        if (jar['stub-speed-ro']) return sendJSON(res, {error: 'unsupported', message: 'the Ethernet speed cannot be set on this system'}, 501);
+        if (b.interface !== 'eth0' || !['auto', '100'].includes(b.limit)) return sendJSON(res, {error: 'invalid', message: 'invalid speed limit'}, 422);
+        const changed = (SPEED.get(id) ?? 'auto') !== b.limit;
+        SPEED.set(id, b.limit);
+        return sendJSON(res, {...view(), changed});
+    });
+    return true;
+}
 const IPV6 = new Map();
 function ipv6Route(req, u, res, jar) {
     const id = jar['stub-v6'] ?? '';
@@ -3173,6 +3198,9 @@ function variant(req, u, res) {
         sendJSON(res, dirsView(u.searchParams));
         return true;
     }
+    // occulited task 174: eth0's speed limit, per browser (stub-speed); stub-speed-ro: an image
+    // without the unit that applies it
+    if (u.pathname === '/api/system/v1/network/speed-limit' || (key === 'GET /api/system/v1/network' && (jar['stub-speed'] || jar['stub-speed-ro']))) return speedLimitRoute(req, res, jar);
     // openccu-lite task 227: IPv6 per interface with its rollback window, per browser (stub-v6);
     // stub-v6-window=<s> shortens the window
     if (u.pathname.startsWith('/api/system/v1/network/ipv6')) return ipv6Route(req, u, res, jar);

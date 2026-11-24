@@ -514,7 +514,8 @@ func (a *SystemAPI) Register(mux *http.ServeMux) {
 	route(mux, auth.ScopeSystemRead, "GET "+p+"/network/pending", a.networkPending)
 	route(mux, auth.ScopeSystemWrite, "POST "+p+"/network/confirm", a.networkConfirm)
 	route(mux, auth.ScopeSystemWrite, "POST "+p+"/network/revert", a.networkRevert)
-	a.registerIPv6(mux, p) // ipv6conf.go
+	a.registerIPv6(mux, p)       // ipv6conf.go
+	a.registerSpeedLimit(mux, p) // ethspeed.go
 	// task 157 (D-105): the rule list, its draft and the confirm window, the listeners, the addons' ports
 	route(mux, auth.ScopeSystemRead, "GET "+p+"/firewall", a.firewall)
 	route(mux, auth.ScopeSystemWrite, "PUT "+p+"/firewall", a.firewallPut)
@@ -1499,6 +1500,11 @@ func (a *SystemAPI) followDomain(hostname, domain string) {
 }
 
 func (a *SystemAPI) network(w http.ResponseWriter, _ *http.Request) {
+	writeJSON(w, 200, a.networkView())
+}
+
+// networkView is GET /network's answer.
+func (a *SystemAPI) networkView() map[string]any {
 	n := a.Root.ReadNetwork()
 	// the Network page polls this route: a domain another DHCP lease brought is seen here
 	a.followDomain(n.Hostname, n.Domain)
@@ -1507,13 +1513,15 @@ func (a *SystemAPI) network(w http.ResponseWriter, _ *http.Request) {
 	// the container manager's to set, and a write to /etc/config/netconfig would be applied
 	// by nobody (task 34)
 	hm := a.Root.HostManaged()
-	out := map[string]any{"network": n, "settings": n.Settings(), "current": n.Current(), "writable": a.NetTx != nil && !hm, "host_managed": hm}
+	out := map[string]any{"network": n, "settings": n.Settings(), "current": n.Current(), "writable": a.NetTx != nil && !hm, "host_managed": hm,
+		// occulited task 174: the image can apply an interface's speed_limit
+		"speed_limit_writable": a.Root.SpeedLimitWritable()}
 	if a.NetTx != nil {
 		// a DHCP setup's DNS override is the NetTx's (B-167), not netconfig's
 		out["settings"], out["current"] = a.NetTx.Settings(n)
 		out["pending"] = a.NetTx.Pending()
 	}
-	writeJSON(w, 200, out)
+	return out
 }
 
 // networkBegin applies the submitted settings live and opens the confirmation window. The

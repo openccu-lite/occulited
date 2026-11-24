@@ -22,7 +22,7 @@
     interface Network { hostname: string; domain?: string; mode: string; address?: string; netmask?: string; gateway?: string; dns: string[]; ipv6?: string; interfaces: NetIface[]; ipv6_state?: IPv6State }
     interface Settings { hostname: string; mode: 'dhcp' | 'static'; address?: string; netmask?: string; gateway?: string; dns: string[] }
     interface Pending { token: string; settings: Settings; previous: Settings; started: string; deadline: string }
-    interface NetResponse { network: Network; settings: Settings; current: Settings; pending: Pending | null; writable: boolean; host_managed: boolean }
+    interface NetResponse { network: Network; settings: Settings; current: Settings; pending: Pending | null; writable: boolean; host_managed: boolean; speed_limit_writable?: boolean }
     interface TimeConfig { tz: string; zone: string; ntp_servers: string[]; ntp_source?: 'dhcp' | 'manual'; ntp_servers_active?: string[]; has_ntp: boolean; now: string }
     // occulited task 138: DNS and NTP each from DHCP or entered by hand
     type Source = 'dhcp' | 'manual';
@@ -341,6 +341,26 @@
         await applyNetwork();
     }
 
+    // occulited task 174: an Ethernet interface held at 100 Mbit/s (gigabit disturbs the 868 MHz
+    // radio of a Pi 4/5). The select is the stored setting; a change renegotiates the link, so it asks.
+    async function setSpeedLimit(i: NetIface, select: HTMLSelectElement) {
+        const limit = select.value;
+        if (limit === i.speed_limit) return;
+        const ok = await ask({title: t('Change the Ethernet speed?'), message: t('The link of {iface} is negotiated anew and drops for a few seconds. The addresses stay as they are.', {iface: i.name}), confirm: t('Apply')});
+        if (!ok) { select.value = i.speed_limit ?? 'auto'; return; }
+        busy = 'speed';
+        try {
+            const n = await api.post<NetResponse>('/api/system/v1/network/speed-limit', {interface: i.name, limit});
+            net = n;
+            error = '';
+            // the negotiated speed follows a few seconds later
+            setTimeout(() => void load(), 5000);
+        } catch (e) {
+            error = (e as Error).message;
+            select.value = i.speed_limit ?? 'auto';
+        } finally { busy = ''; }
+    }
+
     async function applyNetwork() {
         const s: Settings = {...form, dns: form.mode === 'dhcp' && dnsSource === 'dhcp' ? [] : dnsList()};
         if (s.mode === 'dhcp') { delete s.address; delete s.netmask; delete s.gateway; }
@@ -520,6 +540,21 @@
         {#if i.mac}<dt class="ol-field-label">MAC</dt><dd class="ol-field-value hmm-mono">{i.mac}</dd>{/if}
         {#if i.mtu}<dt class="ol-field-label">MTU</dt><dd class="ol-field-value">{i.mtu}</dd>{/if}
         {#if i.driver}<dt class="ol-field-label">{t('Driver')}</dt><dd class="ol-field-value hmm-mono">{i.driver}</dd>{/if}
+        {#if i.speed_limit}
+            <!-- occulited task 174: only where the interface can do a gigabit -->
+            <dt class="ol-field-label"><label for={`speed-limit-${i.name}`}>{t('Ethernet speed')}</label><Help>{t('Gigabit Ethernet can disturb the 868 MHz radio on a Raspberry Pi 4 or 5: the network chip and its cable radiate in that range. Limited to 100 Mbit/s, the interface still negotiates with the switch, but offers nothing faster.')}</Help></dt>
+            <dd class="ol-field-value" data-speed-limit={i.speed_limit}>
+                {#if editable && net?.speed_limit_writable}
+                    <div class="ol-field-row">
+                        <select id={`speed-limit-${i.name}`} class="hmm-select" value={i.speed_limit} onchange={(e) => setSpeedLimit(i, e.currentTarget)} disabled={busy !== '' || !!pending} data-action="speed-limit">
+                            <option value="auto">{t('automatic')}</option><option value="100">{t('{speed} Mbit/s', {speed: 100})}</option>
+                        </select>
+                    </div>
+                {:else}
+                    {i.speed_limit === '100' ? t('{speed} Mbit/s', {speed: 100}) : t('automatic')}
+                {/if}
+            </dd>
+        {/if}
     </dl>
     {#if i.statistics}
         {@const rate = rates[i.name]}

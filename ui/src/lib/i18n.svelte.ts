@@ -744,6 +744,11 @@ const CATALOGUE: Record<string, {de: string; en?: string}> = {
     wireless: {de: 'drahtlos'},
     virtual: {de: 'virtuell'},
     'no link': {de: 'keine Verbindung'},
+    // occulited task 174: an Ethernet interface held at 100 Mbit/s
+    'Ethernet speed': {de: 'Ethernet-Geschwindigkeit'},
+    'Gigabit Ethernet can disturb the 868 MHz radio on a Raspberry Pi 4 or 5: the network chip and its cable radiate in that range. Limited to 100 Mbit/s, the interface still negotiates with the switch, but offers nothing faster.': {de: 'Gigabit-Ethernet kann den 868-MHz-Funk an einem Raspberry Pi 4 oder 5 stören: Der Netzwerkchip und sein Kabel strahlen in diesem Bereich ab. Auf 100 Mbit/s begrenzt handelt die Schnittstelle die Verbindung weiter mit dem Switch aus, bietet aber nichts Schnelleres an.'},
+    'Change the Ethernet speed?': {de: 'Ethernet-Geschwindigkeit ändern?'},
+    'The link of {iface} is negotiated anew and drops for a few seconds. The addresses stay as they are.': {de: 'Die Verbindung von {iface} wird neu ausgehandelt und ist für einige Sekunden unterbrochen. Die Adressen bleiben, wie sie sind.'},
     Ethernet: {de: 'Ethernet'},
     'Wi-Fi': {de: 'WLAN'},
     Bridge: {de: 'Bridge'},

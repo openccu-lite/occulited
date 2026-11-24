@@ -27,6 +27,8 @@ export interface NetIface {
     carrier?: boolean;
     speed?: number;
     duplex?: string;
+    /** occulited task 174: 'auto' or '100' on a wired interface that can do 1000 Mbit/s or more; absent otherwise */
+    speed_limit?: 'auto' | '100';
     mtu?: number;
     kind?: string;
     driver?: string;

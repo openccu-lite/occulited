@@ -266,6 +266,7 @@ var routeDocs = map[string]apidoc.Doc{
 	"POST /api/system/v1/network/ipv6/revert":                            {Summary: "Reverts the IPv6 change now"},
 	"GET /api/system/v1/network/pending":                                 {Summary: "The open network change, or null"},
 	"POST /api/system/v1/network/revert":                                 {Summary: "Reverts the network change now"},
+	"POST /api/system/v1/network/speed-limit":                            {Summary: "Holds an Ethernet interface at 100 Mbit/s, or lets it negotiate freely"},
 	"GET /api/system/v1/radio":                                           {Summary: "The radio inventory: modules, interfaces and mode"},
 	"GET /api/system/v1/radio/connections":                               {Summary: "How each interface process connects to its radio"},
 	"PUT /api/system/v1/radio/connections":                               {Summary: "Sets the radio connections and restarts the stack"},
