@@ -41,6 +41,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -209,6 +210,8 @@ type Subscriber struct {
 	// tickMu keeps ticks one at a time: the watch loop makes them, and a test that drives the
 	// clock itself makes its own beside the loop's first (occulited B-92)
 	tickMu sync.Mutex
+	// kick asks the watch loop for a tick now (Retry)
+	kick chan struct{}
 
 	mu       sync.Mutex
 	ifaces   map[string]*iface
@@ -287,7 +290,7 @@ func New(cfg Config) *Subscriber {
 	_, _ = rand.Read(id[:])
 	b := newBus(cfg.Now)
 	b.enrich = cfg.Enrich
-	return &Subscriber{cfg: cfg, log: cfg.Log, bootID: hex.EncodeToString(id[:]), ifaces: map[string]*iface{}, bus: b, now: cfg.Now}
+	return &Subscriber{kick: make(chan struct{}, 1), cfg: cfg, log: cfg.Log, bootID: hex.EncodeToString(id[:]), ifaces: map[string]*iface{}, bus: b, now: cfg.Now}
 }
 
 // BootID identifies this process's life: a reader that sees another one resyncs.
@@ -350,6 +353,8 @@ func (s *Subscriber) watch(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case <-t.C:
+		case <-s.kick:
+			// Retry: the registration loop now
 		}
 	}
 }
@@ -572,6 +577,52 @@ func (s *Subscriber) markCall(i *iface, err error) {
 	}
 }
 
+// The wait before the next init after one that failed: 5 s, 10, 20, 40, then every 80 s - a
+// daemon that is down at boot is tried again soon, and one that hangs is not asked every few
+// seconds to hang again for the init's whole bound. An init that failed at once - nobody
+// listens, or the daemon answered with a fault - costs nothing to ask again, so its wait stops at
+// QuickRetryMax (occulited B-161: an addon's interface that refused its first init was
+// registered only up to two minutes after the addon had been fixed and restarted). The journal
+// does not fill either way: an outage is said once.
+const (
+	RetryMax      = 80 * time.Second
+	QuickRetryMax = 20 * time.Second
+	// QuickFailure: an init that failed within this is one that failed at once.
+	QuickFailure = 2 * time.Second
+)
+
+func retryDelay(failures int, quick bool) time.Duration {
+	delay := 5 * time.Second << min(max(failures, 1)-1, 4)
+	limit := RetryMax
+	if quick {
+		limit = QuickRetryMax
+	}
+	return min(delay, limit)
+}
+
+// Retry has the interfaces that are not registered tried again at once, not after their backoff
+// (occulited B-161): all of them, or the named ones. For whoever knows that a daemon was just
+// started - an addon's unit after an install, or from the Services page.
+func (s *Subscriber) Retry(names ...string) {
+	s.mu.Lock()
+	n := 0
+	for _, i := range s.ifaces {
+		if i.registered || (len(names) > 0 && !slices.Contains(names, i.name)) {
+			continue
+		}
+		i.nextTry, i.failures = time.Time{}, 0
+		n++
+	}
+	s.mu.Unlock()
+	if n == 0 {
+		return
+	}
+	select {
+	case s.kick <- struct{}{}:
+	default: // a tick is asked for already
+	}
+}
+
 // errNoAnswer is a call that got no answer within InitTimeout.
 var errNoAnswer = errors.New("no answer")
 
@@ -638,12 +689,7 @@ func (s *Subscriber) register(i *iface) {
 		i.lastErr = err.Error()
 		i.registered = false
 		i.reinit = false // the retry path takes over
-		// 5 s, 10, 20, 40, 80, then every 2 min: a daemon that is down at boot is tried again
-		// soon, one that is gone for good does not fill the journal
-		delay := 5 * time.Second << min(i.failures-1, 4)
-		if delay > 2*time.Minute {
-			delay = 2 * time.Minute
-		}
+		delay := retryDelay(i.failures, !errors.Is(err, errNoAnswer) && now.Sub(start) < QuickFailure)
 		i.nextTry = now.Add(delay)
 		i.state = "down"
 		// said once per outage: the first failure, or the fall from up - the retries every two

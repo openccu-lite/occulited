@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -964,5 +965,121 @@ func TestStopAnswersACallbackInFlight(t *testing.T) {
 	if c, err := net.DialTimeout("tcp", strings.TrimPrefix(s.Base(), "http://"), time.Second); err == nil {
 		c.Close()
 		t.Fatal("the listener still takes connections after the stop")
+	}
+}
+
+// faultyDaemon answers init with a fault until fixed, as an addon's interface that cannot take
+// the registration yet (occulited B-161: Logic on an ISO-8859-1 call).
+type faultyDaemon struct {
+	mu    sync.Mutex
+	fixed bool
+	inits int
+}
+
+func (d *faultyDaemon) Call(method string, _ xmlrpc.Values) (*xmlrpc.Value, error) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	if method != "init" {
+		return xmlrpc.NewString(""), nil
+	}
+	d.inits++
+	if !d.fixed {
+		return nil, errors.New("fault -1: the interface refused the init")
+	}
+	return xmlrpc.NewString(""), nil
+}
+
+// occulited B-161: an init that fails at once is asked again every 20 s at most, not every two
+// minutes; one that got no answer keeps the long wait.
+func TestRetryDelay(t *testing.T) {
+	for _, tc := range []struct {
+		failures int
+		quick    bool
+		want     time.Duration
+	}{
+		{1, true, 5 * time.Second}, {2, true, 10 * time.Second}, {3, true, 20 * time.Second}, {4, true, 20 * time.Second}, {40, true, 20 * time.Second},
+		{1, false, 5 * time.Second}, {3, false, 20 * time.Second}, {4, false, 40 * time.Second}, {5, false, 80 * time.Second}, {6, false, 80 * time.Second}, {40, false, 80 * time.Second},
+		{0, true, 5 * time.Second},
+	} {
+		if got := retryDelay(tc.failures, tc.quick); got != tc.want {
+			t.Errorf("failures %d quick %v: %v, want %v", tc.failures, tc.quick, got, tc.want)
+		}
+	}
+}
+
+// occulited B-161: an interface that refused its init is registered within 20 s of being fixed,
+// however long it had been refusing, and at once when Retry says its daemon was started.
+func TestAnInterfaceThatRefusedIsRegisteredSoonAfterItsFix(t *testing.T) {
+	now := time.Date(2026, 11, 22, 10, 0, 0, 0, time.UTC)
+	s := New(Config{Listen: "127.0.0.1:0", Interfaces: filepath.Join(t.TempDir(), "InterfacesList.xml")})
+	s.now = func() time.Time { return now }
+	s.Set([]Entry{{Name: "Logic", URL: "xmlrpc://127.0.0.1:39310"}, {Name: "Other", URL: "xmlrpc://127.0.0.1:39311"}})
+	d, other := &faultyDaemon{}, &faultyDaemon{}
+	s.mu.Lock()
+	s.ifaces["Logic"].caller, s.ifaces["Other"].caller = d, other
+	s.mu.Unlock()
+	ctx := context.Background()
+	state := func(name string) string {
+		for _, st := range s.Status() {
+			if st.Name == name {
+				return st.State
+			}
+		}
+		return ""
+	}
+	// ten minutes of refusals: an attempt every 20 s once the backoff has grown, not every 2 min
+	s.tick(ctx)
+	for i := 0; i < 60; i++ {
+		now = now.Add(10 * time.Second)
+		s.tick(ctx)
+	}
+	if d.inits < 28 || d.inits > 34 {
+		t.Fatalf("%d inits in ten minutes of quick refusals, want about 30", d.inits)
+	}
+	// fixed: registered at the next attempt, 20 s away at most
+	d.fixed = true
+	for i := 0; i < 2 && state("Logic") != "up"; i++ {
+		now = now.Add(10 * time.Second)
+		s.tick(ctx)
+	}
+	if state("Logic") != "up" {
+		t.Fatalf("not registered 20 s after the fix: %s", state("Logic"))
+	}
+
+	// Retry: the other interface is asked at once, in the middle of its wait, and a registered one
+	// is left alone
+	before, logic := other.inits, d.inits
+	now = now.Add(time.Second)
+	s.tick(ctx)
+	if other.inits != before {
+		t.Fatal("asked before its wait was over")
+	}
+	other.fixed = true
+	s.Retry("Logic") // registered: nothing to do, no tick asked for
+	select {
+	case <-s.kick:
+		t.Fatal("a retry of a registered interface asked for a tick")
+	default:
+	}
+	s.Retry("Other")
+	select {
+	case <-s.kick:
+	default:
+		t.Fatal("Retry did not ask for a tick")
+	}
+	s.tick(ctx)
+	if state("Other") != "up" || d.inits != logic {
+		t.Fatalf("after Retry: Other %s, Logic's inits %d -> %d", state("Other"), logic, d.inits)
+	}
+	// every unregistered interface without a name; twice in a row is one tick
+	other.fixed = false
+	s.mu.Lock()
+	s.ifaces["Other"].registered = false
+	s.ifaces["Other"].nextTry = now.Add(time.Hour)
+	s.mu.Unlock()
+	s.Retry()
+	s.Retry()
+	if len(s.kick) != 1 {
+		t.Fatalf("%d ticks asked for", len(s.kick))
 	}
 }
