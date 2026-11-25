@@ -1,6 +1,6 @@
 {
   "format": 1,
-  "generated_at": "2026-11-25T17:28:19Z",
+  "generated_at": "2026-11-25T20:37:52Z",
   "catalog": "file:///home/runner/work/occulited/occulited/catalog/catalog.json",
   "repos": {
     "SukramJ/openccu-loom": {
@@ -13537,6 +13537,46 @@
     "openccu-lite/lite-addon-logic": {
       "releases": [
         {
+          "tag_name": "v1.0.0-beta.3",
+          "name": "v1.0.0-beta.3",
+          "draft": false,
+          "prerelease": true,
+          "html_url": "https://github.com/openccu-lite/lite-addon-logic/releases/tag/v1.0.0-beta.3",
+          "published_at": "2026-11-25T19:40:21Z",
+          "assets": [
+            {
+              "name": "logic-aarch64-1.0.0-beta.3.tar.gz",
+              "size": 7136020,
+              "browser_download_url": "https://github.com/openccu-lite/lite-addon-logic/releases/download/v1.0.0-beta.3/logic-aarch64-1.0.0-beta.3.tar.gz"
+            },
+            {
+              "name": "logic-aarch64-1.0.0-beta.3.tar.gz.sha256",
+              "size": 100,
+              "browser_download_url": "https://github.com/openccu-lite/lite-addon-logic/releases/download/v1.0.0-beta.3/logic-aarch64-1.0.0-beta.3.tar.gz.sha256"
+            },
+            {
+              "name": "logic-armv7l-1.0.0-beta.3.tar.gz",
+              "size": 7451410,
+              "browser_download_url": "https://github.com/openccu-lite/lite-addon-logic/releases/download/v1.0.0-beta.3/logic-armv7l-1.0.0-beta.3.tar.gz"
+            },
+            {
+              "name": "logic-armv7l-1.0.0-beta.3.tar.gz.sha256",
+              "size": 99,
+              "browser_download_url": "https://github.com/openccu-lite/lite-addon-logic/releases/download/v1.0.0-beta.3/logic-armv7l-1.0.0-beta.3.tar.gz.sha256"
+            },
+            {
+              "name": "logic-x86_64-1.0.0-beta.3.tar.gz",
+              "size": 7701103,
+              "browser_download_url": "https://github.com/openccu-lite/lite-addon-logic/releases/download/v1.0.0-beta.3/logic-x86_64-1.0.0-beta.3.tar.gz"
+            },
+            {
+              "name": "logic-x86_64-1.0.0-beta.3.tar.gz.sha256",
+              "size": 99,
+              "browser_download_url": "https://github.com/openccu-lite/lite-addon-logic/releases/download/v1.0.0-beta.3/logic-x86_64-1.0.0-beta.3.tar.gz.sha256"
+            }
+          ]
+        },
+        {
           "tag_name": "v1.0.0-beta.2",
           "name": "v1.0.0-beta.2",
           "draft": false,
@@ -21407,6 +21447,71 @@
     "rdmtc/RedMatic": {
       "releases": [
         {
+          "tag_name": "v10.0.0",
+          "name": "v10.0.0",
+          "draft": false,
+          "prerelease": false,
+          "html_url": "https://github.com/rdmtc/RedMatic/releases/tag/v10.0.0",
+          "published_at": "2026-11-25T19:40:24Z",
+          "assets": [
+            {
+              "name": "redmatic-10.0.0-sbom-nodes.json",
+              "size": 7585,
+              "browser_download_url": "https://github.com/rdmtc/RedMatic/releases/download/v10.0.0/redmatic-10.0.0-sbom-nodes.json"
+            },
+            {
+              "name": "redmatic-10.0.0-sbom-runtime.json",
+              "size": 325987,
+              "browser_download_url": "https://github.com/rdmtc/RedMatic/releases/download/v10.0.0/redmatic-10.0.0-sbom-runtime.json"
+            },
+            {
+              "name": "redmatic-10.0.0-sbom-www.json",
+              "size": 5564,
+              "browser_download_url": "https://github.com/rdmtc/RedMatic/releases/download/v10.0.0/redmatic-10.0.0-sbom-www.json"
+            },
+            {
+              "name": "redmatic-10.0.0.tar.gz",
+              "size": 71596292,
+              "browser_download_url": "https://github.com/rdmtc/RedMatic/releases/download/v10.0.0/redmatic-10.0.0.tar.gz"
+            },
+            {
+              "name": "redmatic-10.0.0.tar.gz.sha256",
+              "size": 89,
+              "browser_download_url": "https://github.com/rdmtc/RedMatic/releases/download/v10.0.0/redmatic-10.0.0.tar.gz.sha256"
+            },
+            {
+              "name": "redmatic-aarch64-10.0.0.tar.gz",
+              "size": 103220262,
+              "browser_download_url": "https://github.com/rdmtc/RedMatic/releases/download/v10.0.0/redmatic-aarch64-10.0.0.tar.gz"
+            },
+            {
+              "name": "redmatic-aarch64-10.0.0.tar.gz.sha256",
+              "size": 97,
+              "browser_download_url": "https://github.com/rdmtc/RedMatic/releases/download/v10.0.0/redmatic-aarch64-10.0.0.tar.gz.sha256"
+            },
+            {
+              "name": "redmatic-armv7l-10.0.0.tar.gz",
+              "size": 71596292,
+              "browser_download_url": "https://github.com/rdmtc/RedMatic/releases/download/v10.0.0/redmatic-armv7l-10.0.0.tar.gz"
+            },
+            {
+              "name": "redmatic-armv7l-10.0.0.tar.gz.sha256",
+              "size": 96,
+              "browser_download_url": "https://github.com/rdmtc/RedMatic/releases/download/v10.0.0/redmatic-armv7l-10.0.0.tar.gz.sha256"
+            },
+            {
+              "name": "redmatic-x86_64-10.0.0.tar.gz",
+              "size": 103222633,
+              "browser_download_url": "https://github.com/rdmtc/RedMatic/releases/download/v10.0.0/redmatic-x86_64-10.0.0.tar.gz"
+            },
+            {
+              "name": "redmatic-x86_64-10.0.0.tar.gz.sha256",
+              "size": 96,
+              "browser_download_url": "https://github.com/rdmtc/RedMatic/releases/download/v10.0.0/redmatic-x86_64-10.0.0.tar.gz.sha256"
+            }
+          ]
+        },
+        {
           "tag_name": "v10.0.0-beta.0",
           "name": "v10.0.0-beta.0",
           "draft": false,
@@ -21970,71 +22075,6 @@
               "browser_download_url": "https://github.com/rdmtc/RedMatic/releases/download/v9.17.3/redmatic-x86_64-9.17.3.tar.gz.sha256"
             }
           ]
-        },
-        {
-          "tag_name": "v9.17.2",
-          "name": "v9.17.2",
-          "draft": false,
-          "prerelease": false,
-          "html_url": "https://github.com/rdmtc/RedMatic/releases/tag/v9.17.2",
-          "published_at": "2026-11-12T12:58:09Z",
-          "assets": [
-            {
-              "name": "redmatic-9.17.2-sbom-nodes.json",
-              "size": 7585,
-              "browser_download_url": "https://github.com/rdmtc/RedMatic/releases/download/v9.17.2/redmatic-9.17.2-sbom-nodes.json"
-            },
-            {
-              "name": "redmatic-9.17.2-sbom-runtime.json",
-              "size": 325330,
-              "browser_download_url": "https://github.com/rdmtc/RedMatic/releases/download/v9.17.2/redmatic-9.17.2-sbom-runtime.json"
-            },
-            {
-              "name": "redmatic-9.17.2-sbom-www.json",
-              "size": 5564,
-              "browser_download_url": "https://github.com/rdmtc/RedMatic/releases/download/v9.17.2/redmatic-9.17.2-sbom-www.json"
-            },
-            {
-              "name": "redmatic-9.17.2.tar.gz",
-              "size": 64300674,
-              "browser_download_url": "https://github.com/rdmtc/RedMatic/releases/download/v9.17.2/redmatic-9.17.2.tar.gz"
-            },
-            {
-              "name": "redmatic-9.17.2.tar.gz.sha256",
-              "size": 89,
-              "browser_download_url": "https://github.com/rdmtc/RedMatic/releases/download/v9.17.2/redmatic-9.17.2.tar.gz.sha256"
-            },
-            {
-              "name": "redmatic-aarch64-9.17.2.tar.gz",
-              "size": 98455799,
-              "browser_download_url": "https://github.com/rdmtc/RedMatic/releases/download/v9.17.2/redmatic-aarch64-9.17.2.tar.gz"
-            },
-            {
-              "name": "redmatic-aarch64-9.17.2.tar.gz.sha256",
-              "size": 97,
-              "browser_download_url": "https://github.com/rdmtc/RedMatic/releases/download/v9.17.2/redmatic-aarch64-9.17.2.tar.gz.sha256"
-            },
-            {
-              "name": "redmatic-armv7l-9.17.2.tar.gz",
-              "size": 64300674,
-              "browser_download_url": "https://github.com/rdmtc/RedMatic/releases/download/v9.17.2/redmatic-armv7l-9.17.2.tar.gz"
-            },
-            {
-              "name": "redmatic-armv7l-9.17.2.tar.gz.sha256",
-              "size": 96,
-              "browser_download_url": "https://github.com/rdmtc/RedMatic/releases/download/v9.17.2/redmatic-armv7l-9.17.2.tar.gz.sha256"
-            },
-            {
-              "name": "redmatic-x86_64-9.17.2.tar.gz",
-              "size": 98448918,
-              "browser_download_url": "https://github.com/rdmtc/RedMatic/releases/download/v9.17.2/redmatic-x86_64-9.17.2.tar.gz"
-            },
-            {
-              "name": "redmatic-x86_64-9.17.2.tar.gz.sha256",
-              "size": 96,
-              "browser_download_url": "https://github.com/rdmtc/RedMatic/releases/download/v9.17.2/redmatic-x86_64-9.17.2.tar.gz.sha256"
-            }
-          ]
         }
       ],
       "per_page": 10,
@@ -22056,7 +22096,7 @@
       "git": "https://github.com/rdmtc/RedMatic",
       "manifest": "addon_files/openccu-lite.json",
       "id": "redmatic",
-      "tag": "v9.20.0",
+      "tag": "v10.0.0",
       "release_repo": "rdmtc/RedMatic",
       "images": {
         "icon": "ok",
@@ -22211,7 +22251,7 @@
       "git": "https://github.com/openccu-lite/lite-addon-logic",
       "manifest": "addon/openccu-lite.json",
       "id": "logic",
-      "tag": "v1.0.0-beta.2",
+      "tag": "v1.0.0-beta.3",
       "release_repo": "openccu-lite/lite-addon-logic",
       "images": {
         "icon": "ok",
