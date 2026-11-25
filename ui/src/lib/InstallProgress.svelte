@@ -31,7 +31,7 @@
     import {onMount} from 'svelte';
     import {api} from './api';
     import {t} from './i18n.svelte';
-    import {askStartStopped} from './install';
+    import {askStartStopped, rebootAsked, startedWithoutReboot} from './install';
     import {releasesProblemKind} from './catalog';
     import ReleasesProblem from './ReleasesProblem.svelte';
     import Icon from './Icon.svelte';
@@ -152,7 +152,7 @@
             <strong>{progress.addon_id}</strong>: {t(progress.phase)}{progress.message ? ` — ${progress.message}` : ''}
         {/if}
         {#if busy && progress.phase === 'downloading' && progress.total}{' '}<span class="ol-muted">{Math.round((progress.bytes ?? 0) / 1048576)} / {Math.round(progress.total / 1048576)} MB</span>{/if}
-        {#if progress.result?.reboot_required}{' '}<strong>{t('An addon asked for a reboot to finish its installation.')}</strong>{/if}
+        {#if rebootAsked(progress.result)}{' '}<strong>{t('An addon asked for a reboot to finish its installation.')}</strong>{:else if startedWithoutReboot(progress.result)}{' '}<span data-started-without-reboot>{startedWithoutReboot(progress.result)}</span>{/if}
         {#if busy || progress.phase === 'done'}
             <div class="ol-progress" class:failed={progress.phase === 'failed'} role="progressbar" aria-valuenow={pct} aria-valuemin="0" aria-valuemax="100"><div style={`width:${pct}%`}></div></div>
             <span class="ol-muted">{pct} %</span>

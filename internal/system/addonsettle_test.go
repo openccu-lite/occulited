@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -191,8 +192,8 @@ func TestInstallSettlesAnUpdatedAddon(t *testing.T) {
 	if adopt < 0 || stop < 0 || term < 0 || start < 0 || !(adopt < stop && stop < term && term < start) {
 		t.Fatalf("want adopt, stop, kill, start in that order:\n%s", joined)
 	}
-	if !strings.Contains(res.Output, "[systemd] hmm restarted in its unit") {
-		t.Errorf("output:\n%s", res.Output)
+	if !strings.Contains(res.Output, "[systemd] hmm restarted in its unit") || !slices.Equal(res.Started, []string{"hmm"}) {
+		t.Errorf("started %v, output:\n%s", res.Started, res.Output)
 	}
 	if strings.Contains(joined, "980") || strings.Contains(joined, "-KILL") {
 		t.Errorf("lighttpd was signalled, or a process that ended got a KILL:\n%s", joined)

@@ -3575,6 +3575,8 @@ function variant(req, u, res) {
             else if (jar['stub-install'] === 'exit13') job = {state: 'failed', result: {exit: 13, meaning: 'unsupported platform', reboot_required: false, output: 'update_script (exit 13):\nthis package is for aarch64, this system is x86_64: take battery-x86_64-1.5.5.tar.gz', seconds: 0.4}};
             else if (stopped === 'failed') job = {state: 'failed', result: {exit: 1, meaning: 'exit 1', reboot_required: false, output: 'update_script: exit 1', seconds: 1.4, stopped_addons: [{id: 'mosquitto', starts_at_boot: true}]}};
             else if (stopped === 'reboot') job = {state: 'done', result: {exit: 10, meaning: 'installed, reboot required', reboot_required: true, output: '', seconds: 2.1, stopped_addons: [{id: 'mosquitto', starts_at_boot: false}]}};
+            // occulited B-178: stub-install-stopped=started - exit 10, and the system started the new addon itself
+            else if (stopped === 'started') job = {state: 'done', result: {exit: 10, meaning: 'installed and started (the installer asked for a reboot)', reboot_required: true, output: '[systemd] started mosquitto in their units', seconds: 2.1, started: ['mosquitto']}};
             else job = {state: 'done', result: {exit: 0, meaning: 'installed', reboot_required: false, output: '', seconds: 1.8}};
             const id = `job${++installJobSeq}`;
             installJobs.set(id, {...job, id, polls: 0, started: new Date().toISOString(), bytes: 1});
@@ -3620,6 +3622,7 @@ function variant(req, u, res) {
                 const stopped = jar['stub-install-stopped'];
                 if (stopped === 'reboot') s.run.result = {exit: 10, meaning: 'installed, reboot required', reboot_required: true, stopped_addons: [{id: s.run.addon_id, starts_at_boot: true}]};
                 if (stopped === 'failed') s.run.result = {exit: 1, meaning: 'exit 1', reboot_required: false, stopped_addons: [{id: s.run.addon_id, starts_at_boot: true}]};
+                if (stopped === 'started') s.run.result = {exit: 10, meaning: 'installed and started (the installer asked for a reboot)', reboot_required: true, started: [s.run.addon_id]};
                 if (stopped !== 'failed') s.versions[s.run.addon_id] = s.target;
             }
         }

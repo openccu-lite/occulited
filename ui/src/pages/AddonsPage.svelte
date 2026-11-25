@@ -40,14 +40,14 @@
     import {declarationMark} from '../lib/addonbadges';
     import {prereleaseKind, prereleaseLabel} from '../lib/prerelease';
     import {buildCards, readAddons, readEntries, repoName, textIn, type Broken, type BrokenWhy, type Card, type Entry, type Text} from '../lib/addoncards';
-    import {askStartStopped, installError, installFromCatalog, liteRefusal, type StoppedAddon} from '../lib/install';
+    import {askStartStopped, installError, installFromCatalog, liteRefusal, rebootAsked, startedWithoutReboot, type StoppedAddon} from '../lib/install';
     import ReleasesProblem from '../lib/ReleasesProblem.svelte';
     import {statusDot, statusKind} from '../lib/units';
     import {scrollToAnchor} from '../lib/anchor';
     import CheckDaily from '../lib/CheckDaily.svelte';
     import Icon from '../lib/Icon.svelte';
 
-    interface InstallResult { exit: number; meaning: string; reboot_required: boolean; output?: string; seconds: number; stopped_addons?: StoppedAddon[] }
+    interface InstallResult { exit: number; meaning: string; reboot_required: boolean; output?: string; seconds: number; stopped_addons?: StoppedAddon[]; started?: string[] }
     interface UpdateInfo { installed: string; available: string; update_available: boolean; url: string; error?: string }
     interface FwAddon { id: string; ports: {port: number}[] }
 
@@ -497,7 +497,7 @@
         if (job.error) notice = liteRefusal(job.error);
         else if (job.result) {
             result = job.result;
-            if (job.result.reboot_required) rebootRequired = true;
+            if (rebootAsked(job.result)) rebootRequired = true; // B-178: not when the system started the addon itself
         }
     }
     async function installFile(e: Event) {
@@ -619,6 +619,7 @@
 {#if result}
     <div class="ol-notice" class:error={result.exit !== 0 && result.exit !== 10}>
         <strong>{t('Install result')}:</strong> {result.meaning} <span class="ol-muted">(exit {result.exit}, {result.seconds.toFixed(1)} s)</span>
+        {#if startedWithoutReboot(result)}<div data-started-without-reboot>{startedWithoutReboot(result)}</div>{/if}
         {#if result.output}<pre class="ol-log" style="margin:6px 0 0">{result.output}</pre>{/if}
     </div>
 {/if}

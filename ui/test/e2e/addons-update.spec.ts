@@ -108,6 +108,30 @@ test('in German: a reboot whose boot would not start the addon', async ({page, c
     await expect(page.getByRole('dialog')).toHaveCount(0);
 });
 
+// occulited B-178: an installer that ends with exit 10 while the system started the addon itself -
+// no reboot notice, the line says it runs already (the catalogue's progress and an upload's result)
+test('an exit 10 whose addon the system started asks for no reboot', async ({page, context, baseURL}, info) => {
+    await context.addCookies([
+        {name: 'stub-session', value: `started-${info.project.name}-${Date.now()}`, url: baseURL!},
+        {name: 'stub-install-stopped', value: 'started', url: baseURL!},
+    ]);
+    await page.goto('/addons');
+    const row = page.locator('#addon-row-redmatic');
+    await press(row.locator('[data-addon-update]'), info);
+    await press(page.getByRole('dialog').getByRole('button', {name: 'Update', exact: true}), info);
+    const progress = page.locator('.ol-install-progress');
+    await expect(progress).toHaveAttribute('data-phase', 'done', {timeout: 15_000});
+    await expect(progress.locator('[data-started-without-reboot]')).toContainText('the system has started redmatic already, a reboot is not needed');
+    await expect(progress).not.toContainText('asked for a reboot to finish');
+    await expect(page.getByRole('dialog')).toHaveCount(0);
+
+    await page.locator('input[type="file"]').setInputFiles({name: 'mosquitto.tar.gz', mimeType: 'application/gzip', buffer: Buffer.from('x')});
+    await press(page.locator('form').getByRole('button', {name: 'Install', exact: true}), info);
+    await expect(page.locator('.ol-notice', {hasText: 'Install result'}).locator('[data-started-without-reboot]')).toContainText('started mosquitto already', {timeout: 15_000});
+    await expect(page.getByRole('button', {name: 'Reboot now'})).toHaveCount(0);
+    await expect(page.getByRole('dialog')).toHaveCount(0);
+});
+
 test('an addon the catalogue does not know keeps its own check and gets a Download link', async ({page}, info) => {
     await page.goto('/addons');
     const row = page.locator('#addon-row-hm2mqtt');

@@ -447,6 +447,8 @@ func (a *SystemdAddons) Install(ctx context.Context, archive io.Reader) (*Instal
 		}
 		if res.RebootRequired && len(started) > 0 {
 			res.Output += "\n[systemd] the installer asks for a reboot; the new addon was started without waiting for it"
+			// B-178: the meaning is what the page shows; the reboot is not what made it run
+			res.Meaning = "installed and started (the installer asked for a reboot)"
 		}
 	}
 	if start {
@@ -466,11 +468,15 @@ func (a *SystemdAddons) Install(ctx context.Context, archive io.Reader) (*Instal
 				// install left running
 				a.clearFullWalk(id)
 				confined = append(confined, id)
+				res.Started = append(res.Started, id)
 				continue
 			}
 			stopped, err := a.settleUpdated(ctx, id, scope, res)
 			if err == nil && a.confinedPolicy(id) != nil {
 				confined = append(confined, id)
+			}
+			if err == nil {
+				res.Started = append(res.Started, id)
 			}
 			switch {
 			case !running[id] && err != nil:
@@ -501,6 +507,9 @@ func (a *SystemdAddons) Install(ctx context.Context, archive io.Reader) (*Instal
 	if len(started) > 0 {
 		res.Output += "\n[systemd] started " + strings.Join(started, ", ") + " in their units"
 	}
+	// B-178: what runs now because of the install - the new addons started, the updated ones
+	// restarted or left running
+	res.Started = append(started, res.Started...)
 	// B-98, decided in D-67: an installer that failed or asks for a reboot starts nothing, so an addon
 	// its script stopped stays stopped; the result names it and the page asks whether to start it again
 	if !start {

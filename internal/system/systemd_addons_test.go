@@ -5,6 +5,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -191,6 +192,10 @@ func TestSystemdAddonsRebootRequired(t *testing.T) {
 	if !strings.Contains(res.Output, "started x in their units") || !strings.Contains(res.Output, "started without waiting for it") {
 		t.Errorf("output:\n%s", res.Output)
 	}
+	// B-178: the result names what runs, and the meaning does not read as a pending reboot
+	if !slices.Equal(res.Started, []string{"x"}) || res.Meaning != "installed and started (the installer asked for a reboot)" {
+		t.Errorf("started %v, meaning %q", res.Started, res.Meaning)
+	}
 }
 
 // B-186: an installer that failed starts nothing, a new addon included.
@@ -206,11 +211,15 @@ func TestSystemdAddonsFailedInstallStartsNothing(t *testing.T) {
 		return nil, nil
 	}
 	a := NewSystemdAddons(r, SystemdServices{Root: r, Run: run})
-	if _, err := a.Install(context.Background(), strings.NewReader(strings.Repeat("x", 100))); err != nil {
+	res, err := a.Install(context.Background(), strings.NewReader(strings.Repeat("x", 100)))
+	if err != nil {
 		t.Fatal(err)
 	}
 	if joined := strings.Join(calls, "\n"); strings.Contains(joined, "systemctl start") {
 		t.Errorf("a failed installer's addon was started:\n%s", joined)
+	}
+	if len(res.Started) > 0 || res.Meaning != "unsupported platform" {
+		t.Errorf("started %v, meaning %q", res.Started, res.Meaning)
 	}
 }
 

@@ -12485,6 +12485,15 @@
           "seconds": {
             "type": "number"
           },
+          "started": {
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
           "stopped_addons": {
             "items": {
               "$ref": "#/components/schemas/SystemStoppedAddon"

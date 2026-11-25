@@ -9,6 +9,9 @@ import {api, ApiError} from './api';
 import {ask} from './dialog.svelte';
 import {t} from './i18n.svelte';
 import {prereleaseKind} from './prerelease';
+import {rebootAsked} from './installprogress';
+
+export {rebootAsked};
 
 /**
  * occulited B-113: the message for a refused start. The system's one install slot answers 409
@@ -44,6 +47,14 @@ export interface InstallOutcome {
     exit?: number;
     reboot_required?: boolean;
     stopped_addons?: StoppedAddon[];
+    /** the addons the system started in their units after the installer */
+    started?: string[];
+}
+
+/** occulited B-178: the line that replaces the reboot notice when the system started the addon itself */
+export function startedWithoutReboot(r: InstallOutcome | null | undefined): string {
+    if (!r?.reboot_required || rebootAsked(r)) return '';
+    return t('The installer asked for a reboot; the system has started {addons} already, a reboot is not needed.', {addons: (r.started ?? []).join(', ')});
 }
 
 /**

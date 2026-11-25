@@ -1363,6 +1363,7 @@ const CATALOGUE: Record<string, {de: string; en?: string}> = {
     'Reboot now': {de: 'Jetzt neu starten'},
     'Rebooting…': {de: 'Neustart…'},
     'An addon asked for a reboot to finish its installation.': {de: 'Eine Zusatzsoftware braucht einen Neustart, um die Installation abzuschließen.'},
+    'The installer asked for a reboot; the system has started {addons} already, a reboot is not needed.': {de: 'Die Installation hat einen Neustart verlangt; das System hat {addons} bereits gestartet, ein Neustart ist nicht nötig.'},
     'Install result': {de: 'Ergebnis der Installation'},
     'Install addon': {de: 'Zusatzsoftware installieren'},
     Install: {de: 'Installieren'},

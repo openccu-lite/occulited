@@ -57,3 +57,12 @@ export function writeDismissed(key: string): void {
         /* a private window: closed for this page view only */
     }
 }
+
+/**
+ * occulited B-178: whether the page still asks for the reboot the installer wanted. A new addon is
+ * started after an exit 10 anyway (B-186), so once the system started what the install brought and
+ * left nothing stopped, the reboot would only start what already runs.
+ */
+export function rebootAsked(r: {reboot_required?: boolean; started?: string[]; stopped_addons?: unknown[]} | null | undefined): boolean {
+    return !!r?.reboot_required && !(r.started?.length && !r.stopped_addons?.length);
+}

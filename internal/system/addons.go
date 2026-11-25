@@ -27,6 +27,10 @@ type InstallResult struct {
 	// StoppedAddons are the addons that ran before an installer that failed or asks for a reboot
 	// and are stopped afterwards (B-98, D-67): nothing starts them, so the page asks the user.
 	StoppedAddons []StoppedAddon `json:"stopped_addons,omitempty"`
+	// Started are the addons the system started (or restarted) in their units after the installer
+	// (systemd). After an exit 10 a new addon is in it (B-186), and the page then says so instead of
+	// asking for the reboot (occulited B-178); RebootRequired stays the installer's word.
+	Started []string `json:"started,omitempty"`
 }
 
 // StoppedAddon is one addon of InstallResult.StoppedAddons.
