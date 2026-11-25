@@ -741,6 +741,17 @@ func (s *Service) download(ctx context.Context, av *Available) (staged *system.S
 	if err != nil {
 		return nil, err
 	}
+	// B-177: a cancel that came while the last bytes were copied wins - CancelDownload said yes to
+	// it. From here on no cancel is taken (s.cancel goes under the lock CancelDownload holds), so
+	// a download that said yes always ends cancelled, and one that said no always ends staged.
+	s.mu.Lock()
+	cancelled := ctx.Err() != nil
+	s.cancel = nil
+	s.mu.Unlock()
+	if cancelled {
+		s.Root.DiscardSystemUpdate()
+		return nil, ErrDownloadCancelled
+	}
 	if want != "" {
 		if got := hex.EncodeToString(h.Sum(nil)); got != want {
 			s.Root.DiscardSystemUpdate()

@@ -173,3 +173,94 @@ func TestDownloadProgress(t *testing.T) {
 		t.Errorf("no space: %+v", p)
 	}
 }
+
+// lateBody hands out the first half, signals half, waits for release and hands out the rest with
+// the EOF in the same read - it does not look at the request's context, as a transport that
+// already holds the bytes does not, so no later Read sees the cancel.
+type lateBody struct {
+	body          []byte
+	pos           int
+	half, release chan struct{}
+}
+
+func (b *lateBody) Read(p []byte) (int, error) {
+	mid := len(b.body) / 2
+	if b.pos == mid && b.half != nil {
+		b.half <- struct{}{}
+		<-b.release
+		b.half = nil
+	}
+	if b.pos >= len(b.body) {
+		return 0, io.EOF
+	}
+	end := len(b.body)
+	if b.pos < mid {
+		end = mid
+	}
+	n := copy(p, b.body[b.pos:end])
+	b.pos += n
+	if b.pos == len(b.body) {
+		return n, io.EOF // net/http's body hands out the last bytes with the EOF, as here
+	}
+	return n, nil
+}
+func (b *lateBody) Close() error { return nil }
+
+type lateTransport struct {
+	next http.RoundTripper
+	body *lateBody
+}
+
+func (t lateTransport) RoundTrip(r *http.Request) (*http.Response, error) {
+	if r.URL.Path != "/a" {
+		return t.next.RoundTrip(r)
+	}
+	return &http.Response{StatusCode: 200, ContentLength: int64(len(t.body.body)), Body: t.body, Header: http.Header{}, Request: r}, nil
+}
+
+// B-177: a cancel CancelDownload said yes to wins also when the rest of the body arrives before
+// the copy sees the cancelled context - the download ends cancelled and nothing stays staged.
+func TestDownloadCancelBeforeTheLastBytes(t *testing.T) {
+	body := releaseZip()
+	sum := sha256.Sum256(body)
+	var srv *httptest.Server
+	srv = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/latest":
+			fmt.Fprintf(w, `{"tag_name":"t","assets":[{"name":"openccu-lite-x86_64-ova-2.zip","browser_download_url":"%s/a","size":%d},{"name":"openccu-lite-x86_64-ova-2.zip.sha256","browser_download_url":"%s/s","size":1}]}`, srv.URL, len(body), srv.URL)
+		case "/s":
+			fmt.Fprintf(w, "%s  x\n", hex.EncodeToString(sum[:]))
+		}
+	}))
+	t.Cleanup(srv.Close)
+	r := fakeRoot(t, "VERSION=1\nPRODUCT=ova\nPLATFORM=ova\nVARIANT=lite\n")
+	s := New(r, srv.URL+"/latest", true, nil)
+	lb := &lateBody{body: body, half: make(chan struct{}), release: make(chan struct{})}
+	s.HTTP = &http.Client{Transport: lateTransport{next: http.DefaultTransport, body: lb}}
+	if err := s.Check(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	done := make(chan error, 1)
+	go func() { _, err := s.Download(context.Background()); done <- err }()
+	<-lb.half
+	if !s.CancelDownload() {
+		t.Fatal("no download to cancel")
+	}
+	close(lb.release)
+	if err := <-done; !errors.Is(err, ErrDownloadCancelled) {
+		t.Fatalf("cancel: %v", err)
+	}
+	if p := s.Progress(); p.Phase != PhaseCancelled {
+		t.Fatalf("progress: %+v", p)
+	}
+	if st := s.State(); st.Downloading != "" || st.DownloadError != "" {
+		t.Fatalf("state: %+v", st)
+	}
+	if u := r.StagedSystemUpdate(); u != nil {
+		t.Fatalf("staged after the cancel: %+v", u)
+	}
+	// after the end no cancel is taken
+	if s.CancelDownload() {
+		t.Fatal("a cancel was taken after the download ended")
+	}
+}
