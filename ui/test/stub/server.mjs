@@ -22,6 +22,9 @@ const SHELL_HEADERS = Object.fromEntries(
     fs.readFileSync(path.resolve(HERE, '../../../internal/ui/csp.txt'), 'utf8').split('\n').filter((l) => l.includes(': ')).map((l) => l.split(/: (.*)/s).slice(0, 2)),
 );
 if (!SHELL_HEADERS['Content-Security-Policy']) throw new Error('internal/ui/csp.txt has no Content-Security-Policy line');
+// openccu-lite task 505: occulited marks the shell's answers (internal/ui ShellHeader); the service
+// worker keeps nothing without the mark
+SHELL_HEADERS['X-Occulited-Shell'] = '1';
 
 // task 259: the header credential. The daemon answers 403 request-header to a state-changing call
 // whose only credential is the session cookie and that lacks X-Occulite-Request. The stub knows no
@@ -4019,9 +4022,32 @@ function imageRoute(req, u, res) {
     return true;
 }
 
+// openccu-lite task 505: the origin answered by the recovery system, only with the cookie
+// `stub-recovery=1` - as its lighttpd does: its own menu (no shell mark) for a page, its 503 JSON for
+// /api/, its log as text. For the service worker's spec: the worker fetches with the cookie too.
+const RECOVERY_PAGE = '<html><head><title>CCU Recovery System</title></head><body><h1>CCU Recovery System</h1></body></html>';
+function recoveryRoute(req, u, res) {
+    if (!/(^|;\s*)stub-recovery=1/.test(req.headers.cookie ?? '')) return false;
+    if (u.pathname.startsWith('/api/')) {
+        res.writeHead(503, {'Content-Type': 'application/json', 'Retry-After': '30', 'Cache-Control': 'no-store'});
+        res.end(JSON.stringify({error: 'updating', message: 'the system is in its recovery system', recovery: true, update: {running: true, phase: 'prepare', step: 5, steps: 7, log_bytes: 40}}));
+    } else if (u.pathname === '/fwinstall.log') {
+        res.writeHead(200, {'Content-Type': 'text/plain'});
+        res.end('Starting firmware update:<br/>\n[5/7] Preparing uploaded data...');
+    } else if (u.pathname === '/' || u.pathname === '/index.cgi') {
+        res.writeHead(200, {'Content-Type': 'text/html; charset=iso-8859-1', 'Cache-Control': 'private, no-cache, must-revalidate, no-transform, max-age=0'});
+        res.end(RECOVERY_PAGE);
+    } else {
+        res.writeHead(301, {Location: '/'});
+        res.end();
+    }
+    return true;
+}
+
 const srv = http.createServer((req, res) => {
     const u = new URL(req.url, 'http://x');
     const key = `${req.method} ${u.pathname}`;
+    if (recoveryRoute(req, u, res)) return;
     if (imageRoute(req, u, res)) return;
     if (refusedWithoutHeader(req, u.pathname)) {
         console.error(`stub: ${key} without X-Occulite-Request (task 259)`);

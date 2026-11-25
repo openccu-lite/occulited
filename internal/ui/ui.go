@@ -44,10 +44,17 @@ func parsePolicy(s string) map[string]string {
 	return out
 }
 
+// ShellHeader marks an answer as the shell's own (openccu-lite task 505): the App's service worker
+// keeps only answers that carry it. The same origin is the recovery system's while it runs - its
+// lighttpd serves its own page there over HTTPS now - and a worker that kept any 200 of a navigation
+// would store that page as the App's shell.
+const ShellHeader = "X-Occulited-Shell"
+
 func setPolicy(w http.ResponseWriter) {
 	for name, value := range Policy {
 		w.Header().Set(name, value)
 	}
+	w.Header().Set(ShellHeader, "1")
 }
 
 // Handler returns the SPA handler: static files from dist, index.html for every other path so

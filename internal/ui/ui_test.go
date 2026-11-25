@@ -67,5 +67,9 @@ func TestShellPolicy(t *testing.T) {
 		if rec.Header().Get("Content-Security-Policy") != csp || rec.Header().Get("Permissions-Policy") != Policy["Permissions-Policy"] {
 			t.Errorf("%s (%d): headers %v", p, rec.Code, rec.Header())
 		}
+		// task 505: the service worker keeps only what carries the shell's mark
+		if rec.Header().Get(ShellHeader) != "1" {
+			t.Errorf("%s (%d): no %s: %v", p, rec.Code, ShellHeader, rec.Header())
+		}
 	}
 }
