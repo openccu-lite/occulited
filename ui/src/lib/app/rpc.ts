@@ -77,7 +77,7 @@ export interface Channel {
     /** the device's model (PARENT_TYPE), e.g. HmIP-PSM - task 75: a plug shows a socket */
     parent?: string;
     /** the channel's FLAGS (1 visible, 2 internal), where its description has them - task 176: a variable or a
-     *  program that is not visible is no tile */
+     *  program that is not visible is left out of the unassigned list unless its checkbox shows it */
     flags?: number;
     desc?: Description;
     model: Model;
@@ -251,7 +251,8 @@ export async function loadChannels(refs: string[]): Promise<{channels: Map<strin
 }
 
 /** occulited task 176: a variable or a program its interface marks as not visible (FLAGS without bit 1, the CCU's
- *  "sichtbar" switched off): no tile anywhere. A channel without FLAGS, and every other kind of channel, is shown. */
+ *  "sichtbar" switched off): left out of the unassigned list behind its checkbox, shown where it is assigned. A
+ *  channel without FLAGS, and every other kind of channel, is visible. */
 export function invisible(c: {flags?: number; model: Model} | undefined): boolean {
     return !!c && (c.model.widget === 'variable' || c.model.widget === 'program') && c.flags !== undefined && (c.flags & 1) === 0;
 }

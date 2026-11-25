@@ -10,7 +10,8 @@
  *                                  "then" without them) where it may be run
  *
  * What a user chooses per object lives in the metadata, namespace `control` (meta-format.md): the icon (as for a
- * switch), `read_only` (the tile and the sheet only show) and a number's `step`.
+ * switch), `read_only` (the tile and the sheet only show), a number's `step` and, for a program, `run_then` (the
+ * tile's button runs RUN_THEN, the CCU's "Start" without the conditions, instead of RUN).
  */
 import type {Description, Model, Values} from './channels';
 
@@ -51,10 +52,13 @@ export function variableModel(desc: Description): Model {
     return {widget: 'variable', tile: write || writable(desc, 'ACKNOWLEDGE') ? 'act-open' : 'read', stateKey: 'VALUE', commandKey: act ? 'VALUE' : ''};
 }
 
-/** The program's model: its disc runs it where it may be run; its sheet also switches it. */
-export function programModel(desc: Description): Model {
-    const run = writable(desc, 'RUN');
-    return {widget: 'program', tile: run || writable(desc, 'ACTIVE') ? 'act-open' : 'read', stateKey: 'ACTIVE', commandKey: run ? 'RUN' : ''};
+/** The program's model: its disc (the tile's play button) runs it where it may be run - RUN, with its conditions, or
+ *  RUN_THEN where that is chosen (`runThen`, the panel's setting); the other one stands in where only it may be
+ *  written. Its sheet also switches it. */
+export function programModel(desc: Description, runThen = false): Model {
+    const order = runThen ? ['RUN_THEN', 'RUN'] : ['RUN', 'RUN_THEN'];
+    const key = order.find((k) => writable(desc, k)) ?? '';
+    return {widget: 'program', tile: key || writable(desc, 'ACTIVE') ? 'act-open' : 'read', stateKey: 'ACTIVE', commandKey: key};
 }
 
 /** The model of a tile set read-only: no action, and the sheet shows without controls. */
@@ -67,6 +71,8 @@ export function lockedModel(m: Model): Model {
 /** What Control keeps per variable or program beside the icon. */
 export interface ControlSettings {
     readOnly: boolean;
+    /** a program: the tile's button runs RUN_THEN (without the conditions) instead of RUN */
+    runThen: boolean;
     /** a number's step, when one is chosen */
     step?: number;
 }
@@ -81,16 +87,16 @@ export function validStep(x: unknown): number | undefined {
 
 /** The settings in an object's metadata; anything that is not what it should be counts as not set. */
 export function controlSettings(meta: Record<string, unknown> | undefined): ControlSettings {
-    const ns = meta?.control as {read_only?: unknown; step?: unknown} | undefined;
+    const ns = meta?.control as {read_only?: unknown; run_then?: unknown; step?: unknown} | undefined;
     const step = validStep(ns?.step);
-    return {readOnly: ns?.read_only === true, ...(step === undefined ? {} : {step})};
+    return {readOnly: ns?.read_only === true, runThen: ns?.run_then === true, ...(step === undefined ? {} : {step})};
 }
 
 /**
  * The `control` namespace with one setting changed, the other keys kept (a PATCH replaces a namespace whole);
  * null when nothing is left, which removes the namespace.
  */
-export function withSetting(meta: Record<string, unknown> | undefined, key: 'icon' | 'read_only' | 'step', value: string | number | boolean | null): Record<string, unknown> | null {
+export function withSetting(meta: Record<string, unknown> | undefined, key: 'icon' | 'read_only' | 'run_then' | 'step', value: string | number | boolean | null): Record<string, unknown> | null {
     const ns = {...((meta?.control as Record<string, unknown> | undefined) ?? {})};
     if (value === null || value === false || value === '') delete ns[key];
     else ns[key] = value;
@@ -221,9 +227,10 @@ export function programText(values: Values, t: T): string {
 
 // ---- the pictures
 
-/** The automatic icon of a variable (by its kind and, for an alarm, its state) or a program. */
+/** The automatic icon of a variable (by its kind and, for an alarm, its state) or a program: a play button where its
+ *  tile runs it, else the program's own picture. */
 export function autoIcon(m: Model, desc: Description | undefined, on = false): string {
-    if (m.widget === 'program') return 'edit_settings';
+    if (m.widget === 'program') return m.commandKey ? 'audio_play' : 'edit_settings';
     switch (varKind(desc)) {
         case 'bool': return 'control_on_off';
         case 'alarm': return on ? 'secur_alarm_alarm' : 'secur_alarm';

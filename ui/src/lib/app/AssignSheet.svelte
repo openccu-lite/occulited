@@ -97,7 +97,7 @@
         fts_door_tilt: 'Door, ajar', fts_frontdoor: 'Front door', fts_door_slide: 'Sliding door', fts_door_slide_open: 'Sliding door, open', fts_garage: 'Garage',
         fts_garage_door_100: 'Garage door, open', fts_sliding_gate_closed: 'Sliding gate', fts_sliding_gate_open: 'Sliding gate, open', fts_yard_gate_2w: 'Yard gate', fts_yard_gate_2w_open: 'Yard gate, open',
         // task 176: the variable and program suggestions
-        edit_input_numeric: 'Number', edit_sort: 'Value list', message_notice: 'Text', edit_settings: 'Program', secur_alarm: 'Alarm', message_presence: 'Presence',
+        edit_input_numeric: 'Number', edit_sort: 'Value list', message_notice: 'Text', edit_settings: 'Program', audio_play: 'Start', secur_alarm: 'Alarm', message_presence: 'Presence',
         temp_temperature: 'Temperature', measure_power_meter: 'Meter', weather_station_generic: 'Reading',
     };
     // the suggested icons have translated labels; any other icon of the set its readable name
@@ -138,6 +138,10 @@
     const settings = $derived(controlSettings(object?.meta));
     function setReadOnly(on: boolean) {
         void write({meta: {[CONTROL_NS]: withSetting(object?.meta, 'read_only', on)}});
+    }
+    // the rework (maintainer, 2026-11-24): what a program's play button on the tile runs - RUN or RUN_THEN
+    function setRunThen(on: boolean) {
+        void write({meta: {[CONTROL_NS]: withSetting(object?.meta, 'run_then', on)}});
     }
     // the step's field follows the stored one only when that changes, like the display name
     const storedStep = $derived(settings.step === undefined ? '' : formatNumber(settings.step, i18n.language, settings.step));
@@ -278,6 +282,13 @@
             <span>{t('Show only (read-only in Control)')}</span>
             <Help>{iconOf.program ? t('Control then only shows whether this program is active: no run, no switch. Other software and the addon itself can still run and switch it.') : t('Control then only shows the value of this variable. Programs, other software and the addon itself can still change it.')}</Help>
         </label>
+        {#if iconOf.program}
+            <div class="as-runmode" role="radiogroup" aria-label={t('The button on the tile')} data-assign="run-mode">
+                <span class="as-label">{t('The button on the tile')}<Help>{t('With its conditions the program checks them now and runs what applies; without them it runs its first "then" at once, as the CCU\'s "Start" does. The card keeps both.')}</Help></span>
+                <label class="as-row"><input type="radio" name="as-run-mode" checked={!settings.runThen} disabled={busy || settings.readOnly} onchange={() => setRunThen(false)} data-assign-run="run" /> <span>{t('runs the program (with its conditions)')}</span></label>
+                <label class="as-row"><input type="radio" name="as-run-mode" checked={settings.runThen} disabled={busy || settings.readOnly} onchange={() => setRunThen(true)} data-assign-run="run_then" /> <span>{t('starts it without its conditions')}</span></label>
+            </div>
+        {/if}
         {#if iconOf.number}
             <div class="as-field" data-assign="step">
                 <label class="as-label" for="as-step">{t('Step')}<Help>{t("The step of the plus and minus buttons and of the slider in this number's sheet; it also decides how many decimals Control shows. Empty: chosen by the limits.")}</Help></label>
@@ -314,6 +325,9 @@
     .as-ref { font-size: var(--hmm-font-size-small); }
     .as-field { display: grid; grid-template-columns: 11em 1fr 6.5em; align-items: center; gap: 10px; margin: 0 0 14px; font-size: 1.05em; }
     .as-label { display: inline-flex; align-items: center; gap: 4px; min-width: 0; }
+    /* task 176: a program's play button - RUN or RUN_THEN, two radio rows under their heading */
+    .as-runmode { margin: 0 0 14px; }
+    .as-runmode > .as-label { padding: 0 8px; font-size: 1.05em; min-height: 32px; }
     .as-input[readonly] { color: var(--hmm-fg-muted); background: transparent; }
     @media (max-width: 520px) {
         .as-field { grid-template-columns: 1fr auto; }

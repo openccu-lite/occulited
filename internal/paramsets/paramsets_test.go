@@ -342,6 +342,20 @@ func TestHandler(t *testing.T) {
 	if _, ok := c.Get("HmIP-RF/HmIP-PSM/2.6.4/1/SWITCH_VIRTUAL_RECEIVER/VALUES"); !ok {
 		t.Fatalf("the updated device's new key is not described: %v", c.Keys())
 	}
+	// occulited task 176: the process restarts with another FIRMWARE for it and announces it as new
+	// (an addon interface's subscriber that lists no devices gets every device as new): the cache
+	// does not keep the old description of the address, the new key is described
+	f.mu.Lock()
+	f.devices["000C1"]["FIRMWARE"] = "2.6.6"
+	f.mu.Unlock()
+	h.Devices("HmIP-RF", "new", []string{"000C1"})
+	<-done
+	if _, ok := c.Get("HmIP-RF/HmIP-PSM/2.6.6/1/SWITCH_VIRTUAL_RECEIVER/VALUES"); !ok {
+		t.Fatalf("the re-announced device's new key is not described: %v", c.Keys())
+	}
+	if k, err := c.KeyOf(context.Background(), "HmIP-RF", "000C1:3", "VALUES"); err != nil || k != "HmIP-RF/HmIP-PSM/2.6.6/1/SWITCH_VIRTUAL_RECEIVER/VALUES" {
+		t.Fatalf("the channel's key after the re-announcement: %q %v", k, err)
+	}
 	h.Devices("HmIP-RF", "deleted", []string{"000C1"})
 	h.Event(rpcsub.Event{})
 	var _ rpcsub.Handler = h

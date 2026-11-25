@@ -22,7 +22,7 @@
     import {fit} from '../lib/app/fit';
     import {durationLine, hasDuration, nextDurationChange} from '../lib/app/duration';
     import {invisible, loadChannels, loadDeviceTypes, openEvents, operable, setValue, type Channel, putValues} from '../lib/app/rpc';
-    import {controlSettings, lockedModel} from '../lib/app/variables';
+    import {controlSettings, lockedModel, programModel} from '../lib/app/variables';
     import type {StreamState} from '../lib/app/eventstream';
     import {subscribeShell} from '../lib/shellstream/client';
     import Sheet from '../lib/app/Sheet.svelte';
@@ -429,20 +429,25 @@
     // the list arrives whole; a channel that may be virtual stays out until then.
     let showVirtualChannels = $state(false);
     let showVirtualKeys = $state(false);
+    // occulited task 176 (maintainer, 2026-11-24): a variable or a program its interface marks not visible (the CCU's
+    // "sichtbar") is left out of the unassigned list behind its own checkbox; assigned to a room or a function it shows
+    // there like any other
+    let showInvisible = $state(false);
     let deviceTypes = $state.raw<Map<string, Map<number, string>>>(new Map());
     const UNASSIGNED_SHOW = 'ol.app.unassigned';
     onMount(() => {
         try {
-            const v = JSON.parse(localStorage.getItem(UNASSIGNED_SHOW) ?? '{}') as {channels?: unknown; keys?: unknown};
+            const v = JSON.parse(localStorage.getItem(UNASSIGNED_SHOW) ?? '{}') as {channels?: unknown; keys?: unknown; invisible?: unknown};
             showVirtualChannels = v.channels === true;
             showVirtualKeys = v.keys === true;
+            showInvisible = v.invisible === true;
         } catch {
             /* nothing remembered: both off */
         }
     });
     function rememberUnassignedShow() {
         try {
-            localStorage.setItem(UNASSIGNED_SHOW, JSON.stringify({channels: showVirtualChannels, keys: showVirtualKeys}));
+            localStorage.setItem(UNASSIGNED_SHOW, JSON.stringify({channels: showVirtualChannels, keys: showVirtualKeys, invisible: showInvisible}));
         } catch {
             /* a private window: not remembered */
         }
@@ -451,6 +456,7 @@
         if (view.kind !== 'unassigned') return false;
         const c = channels.get(ref);
         if (!c) return false;
+        if (invisible(c)) return !showInvisible;
         if (isVirtualKey(c)) return !showVirtualKeys;
         if (showVirtualChannels || !mayBeVirtualChannel(c.type)) return false;
         const i = c.address.lastIndexOf(':');
@@ -464,8 +470,9 @@
     // as before (an outage does not blank the page). A room, a function and the favorites keep showing at once.
     let settledRefs = $state('');
     const holding = $derived(view.kind === 'unassigned' && settledRefs !== refs.join(' '));
-    // occulited task 176: a variable or a program that is not visible in its interface is no tile
-    const uiTiles = $derived(tiles.filter((x) => { const c = channels.get(x.ref); return hasUI(c) && !(holding && !c) && !invisible(c) && !pairs.hidden.has(x.ref) && !leftOut(x.ref); }));
+    const uiTiles = $derived(tiles.filter((x) => { const c = channels.get(x.ref); return hasUI(c) && !(holding && !c) && !pairs.hidden.has(x.ref) && !leftOut(x.ref); }));
+    // task 176: the checkbox for the invisible ones only where the list has some
+    const anyInvisible = $derived(view.kind === 'unassigned' && tiles.some((x) => invisible(channels.get(x.ref))));
     /** the power meter channel merged into a switch tile, if any */
     function meterOf(ref: string): Channel | undefined {
         const r = pairs.meter.get(ref);
@@ -575,15 +582,20 @@
             channels = m;
         }
     }
-    /** occulited task 176: what Control keeps for a variable or a program in the metadata (read-only, a number's step) */
+    /** occulited task 176: what Control keeps for a variable or a program in the metadata (read-only, a number's step,
+     *  a program's RUN or RUN_THEN) */
     function settingsOf(ref: string) {
         return controlSettings(snap?.objects[ref]?.meta);
     }
     /** the channel as the tile and the sheet show it: moving while its click's action is pending; task 176: a variable
-     *  or a program set read-only without its action */
+     *  or a program set read-only without its action, a program's button running what its settings say */
     function viewOf(ref: string): Channel | undefined {
         const c = channels.get(ref);
-        if (c && (c.model.widget === 'variable' || c.model.widget === 'program')) return settingsOf(ref).readOnly ? {...c, model: lockedModel(c.model)} : c;
+        if (c && (c.model.widget === 'variable' || c.model.widget === 'program')) {
+            const st = settingsOf(ref);
+            if (st.readOnly) return {...c, model: lockedModel(c.model)};
+            return c.model.widget === 'program' && c.desc && st.runThen ? {...c, model: programModel(c.desc, true)} : c;
+        }
         const p = pendingAct[ref];
         return c && p ? {...c, values: withPending(c.values, c.desc, p.dir)} : c;
     }
@@ -1242,6 +1254,7 @@
                 <div class="app-show" data-app-unassigned-show>
                     <label><input type="checkbox" bind:checked={showVirtualChannels} onchange={rememberUnassignedShow} data-app-show-virtual-channels /> {t('Show virtual channels')}</label>
                     <label><input type="checkbox" bind:checked={showVirtualKeys} onchange={rememberUnassignedShow} data-app-show-virtual-keys /> {t('Show virtual keys')}</label>
+                    {#if anyInvisible}<label><input type="checkbox" bind:checked={showInvisible} onchange={rememberUnassignedShow} data-app-show-invisible /> {t('Show invisible variables and programs')}</label>{/if}
                 </div>
             {/if}
             {#if view.kind === 'appview'}

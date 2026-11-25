@@ -2,7 +2,7 @@ import {describe, expect, it} from 'vitest';
 import {classify, isOn, mainAction, shown, stateText, type Description} from './channels';
 import {invisible} from './rpc';
 import {KNX, stateIcon} from './stateicons';
-import {autoIcon, boolLabels, controlSettings, decimalsOf, entryIndex, formatNumber, isProgram, isVariable, limitOf, lockedModel, niceStep, numberProblem, parseNumber, stepOf, stepped, truth, validStep, varKind, variableText, withSetting} from './variables';
+import {autoIcon, boolLabels, programModel, controlSettings, decimalsOf, entryIndex, formatNumber, isProgram, isVariable, limitOf, lockedModel, niceStep, numberProblem, parseNumber, stepOf, stepped, truth, validStep, varKind, variableText, withSetting} from './variables';
 
 const t = (k: string, p?: Record<string, string>) => k.replace(/\{(\w+)\}/g, (_, n) => p?.[n] ?? '');
 const MAXF = 3.4028234663852886e38;
@@ -145,11 +145,13 @@ describe('a number\'s limits and step', () => {
 
 describe('the choices in the metadata', () => {
     it('read_only is true only when it says true; a step is a number above 0', () => {
-        expect(controlSettings(undefined)).toEqual({readOnly: false});
-        expect(controlSettings({control: {icon: 'x'}})).toEqual({readOnly: false});
-        expect(controlSettings({control: {read_only: true, step: 0.5}})).toEqual({readOnly: true, step: 0.5});
-        expect(controlSettings({control: {read_only: 'yes', step: 0}})).toEqual({readOnly: false});
-        expect(controlSettings({control: {step: '0.5'}})).toEqual({readOnly: false});
+        expect(controlSettings(undefined)).toEqual({readOnly: false, runThen: false});
+        expect(controlSettings({control: {icon: 'x'}})).toEqual({readOnly: false, runThen: false});
+        expect(controlSettings({control: {read_only: true, step: 0.5}})).toEqual({readOnly: true, runThen: false, step: 0.5});
+        expect(controlSettings({control: {read_only: 'yes', step: 0}})).toEqual({readOnly: false, runThen: false});
+        expect(controlSettings({control: {step: '0.5'}})).toEqual({readOnly: false, runThen: false});
+        expect(controlSettings({control: {run_then: true}})).toEqual({readOnly: false, runThen: true});
+        expect(controlSettings({control: {run_then: 'yes'}})).toEqual({readOnly: false, runThen: false});
         expect([validStep(-1), validStep(NaN), validStep(Infinity), validStep(2)]).toEqual([undefined, undefined, undefined, 2]);
     });
     it('one key is written with the others kept; nothing left removes the namespace', () => {
@@ -158,6 +160,8 @@ describe('the choices in the metadata', () => {
         expect(withSetting(meta, 'icon', null)).toEqual({step: 0.5});
         expect(withSetting(meta, 'step', 2)).toEqual({icon: 'scene_day', step: 2});
         expect(withSetting({control: {read_only: true}}, 'read_only', false)).toBeNull();
+        expect(withSetting(meta, 'run_then', true)).toEqual({icon: 'scene_day', step: 0.5, run_then: true});
+        expect(withSetting({control: {icon: 'audio_play', run_then: true}}, 'run_then', false)).toEqual({icon: 'audio_play'});
         expect(withSetting(undefined, 'icon', '')).toBeNull();
         expect(withSetting(undefined, 'icon', 'scene_day')).toEqual({icon: 'scene_day'});
         expect(meta.control).toEqual({icon: 'scene_day', step: 0.5}); // not changed in place
@@ -167,10 +171,13 @@ describe('the choices in the metadata', () => {
 describe('the pictures', () => {
     const icon = (d: Description, type: string, values = {}, extra = {}) => stateIcon({model: classify(d, type), values, desc: d, ...extra});
     it('automatic by the kind, all of them in the bundle', () => {
-        const names = [icon(bool, 'VARIABLE').name, icon(temp, 'VARIABLE').name, icon(mode, 'VARIABLE').name, icon(note, 'VARIABLE').name, icon(alarm, 'ALARM').name, icon(alarm, 'ALARM', {VALUE: true}).name, icon(program, 'PROGRAM').name];
-        expect(names).toEqual(['control_on_off', 'edit_input_numeric', 'edit_sort', 'message_notice', 'secur_alarm', 'secur_alarm_alarm', 'edit_settings']);
+        const names = [icon(bool, 'VARIABLE').name, icon(temp, 'VARIABLE').name, icon(mode, 'VARIABLE').name, icon(note, 'VARIABLE').name, icon(alarm, 'ALARM').name, icon(alarm, 'ALARM', {VALUE: true}).name, icon(program, 'PROGRAM').name, icon(fixed, 'PROGRAM').name];
+        expect(names).toEqual(['control_on_off', 'edit_input_numeric', 'edit_sort', 'message_notice', 'secur_alarm', 'secur_alarm_alarm', 'audio_play', 'edit_settings']);
         for (const n of names) expect(KNX[n], n).toBeTruthy();
-        expect(autoIcon(classify(program, 'PROGRAM'), program)).toBe('edit_settings');
+        // a play button where the tile runs it; a program set read-only or not operable its own picture
+        expect(autoIcon(classify(program, 'PROGRAM'), program)).toBe('audio_play');
+        expect(autoIcon(lockedModel(classify(program, 'PROGRAM')), program)).toBe('edit_settings');
+        expect(autoIcon(classify(fixed, 'PROGRAM'), fixed)).toBe('edit_settings');
     });
     it('a true boolean is lit, an alarm that is on is red, a program for the moment it is started', () => {
         expect(icon(bool, 'VARIABLE', {VALUE: true}).tone).toBe('on');
@@ -188,8 +195,22 @@ describe('the pictures', () => {
     });
 });
 
+describe('the play button', () => {
+    it('runs RUN, or RUN_THEN where chosen; the other where only it may be written; nothing where neither', () => {
+        expect(programModel(program).commandKey).toBe('RUN');
+        expect(programModel(program, true).commandKey).toBe('RUN_THEN');
+        const onlyRun: Description = {...program, RUN_THEN: {TYPE: 'ACTION', OPERATIONS: 0}};
+        const onlyThen: Description = {...program, RUN: {TYPE: 'ACTION', OPERATIONS: 0}};
+        expect(programModel(onlyRun, true).commandKey).toBe('RUN');
+        expect(programModel(onlyThen).commandKey).toBe('RUN_THEN');
+        expect(programModel(fixed, true)).toEqual({widget: 'program', tile: 'act-open', stateKey: 'ACTIVE', commandKey: ''});
+        expect(programModel({LAST_RUN: {TYPE: 'INTEGER', OPERATIONS: 5}}).tile).toBe('read');
+        expect(mainAction(programModel(program, true), {ACTIVE: true}, program)).toEqual({key: 'RUN_THEN', value: true});
+    });
+});
+
 describe('visible', () => {
-    it('a variable or a program without the visible flag is no tile; everything else is', () => {
+    it('a variable or a program without the visible flag is invisible (left out of the unassigned list); everything else is not', () => {
         const v = classify(bool, 'VARIABLE'), p = classify(program, 'PROGRAM');
         expect(invisible({flags: 0, model: v})).toBe(true);
         expect(invisible({flags: 2, model: p})).toBe(true);

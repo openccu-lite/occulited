@@ -105,7 +105,7 @@ test('B-170: the variables and programs stay in the unassigned list, and nothing
     await expect(page.locator('[data-app-empty]')).toHaveCount(0);
     release();
     for (const ref of [...Object.keys(VARS), ...Object.keys(PROGRAMS)]) await expect(tile(page, ref)).toBeVisible();
-    // not visible in the addon, or without a widget: never a tile
+    // not visible in the addon (behind its checkbox, off), or without a widget: no tile here
     for (const ref of [...Object.keys(HIDDEN), NO_WIDGET]) await expect(tile(page, ref)).toHaveCount(0);
     // and they stay: after the next read of the snapshot's time too
     await page.waitForTimeout(600);
@@ -141,7 +141,9 @@ test('the tiles: the value in its own words, with its unit, and the picture of i
     await expect(icon('Logic.var-modus:1')).toHaveAttribute('data-icon', 'edit_sort');
     await expect(icon('Logic.var-hinweis:1')).toHaveAttribute('data-icon', 'message_notice');
     await expect(icon('Logic.var-alarm-wasser:1')).toHaveAttribute('data-icon', 'secur_alarm_alarm');
-    await expect(icon('Logic.prg-markise:1')).toHaveAttribute('data-icon', 'edit_settings');
+    // a program its tile runs has a play button (the maintainer, 2026-11-24); one that may not be run its own picture
+    await expect(icon('Logic.prg-markise:1')).toHaveAttribute('data-icon', 'audio_play');
+    await expect(icon('Logic.prg-fest:1')).toHaveAttribute('data-icon', 'edit_settings');
     // a true boolean is lit, an alarm that is on is red, an active program is not lit
     await expect(tile(page, 'Logic.var-anwesend:1')).toHaveAttribute('data-app-tone', 'on');
     await expect(tile(page, 'Logic.var-regen:1')).toHaveAttribute('data-app-tone', '');
@@ -408,11 +410,79 @@ test('read-only: a boolean\'s and a program\'s tile have no disc to press, the s
     expect(o.writes).toEqual([]);
 });
 
-test('in a room: an assigned variable and program are tiles at once; one that is not visible is none', async ({page, baseURL}) => {
+test('in a room: an assigned variable and program are tiles at once, one that is not visible in the addon too', async ({page, baseURL}) => {
     await open(page, baseURL!, {path: '/app/e/rooms/kueche', rooms: ['Logic.var-anwesend:1', 'Logic.prg-markise:1', 'Logic.var-versteckt:1']});
     await expect(tile(page, 'Logic.var-anwesend:1')).toBeVisible();
     await expect(state(page, 'Logic.var-anwesend:1')).toHaveText('anwesend');
     await expect(tile(page, 'Logic.prg-markise:1')).toBeVisible();
-    await expect(tile(page, 'Logic.var-versteckt:1')).toHaveCount(0);
+    // the maintainer, 2026-11-24: assigned, an invisible object shows like any other
+    await expect(tile(page, 'Logic.var-versteckt:1')).toBeVisible();
     await expect(tile(page, 'Logic.var-regen:1')).toHaveCount(0);
+    // the unassigned list's checkbox is not here
+    await expect(page.locator('[data-app-show-invisible]')).toHaveCount(0);
+});
+
+test('the unassigned list: the objects that are not visible in the addon behind their checkbox, off by default and remembered', async ({page, baseURL}) => {
+    await open(page, baseURL!);
+    await expect(tile(page, 'Logic.var-regen:1')).toBeVisible();
+    const box = page.locator('[data-app-show-invisible]');
+    await expect(box).not.toBeChecked();
+    for (const ref of Object.keys(HIDDEN)) await expect(tile(page, ref)).toHaveCount(0);
+    await box.check();
+    for (const ref of Object.keys(HIDDEN)) await expect(tile(page, ref)).toBeVisible();
+    await expect(tile(page, 'Logic.prg-versteckt:1').locator('[data-icon]')).toHaveAttribute('data-icon', 'audio_play');
+    // remembered in this browser, beside the virtual channels' and keys' choices
+    expect(JSON.parse((await page.evaluate(() => localStorage.getItem('ol.app.unassigned')))!)).toEqual({channels: false, keys: false, invisible: true});
+    await page.reload();
+    await expect(page.locator('[data-app-show-invisible]')).toBeChecked();
+    for (const ref of Object.keys(HIDDEN)) await expect(tile(page, ref)).toBeVisible();
+    await page.locator('[data-app-show-invisible]').uncheck();
+    for (const ref of Object.keys(HIDDEN)) await expect(tile(page, ref)).toHaveCount(0);
+});
+
+test('a program\'s play button: RUN by default, RUN_THEN where its settings say; the choice beside the icon in the metadata', async ({page, baseURL}) => {
+    const o = await open(page, baseURL!, {meta: {'Logic.prg-markise:1': {icon: 'scene_scene'}}});
+    const ref = 'Logic.prg-markise:1';
+    await expect(tile(page, ref).locator('[data-icon]')).toHaveAttribute('data-icon', 'scene_scene');
+    await openSheet(page, ref);
+    await sheet(page).locator('[data-sheet-assign]').click();
+    const a = assign(page);
+    const run = a.locator('[data-assign-run="run"]'), then = a.locator('[data-assign-run="run_then"]');
+    await expect(run).toBeChecked();
+    await expect(then).not.toBeChecked();
+    // a program has no step
+    await expect(a.locator('[data-assign="step"]')).toHaveCount(0);
+    await then.check();
+    await expect.poll(() => o.patches.at(-1)?.body).toEqual({meta: {control: {icon: 'scene_scene', run_then: true}}});
+    await a.getByRole('button', {name: 'Close'}).click();
+    await expect(a).toHaveCount(0);
+    // the sheet's disc follows the choice, its two buttons stay
+    await sheet(page).locator('.sh-circle').click();
+    await expect.poll(() => o.writes.at(-1)).toEqual(['prg-markise:1', 'RUN_THEN', true]);
+    await expect(sheet(page).locator('[data-sheet-run]')).toBeVisible();
+    await expect(sheet(page).locator('[data-sheet-run-then]')).toBeVisible();
+    await closeSheet(page);
+    await tile(page, ref).locator('[data-app-act]').click();
+    await expect(state(page, ref)).toHaveText('Started');
+    expect(o.writes.at(-1)).toEqual(['prg-markise:1', 'RUN_THEN', true]);
+    // back to RUN: the key leaves the namespace, the icon stays
+    await openSheet(page, ref);
+    await sheet(page).locator('[data-sheet-assign]').click();
+    await assign(page).locator('[data-assign-run="run"]').check();
+    await expect.poll(() => o.patches.at(-1)?.body).toEqual({meta: {control: {icon: 'scene_scene'}}});
+    await assign(page).getByRole('button', {name: 'Close'}).click();
+    await closeSheet(page);
+    await tile(page, ref).locator('[data-app-act]').click();
+    await expect.poll(() => o.writes.at(-1)).toEqual(['prg-markise:1', 'RUN', true]);
+    expect(o.writes.length).toBe(3);
+});
+
+test('German: the play button\'s choice and the invisible objects\' checkbox', async ({page, baseURL}) => {
+    await page.addInitScript(() => localStorage.setItem('ol.language', 'de'));
+    await open(page, baseURL!);
+    await expect(page.locator('[data-app-unassigned-show]')).toContainText('Zeige unsichtbare Variablen und Programme');
+    await openSheet(page, 'Logic.prg-markise:1');
+    await sheet(page).locator('[data-sheet-assign]').click();
+    await expect(assign(page).locator('[data-assign="run-mode"]')).toContainText('Die Schaltfläche auf der Kachel');
+    await expect(assign(page).locator('[data-assign="run-mode"]')).toContainText('startet es ohne Bedingungen');
 });

@@ -65,10 +65,16 @@ func (h *Handler) Interface(name, state string, _ time.Time) {
 	go h.sweep(name)
 }
 
-// Devices is the bus's device-list change.
+// Devices is the bus's device-list change. A device announced as new may be one the cache holds a
+// description of from before (occulited task 176's lab check: an addon interface restarts with a
+// new version whose devices have another FIRMWARE, and announces all of them as new to a
+// subscriber that lists none): what the cache knew of the address is dropped first, so its keys
+// follow the process's description now - the descriptions under the old keys stay for whoever
+// still has that firmware.
 func (h *Handler) Devices(iface, op string, addresses []string) {
 	switch op {
 	case "new", "readded":
+		h.Cache.Forget(iface, addresses)
 		go h.describe(iface, addresses)
 	case "deleted", "updated", "replaced":
 		h.Cache.Forget(iface, addresses)

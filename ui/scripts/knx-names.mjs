@@ -29,13 +29,14 @@ export const CONTACT_ICONS = [
 // occulited task 176: a system variable's and a program's tile (the channel types VARIABLE, ALARM and PROGRAM, as
 // lite-addon-logic's interface has them) - the automatic pictures by kind (a boolean control_on_off, an alarm
 // secur_alarm, a number edit_input_numeric, a value list edit_sort, a string message_notice, a program
-// edit_settings) and the suggestions on top of the picker, which offers the whole set
+// edit_settings, audio_play where its tile runs it - the rework of 2026-11-24) and the suggestions on top of the
+// picker, which offers the whole set
 export const VARIABLE_ICONS = [
     'control_on_off', 'edit_input_numeric', 'edit_sort', 'message_notice', 'secur_alarm', 'message_presence', 'control_home', 'control_standby',
     'scene_day', 'scene_night', 'scene_sleeping', 'scene_party', 'scene_visit_guests', 'temp_temperature', 'measure_power_meter', 'weather_station_generic',
 ];
 export const PROGRAM_ICONS = [
-    'edit_settings', 'scene_scene', 'control_reload', 'control_ok', 'control_all_on_off', 'scene_day', 'scene_night', 'scene_sleeping',
+    'audio_play', 'edit_settings', 'scene_scene', 'control_reload', 'control_ok', 'control_all_on_off', 'scene_day', 'scene_night', 'scene_sleeping',
     'scene_party', 'scene_cinema', 'scene_dinner', 'scene_visit_guests', 'scene_cleaning', 'scene_garden', 'scene_living', 'message_bell',
 ];
 export const NAMES = [
@@ -52,5 +53,5 @@ export const NAMES = [
     ...SWITCH_ICONS.filter((n) => !['light_light_dim_00', 'message_socket'].includes(n)),
     ...KEY_ICONS.filter((n) => !['control_switch_1', 'light_light_dim_00'].includes(n)),
     ...CONTACT_ICONS.filter((n) => !['fts_window_1w', 'fts_window_1w_open', 'fts_window_1w_tilt', 'fts_door', 'fts_door_open'].includes(n)),
-    'edit_input_numeric', 'edit_sort', 'message_notice', 'edit_settings',
+    'edit_input_numeric', 'edit_sort', 'message_notice', 'edit_settings', 'audio_play',
 ];
