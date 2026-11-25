@@ -16,6 +16,8 @@
     interface CatalogState { daily?: boolean }
     interface FirstBoot { objects: number; devices: number; channels: number; rooms: number; functions: number; unnamed: number; error?: string }
     let firstBoot = $state<FirstBoot | null>(null);
+    // occulited B-173: the system came by an update from a CCU or OpenCCU (its first boot found the ReGa database)
+    const switched = $derived(!!firstBoot);
 
     // B-241 (D-90): the daily checks are off on a fresh system; the page asks once, one checkbox
     // per destination. GitHub is two settings behind one box: the release check and the
@@ -267,20 +269,27 @@
 
 <h2>{first + 2} · {t('Devices from a CCU or OpenCCU')}</h2>
 {#if firstBoot && !firstBoot.error}
-    <div class="ol-notice">{t('This system was updated from a CCU: its names, rooms and functions were read from the ReGa database on this first boot — {o} named devices and channels, {r} rooms, {f} functions ({u} still carried the default name and were left out). Programs and system variables did not come across; nothing here could run them.', {o: firstBoot.objects, r: firstBoot.rooms, f: firstBoot.functions, u: firstBoot.unnamed})}</div>
+    <!-- occulited B-173: the programs and system variables are in the kept ReGa database, and the addon Logic (its own step on this page, where the catalogue lists it) imports them -->
+    <div class="ol-notice" data-welcome-first-boot>{t('This system was updated from a CCU: its names, rooms and functions were read from the ReGa database on this first boot — {o} named devices and channels, {r} rooms, {f} functions ({u} still carried the default name and were left out). The programs and system variables stay in that database, which the system keeps: the addon Logic imports them.', {o: firstBoot.objects, r: firstBoot.rooms, f: firstBoot.functions, u: firstBoot.unnamed})}</div>
 {:else if firstBoot?.error}
     <div class="ol-notice">{t('A ReGa database was found but could not be read: {e}', {e: firstBoot.error})}</div>
 {/if}
 <!-- occulited task 142 (D-125): the two ways by their names - a CCU's backup is imported, an
-     openccu-lite backup restored; both happen on the Backup page, this page does neither itself -->
-<p data-welcome-import>{t('Moving from a CCU or OpenCCU: its backup is imported. The paired devices with their keys and names come into this system, and what you choose of its addons and settings. The system reboots afterwards.')}</p>
-<div class="ol-actions" data-welcome-devices>
-    {#if paired > 0}
-        <span class="ol-muted" data-welcome-devices-paired>{t('This system has {n} devices paired already: the import only works on a system without paired devices.', {n: paired})}</span>
-    {:else}
-        <a class="hmm-button" href="/system/backup#restore" use:link data-action="welcome-import-devices">{t('Import the backup of a CCU or OpenCCU')}</a>
-    {/if}
-</div>
+     openccu-lite backup restored; both happen on the Backup page, this page does neither itself.
+     B-173: a system that came by an update from a CCU or OpenCCU brought its devices along - the
+     backup import (which takes over a system without paired devices) is not offered there -->
+{#if switched}
+    <p data-welcome-switched>{t('The devices with their keys and names came along with the update: there is nothing to import. Importing the backup of a CCU or OpenCCU is for a newly installed system.')}</p>
+{:else}
+    <p data-welcome-import>{t('Moving from a CCU or OpenCCU: its backup is imported. The paired devices with their keys and names come into this system, and what you choose of its addons and settings. The system reboots afterwards.')}</p>
+    <div class="ol-actions" data-welcome-devices>
+        {#if paired > 0}
+            <span class="ol-muted" data-welcome-devices-paired>{t('This system has {n} devices paired already: the import only works on a system without paired devices.', {n: paired})}</span>
+        {:else}
+            <a class="hmm-button" href="/system/backup#restore" use:link data-action="welcome-import-devices">{t('Import the backup of a CCU or OpenCCU')}</a>
+        {/if}
+    </div>
+{/if}
 <p class="ol-muted" data-welcome-restore>{t('A backup of openccu-lite is restored instead: the whole system comes back as it was, with its users and settings.')} <a href="/system/backup#restore" use:link data-action="welcome-restore">{t('Restore a backup of openccu-lite')}</a></p>
 {#if msg}<div class="ol-notice">{msg}</div>{/if}
 

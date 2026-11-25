@@ -168,3 +168,48 @@ test('German: the devices step says Sie', async ({page}) => {
     await expect(page.getByRole('link', {name: 'Sicherung einer CCU oder von OpenCCU importieren'})).toHaveAttribute('href', '/system/backup#restore');
     await expect(page.getByText('Namen-Seite')).toHaveCount(0);
 });
+
+// occulited B-173: a system that came by an update from a CCU or OpenCCU (its first boot read the ReGa database) - the
+// programs and system variables are not "lost" any more (the addon Logic imports them from the kept database), and the
+// backup import, which takes over a system without paired devices, is not offered: the devices came along
+async function switched(page: Page, firstBoot: Record<string, unknown>) {
+    await page.route('**/api/system/v1/status', async (route: Route) => {
+        const response = await route.fetch();
+        const j = await response.json();
+        j.first_boot_import = firstBoot;
+        await route.fulfill({response, json: j});
+    });
+}
+
+test('B-173: a switched system - Logic for the programs and system variables, and no backup import', async ({page}) => {
+    // a radio-less OpenCCU brings no paired device: the import must not be offered all the same
+    await paired(page, {'BidCos-RF': 0, 'HmIP-RF': 0});
+    await switched(page, {objects: 12, devices: 3, channels: 9, rooms: 2, functions: 1, unnamed: 4});
+    await page.goto('/welcome');
+    const note = page.locator('[data-welcome-first-boot]');
+    await expect(note).toContainText('12 named devices and channels, 2 rooms, 1 functions');
+    await expect(note).toContainText('The programs and system variables stay in that database, which the system keeps: the addon Logic imports them.');
+    await expect(note).not.toContainText('did not come across');
+    await expect(page.locator('[data-welcome-switched]')).toHaveText('The devices with their keys and names came along with the update: there is nothing to import. Importing the backup of a CCU or OpenCCU is for a newly installed system.');
+    await expect(page.locator('[data-welcome-import], [data-action="welcome-import-devices"], [data-welcome-devices-paired]')).toHaveCount(0);
+    // the restore of an openccu-lite backup stays
+    await expect(page.locator('[data-welcome-restore]')).toBeVisible();
+});
+
+test('B-173: a switched system whose ReGa database could not be read - still no backup import', async ({page}) => {
+    await paired(page, {'BidCos-RF': 0});
+    await switched(page, {objects: 0, devices: 0, channels: 0, rooms: 0, functions: 0, unnamed: 0, error: 'regadom: truncated'});
+    await page.goto('/welcome');
+    await expect(page.getByText('A ReGa database was found but could not be read: regadom: truncated')).toBeVisible();
+    await expect(page.locator('[data-welcome-switched]')).toBeVisible();
+    await expect(page.locator('[data-action="welcome-import-devices"]')).toHaveCount(0);
+});
+
+test('B-173: German', async ({page}) => {
+    await paired(page, {'BidCos-RF': 0});
+    await switched(page, {objects: 5, devices: 1, channels: 4, rooms: 1, functions: 0, unnamed: 0});
+    await page.addInitScript(() => localStorage.setItem('ol.language', 'de'));
+    await page.goto('/welcome');
+    await expect(page.locator('[data-welcome-first-boot]')).toContainText('Die Programme und Systemvariablen bleiben in dieser Datenbank, die das System aufbewahrt: Das Addon Logic übernimmt sie.');
+    await expect(page.locator('[data-welcome-switched]')).toContainText('Die Geräte sind mit ihren Schlüsseln und Namen beim Update mitgekommen');
+});
