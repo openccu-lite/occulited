@@ -355,6 +355,11 @@ type Runtime struct {
 	Daemon    bool     `json:"daemon,omitempty"`
 	APIScopes []string `json:"api_scopes,omitempty"`
 	Note      Text     `json:"note,omitempty"`
+	// Technical (occulited task 188, D-90): what the addon reads, which ports it opens, what it
+	// contacts outside the system and where its data lives - the technical account beside the
+	// user-facing Note. The Addons page shows it behind the card's Details and in the install
+	// question, with what the system derives from this block; it grants and refuses nothing.
+	Technical Text `json:"technical,omitempty"`
 	// WebIngress (openccu-lite task 406): the addon brings connections from outside into the web
 	// server - a VPN or tunnel addon that ends the tunnel in its own process. The system gives it a
 	// Unix socket of lighttpd's that speaks the PROXY protocol, owned by the addon's group, and

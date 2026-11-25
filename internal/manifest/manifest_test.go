@@ -625,3 +625,35 @@ func TestSummary(t *testing.T) {
 		t.Fatal(string(b))
 	}
 }
+
+// occulited task 188: runtime.technical - a text like note, kept as declared; it changes nothing
+// the system applies. A manifest with it parses on this reader as one without it did on older ones
+// (unknown keys are ignored), see TestUnknownRuntimeKeyIgnored.
+func TestRuntimeTechnical(t *testing.T) {
+	src := strings.Replace(good, `"note": {`, `"technical": {"de": "Liest nichts; Ports 1883 und 8883; kontaktiert nichts außerhalb; Daten in /usr/local/addons/mosquitto", "en": "Reads nothing; ports 1883 and 8883; contacts nothing outside; data in /usr/local/addons/mosquitto"}, "note": {`, 1)
+	m, err := Parse([]byte(src))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.HasPrefix(m.Runtime.Technical.In("de"), "Liest nichts") || !strings.HasPrefix(m.Runtime.Technical.In("en"), "Reads nothing") {
+		t.Fatalf("%+v", m.Runtime.Technical)
+	}
+	b, _ := json.Marshal(m)
+	if !strings.Contains(string(b), `"technical":{`) {
+		t.Fatal(string(b))
+	}
+	// one plain string for both
+	m, err = Parse([]byte(strings.Replace(good, `"note": {`, `"technical": "ports 1883, 8883", "note": {`, 1)))
+	if err != nil || m.Runtime.Technical.In("de") != "ports 1883, 8883" {
+		t.Fatalf("%v %+v", err, m.Runtime.Technical)
+	}
+}
+
+// A runtime key this reader does not know (a newer manifest's) is ignored, never refused: the
+// compatibility promise that lets runtime.technical ship before every system knows it.
+func TestUnknownRuntimeKeyIgnored(t *testing.T) {
+	m, err := Parse([]byte(strings.Replace(good, `"note": {`, `"from_the_future": {"x": [1, 2]}, "note": {`, 1)))
+	if err != nil || m.Runtime == nil || len(m.Runtime.Ports) != 2 {
+		t.Fatalf("%v %+v", err, m)
+	}
+}

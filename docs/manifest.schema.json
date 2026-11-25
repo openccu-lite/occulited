@@ -182,7 +182,8 @@
         "start": {"const": "early"},
         "daemon": {"type": "boolean"},
         "api_scopes": {"type": "array", "items": {"type": "string", "pattern": "^[a-z]+(:[a-z]+)?$"}, "uniqueItems": true},
-        "note": {"$ref": "#/$defs/text"}
+        "note": {"$ref": "#/$defs/text"},
+        "technical": {"$ref": "#/$defs/text", "description": "What the addon reads, which ports it opens, what it contacts outside the system and where its data lives (occulited task 188, D-90). Shown behind the card's Details and in the install question."}
       }
     },
     "backup": {

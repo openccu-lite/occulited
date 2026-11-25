@@ -29,7 +29,7 @@ export interface Entry {
     /** occulited task 188: the manifest's one line for the card, and the catalogue's tags of the entry */
     summary?: Text; tags?: string[];
     release?: {github?: string; prerelease?: boolean}; requires?: {architectures?: string[]; lite?: string}; lite_unmet?: boolean;
-    ui?: {own_updater?: boolean}; runtime?: {note?: Text};
+    ui?: {own_updater?: boolean}; runtime?: {note?: Text; technical?: Text; [k: string]: unknown};
     /** openccu-lite task 100: the manifest's images as the check fetched them, kind → URL on this origin */
     images?: AddonImages;
     tag?: string; fetched?: string; error?: string; stars?: number;
@@ -119,7 +119,7 @@ export function readEntry(x: unknown): Entry | BrokenWhy {
         release: isObj(x.release) ? {github: str(x.release.github), prerelease: yes(x.release.prerelease)} : undefined,
         requires: isObj(x.requires) ? {architectures: strs(x.requires.architectures), lite: str(x.requires.lite)} : undefined,
         ui: isObj(x.ui) ? {own_updater: yes(x.ui.own_updater)} : undefined,
-        runtime: isObj(x.runtime) ? {...x.runtime, note: asText(x.runtime.note)} : undefined,
+        runtime: isObj(x.runtime) ? {...x.runtime, note: asText(x.runtime.note), technical: asText(x.runtime.technical)} : undefined,
         images,
         tag: str(x.tag),
         fetched: str(x.fetched),

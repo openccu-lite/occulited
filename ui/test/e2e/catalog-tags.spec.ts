@@ -36,6 +36,15 @@ test('a card: the summary when there is one, else the description; the note behi
     const dialog = page.getByRole('dialog', {name: 'TM Devices'});
     await expect(dialog.locator('[data-detail-description]')).toHaveText(full);
     await expect(dialog.locator('[data-detail-note]')).toHaveText('Not yet tried on openccu-lite.');
+    // occulited task 188 (D-90): the technical account below the note - the addon's words, then
+    // what the system derives: how an install would run it, the port (closed until opened), the scopes
+    const tech = dialog.locator('[data-detail-technical]');
+    await expect(tech.getByRole('heading', {name: 'Technical'})).toBeVisible();
+    await expect(tech.locator('[data-detail-technical-text]')).toHaveText('Stub: reads the device descriptions, contacts nothing outside.');
+    await expect(tech.locator('[data-detail-facts] li')).toHaveText(['Runs as its own user (confined)', 'Port 8099/tcp · Stub port: closed until opened', 'API token: meta:read']);
+    // the order: note, then technical
+    const order = await dialog.locator('[data-detail-note], [data-detail-technical]').evaluateAll((els) => els.map((el) => el.hasAttribute('data-detail-note') ? 'note' : 'technical'));
+    expect(order).toEqual(['note', 'technical']);
     await expect(dialog.locator('[data-detail-tags] .ol-badge')).toHaveText(['Devices']);
     await page.keyboard.press('Escape');
     await expect(dialog).toHaveCount(0);
@@ -59,12 +68,16 @@ test('a card: the summary when there is one, else the description; the note behi
     expect(await size()).toBe(before);
 });
 
-test('the runtime note is in the install question', async ({page}) => {
+test('the runtime note and the technical account are in the install question', async ({page}) => {
     await page.goto('/addons');
     await card(page, 'tm-devices').getByRole('button', {name: 'Install', exact: true}).click();
     const q = page.getByRole('dialog');
     await expect(q).toContainText('Install TM Devices?');
     await expect(q).toContainText('Not yet tried on openccu-lite.');
+    // occulited task 188 (D-90): and the technical account with the derived lines
+    await expect(q).toContainText('Stub: reads the device descriptions, contacts nothing outside.');
+    await expect(q).toContainText('• Port 8099/tcp · Stub port: closed until opened');
+    await expect(q).toContainText('• API token: meta:read');
     await q.getByRole('button', {name: 'Cancel'}).click();
     await expect(q).toHaveCount(0);
 });
@@ -175,6 +188,11 @@ test('German: the tags, the summary and the details', async ({page}) => {
     await expect(card(page, 'mosquitto').locator('[data-addon-summary]')).toHaveText('Stub-Zusammenfassung von Mosquitto');
     await card(page, 'mosquitto').getByRole('button', {name: 'Details zu Mosquitto'}).click();
     await expect(page.getByRole('dialog', {name: 'Mosquitto'}).locator('[data-detail-tags] .ol-badge')).toHaveText(['Anbindung', 'MQTT']);
+    await page.keyboard.press('Escape');
+    await card(page, 'tm-devices').getByRole('button', {name: 'Details zu TM Devices'}).click();
+    const tech = page.getByRole('dialog', {name: 'TM Devices'}).locator('[data-detail-technical]');
+    await expect(tech.getByRole('heading', {name: 'Technisch'})).toBeVisible();
+    await expect(tech.locator('[data-detail-facts] li')).toHaveText(['Läuft als eigener Benutzer (eingesperrt)', 'Port 8099/tcp · Stub-Port: geschlossen, bis es geöffnet wird', 'API-Token: meta:read']);
 });
 
 test('a remembered tag the list no longer has is no choice', async ({page}) => {
@@ -196,4 +214,11 @@ test('the grid: three cards side by side on a large screen, two above 1100 px, o
         const tops = await page.locator('.ad-card').evaluateAll((els) => els.slice(0, 3).map((el) => Math.round(el.getBoundingClientRect().top)));
         expect(new Set(tops.slice(0, n)).size, `${width} px`).toBe(1);
     }
+});
+
+test("an installed addon's details: its policy's mode and its ports' state in the firewall", async ({page}) => {
+    await page.goto('/addons');
+    await card(page, 'mosquitto').getByRole('button', {name: 'Details of Mosquitto'}).click();
+    const facts = page.getByRole('dialog', {name: 'Mosquitto'}).locator('[data-detail-facts] li');
+    await expect(facts).toHaveText(['Runs as its own user (confined)', 'Port 1883/tcp: open', 'Port 8883/tcp · TLS · MQTT over TLS: closed']);
 });

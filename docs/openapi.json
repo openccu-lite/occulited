@@ -7161,6 +7161,15 @@
           "start": {
             "type": "string"
           },
+          "technical": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": [
+              "object",
+              "null"
+            ]
+          },
           "timers": {
             "anyOf": [
               {

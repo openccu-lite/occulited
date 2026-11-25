@@ -52,11 +52,12 @@
     import CheckDaily from '../lib/CheckDaily.svelte';
     import Icon from '../lib/Icon.svelte';
     import ModalDialog from '../lib/ModalDialog.svelte';
+    import {derivedFacts, factText, technicalText, type Fact} from '../lib/addontech';
     import {knownChosen, matchesTags, orderTags, parseChosen, readTags, shownTags, tagCounts, TAGS_KEY, TAGS_MORE_KEY, toggleTag, visibleTags, type CatalogTag} from '../lib/catalogtags';
 
     interface InstallResult { exit: number; meaning: string; reboot_required: boolean; output?: string; seconds: number; stopped_addons?: StoppedAddon[]; started?: string[] }
     interface UpdateInfo { installed: string; available: string; update_available: boolean; url: string; error?: string }
-    interface FwAddon { id: string; ports: {port: number}[] }
+    interface FwAddon { id: string; ports: {port: number; open?: boolean}[] }
 
     // releases_error (B-21): a release list the last check could not read - the versions shown are from before it
     interface ReleasesError { code: string; repo: string; message: string; at: string; retry_minutes?: number }
@@ -85,6 +86,8 @@
     let services = $state<Record<string, Service>>({});
     let nav = $state<NavEntry[]>([]);
     let ports = $state<Record<string, number>>({});
+    // occulited task 188: per installed addon, its declared ports' state in the firewall
+    let portOpen = $state<Record<string, Record<number, boolean>>>({});
     let error = $state('');
     let notice = $state('');
     let busy = $state('');
@@ -186,7 +189,9 @@
             nav = [];
         }
         try {
-            ports = Object.fromEntries((await api.get<FwAddon[]>('/api/system/v1/firewall/addons')).map((a) => [a.id, a.ports.length]));
+            const fw = await api.get<FwAddon[]>('/api/system/v1/firewall/addons');
+            ports = Object.fromEntries(fw.map((a) => [a.id, a.ports.length]));
+            portOpen = Object.fromEntries(fw.map((a) => [a.id, Object.fromEntries(a.ports.map((p) => [p.port, p.open === true]))]));
         } catch {
             ports = {};
         }
@@ -384,7 +389,7 @@
         if (!c.entry?.id) return;
         notice = '';
         cardNotice = null;
-        const r = await installFromCatalog({id: c.entry.id, name: c.name, latest: c.entry.latest, install_mode: c.entry.install_mode, note: tx(c.entry.runtime?.note) || undefined}, c.addon?.version ?? installedVersions[c.id]);
+        const r = await installFromCatalog({id: c.entry.id, name: c.name, latest: c.entry.latest, install_mode: c.entry.install_mode, note: tx(c.entry.runtime?.note) || undefined, technical: technicalText(tx(c.entry.runtime?.technical), derivedFacts(c.entry.runtime, undefined), lang, t) || undefined}, c.addon?.version ?? installedVersions[c.id]);
         if (r === null) return;
         if (r) {
             notice = r;
@@ -619,6 +624,15 @@
     // occulited task 188: an installed addon's Info: line longer than this goes behind Details;
     // a short one (a sentence and the repository link) stays on the card
     const INFO_ON_CARD = 110;
+    // occulited task 188 (D-90): what the system derives from the runtime block - how it runs (an
+    // installed addon's policy, else how an install would run it), the ports with their firewall
+    // state once installed, capabilities, groups, paths, scopes
+    const factsOf = (c: Card): Fact[] => {
+        if (!c.entry?.id) return [];
+        const mode = c.addon?.policy_mode === 'root' || c.addon?.policy_mode === 'confined' ? c.addon.policy_mode : c.entry.install_mode;
+        return derivedFacts(c.entry.runtime, mode, c.addon ? (portOpen[c.addon.id] ?? {}) : undefined);
+    };
+    const factLine = (f: Fact) => factText(f, lang, t);
     const infoBehindDetails = (a: Addon | null | undefined): boolean => !!a?.info && plain(a.info).length > INFO_ON_CARD;
     const plain = (html: string) => (new DOMParser().parseFromString(html.replace(/<br\s*\/?>|<\/(p|div|li|h[1-6])>/gi, ' '), 'text/html').body.textContent ?? '').replace(/\s+/g, ' ').trim();
     type Seg = {text: string; href?: string};
@@ -950,7 +964,7 @@
                 {#if a?.info && !longInfo}
                     <p class="ol-muted ad-info">{#each linkify(plain(a.info)) as seg, i (i)}{#if seg.href}<a href={seg.href} target="_blank" rel="noopener">{seg.text}</a>{:else}{seg.text}{/if}{/each}</p>
                 {/if}
-                {#if (sum && desc) || (e?.id && e.runtime?.note) || longInfo}
+                {#if (sum && desc) || (e?.id && (e.runtime?.note || e.runtime?.technical || factsOf(c).length)) || longInfo}
                     <button type="button" class="ad-details-btn" aria-haspopup="dialog" aria-label={t('Details of {name}', {name: c.name})} onclick={() => (details = c)} data-addon-details>{t('Details')}</button>
                 {/if}
                 {#if u}
@@ -1069,6 +1083,18 @@
                 {#if tx(de.summary)}<p class="ad-detail-summary" data-detail-summary>{tx(de.summary)}</p>{/if}
                 {#if tx(de.description)}<p class="ad-detail-desc" data-detail-description>{tx(de.description)}</p>{/if}
                 {#if de.runtime?.note}<p class="ol-muted ad-note" data-detail-note>{tx(de.runtime.note)}</p>{/if}
+                {#if tx(de.runtime?.technical) || factsOf(details).length}
+                    <!-- occulited task 188 (D-90): the technical account, the addon's words first -->
+                    <section class="ad-tech" data-detail-technical>
+                        <h3 class="ad-tech-head">{t('Technical')}</h3>
+                        {#if tx(de.runtime?.technical)}<p class="ad-tech-text" data-detail-technical-text>{tx(de.runtime?.technical)}</p>{/if}
+                        {#if factsOf(details).length}
+                            <ul class="ad-tech-facts" data-detail-facts>
+                                {#each factsOf(details) as f, i (i)}<li data-fact={f.kind}>{factLine(f)}</li>{/each}
+                            </ul>
+                        {/if}
+                    </section>
+                {/if}
                 {#if details.addon?.info && infoBehindDetails(details.addon)}
                     <p class="ol-muted ad-info" data-detail-info>{#each linkify(plain(details.addon.info)) as seg, i (i)}{#if seg.href}<a href={seg.href} target="_blank" rel="noopener">{seg.text}</a>{:else}{seg.text}{/if}{/each}</p>
                 {/if}
@@ -1156,6 +1182,11 @@
     .ad-details-btn:focus-visible { outline: 2px solid var(--hmm-accent); outline-offset: 2px; }
     .ad-detail p { margin: 0 0 10px; overflow-wrap: anywhere; }
     .ad-detail-summary { font-weight: 600; }
+    .ad-tech { margin: 0 0 10px; padding-top: 8px; border-top: 1px solid var(--hmm-border-muted); }
+    .ad-tech-head { margin: 0 0 6px; font-size: var(--hmm-font-size-small); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--hmm-fg-muted); }
+    .ad-tech-text { white-space: pre-line; }
+    .ad-tech-facts { margin: 0; padding-left: 1.2em; font-size: var(--hmm-font-size-small); overflow-wrap: anywhere; }
+    .ad-tech-facts li { margin: 2px 0; }
     .ad-detail-tags { display: flex; flex-wrap: wrap; gap: 4px; }
     .ad-card { padding: 16px 18px; }
     /* task 129: the 4 px edge takes its three extra pixels from the padding, so the card's content
