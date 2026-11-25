@@ -62,6 +62,10 @@
     import {answerThemeRequests} from './lib/theme.svelte';
     import {onMount} from 'svelte';
     import {readAddons} from './lib/addoncards';
+    import RecoveryBar from './lib/RecoveryBar.svelte';
+    import RecoveryView from './lib/RecoveryView.svelte';
+    import {inRecovery, listenForRecovery} from './lib/inrecovery.svelte';
+    import {RECOVERY_PATH, recoveryRoute, returnPath} from './lib/recoveryroute';
 
     let extra = $state<NavEntry[]>([]);
     // Task 55: the addon dropdown lists every installed addon, not only the ones with a frontend,
@@ -76,6 +80,22 @@
     answerThemeRequests();
     onMount(() => {
         void refresh();
+    });
+    // ---- the recovery system (openccu-lite task 505) ---------------------------------------------
+    // While the recovery answers, every path shows its view (no page can load without occulited), the
+    // top bar is locked - visibly, with the reason as its tooltip, and inert, so the keyboard cannot
+    // reach it either - and a bar under it says so. When the system answers again the shell goes back
+    // to the page the recovery interrupted.
+    onMount(() => listenForRecovery());
+    let recoveryReturn = '';
+    $effect(() => {
+        const active = inRecovery.active;
+        const path = router.path;
+        const to = recoveryRoute(path, active, untrack(() => recoveryReturn));
+        if (to === null) return;
+        if (active) recoveryReturn = returnPath(path, untrack(() => router.search));
+        else recoveryReturn = '';
+        replace(to);
     });
     // ---- the kept pages (task 177) --------------------------------------------------------------
     // The maintainer: pages should not render from new at every switch - keep them, as the addon
@@ -111,7 +131,7 @@
     // path is Status, as before
     const activeKey = $derived.by(() => {
         const p = router.path;
-        if (!keepPages || onPage(p, '/login') || onPage(p, '/welcome') || onPage(p, '/licenses') || addonId !== '' || navId !== '') return '';
+        if (!keepPages || onPage(p, '/login') || onPage(p, '/welcome') || onPage(p, '/licenses') || p === RECOVERY_PATH || addonId !== '' || navId !== '') return '';
         return KEPT.find((e) => e.match(p))?.key ?? 'status';
     });
     let visited = $state<string[]>([]);
@@ -600,7 +620,7 @@
      not scroll: the page's own journal box, or the frame, takes the height that is left. -->
 <div class="ol-shell" class:ol-fill={fill}>
     {#if !appFull}
-    <header class="ol-header" bind:this={headerEl}>
+    <header class="ol-header" class:ol-locked={inRecovery.active} inert={inRecovery.active} bind:this={headerEl}>
         <!-- task 177: while a page's first visit is covered, a soft light runs once along the bar's
              bottom edge in COVER_MAX_MS, and goes as soon as the page is ready (placed first: the power
              control stays the bar's last) -->
@@ -677,6 +697,12 @@
             {#if auth.role === 'admin'}<PowerMenu />{/if}
         {/if}
     </header>
+    {#if inRecovery.active}
+        <!-- task 505: the locked bar's tooltip (the bar itself is inert) and, in a zero-height
+             anchor, the recovery's bar over the top of the page: nothing moves when they come -->
+        <div class="ol-navlock" title={t('Not available while the system is in its recovery system')} aria-hidden="true" data-nav-locked></div>
+        <div class="ol-recoveryanchor"><RecoveryBar /></div>
+    {/if}
     {/if}
     <!-- B-129: the scrolling box. `main` keeps its centred column and its page classes; the port is
          what carries the scroll bar, so the bar belongs to the window's right edge and starts at the
@@ -687,7 +713,9 @@
     <main class="ol-main" class:ol-entering={entering} class:ol-wide={addonId !== '' || navId !== ''} class:ol-full={onPage(router.path, '/system/log') || onPage(router.path, '/system/services') || onPage(router.path, '/system/firewall') || router.path === '/addons'} class:ol-fill={fill}>
         <!-- task 94: after a reboot from here, the interfaces' bar and the timing report -->
         {#if auth.authenticated}<BootReady />{/if}
-        {#if !auth.loaded}
+        {#if inRecovery.active || router.path === RECOVERY_PATH}
+            <RecoveryView />
+        {:else if !auth.loaded}
             <div class="ol-muted">…</div>
         {:else if !auth.authenticated}
             {#if onPage(router.path, '/licenses')}<LicensesPage />{:else}<LoginPage />{/if}

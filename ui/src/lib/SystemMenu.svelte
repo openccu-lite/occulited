@@ -1,4 +1,5 @@
 <script lang="ts">
+    import {inRecovery} from './inrecovery.svelte';
     /*
      * Task 57 (D-68): the System menu. The *System* tab and a system page's title switcher open it;
      * it takes no screen space while closed. On a desktop it is a popover anchored under whatever
@@ -139,6 +140,8 @@
     }
     function onWindowKey(ev: KeyboardEvent) {
         if (!(ev.ctrlKey || ev.metaKey) || ev.altKey || ev.shiftKey || ev.key.toLowerCase() !== 'k') return;
+        // task 505: the System menu's pages need occulited, which the recovery system is not
+        if (inRecovery.active) return;
         if (isTextField(document.activeElement) && !panel?.contains(document.activeElement)) return;
         ev.preventDefault();
         if (systemMenu.open) {

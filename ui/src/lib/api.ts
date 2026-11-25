@@ -94,6 +94,8 @@ function answer<T>(res: Response, text: string, sid: string): T {
     // a wrong password typed into a confirmation (task 154) or the password change is a 401 too,
     // but the session is still there: only the others sign the shell out
     if (res.status === 401 && e.error !== 'invalid-credentials') unauthenticated(sid);
+    // openccu-lite task 505: the recovery system answers the API (lib/inrecovery.svelte.ts)
+    if (res.status === 503 && e.error === 'updating') window.dispatchEvent(new CustomEvent('ol:recovery', {detail: {status: 503, body: data}}));
     if (!res.ok && res.status !== 304) {
         throw new ApiError(res.status, e.error ?? 'http', e.message ?? `${res.status} ${res.statusText}`, e.detail);
     }

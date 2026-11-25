@@ -27,6 +27,7 @@
     import {normalChannel, type Channel} from './updatechannel';
     import {lookupBoxAddress, type BoxAddress, type NetworkView} from './recovery';
     import {hstsRemembered} from './hsts';
+    import {rememberRecoveryUrl} from './inrecovery.svelte';
 
     /** container: a container has no recovery system to stage a file for; platform: for the boot entry */
     let {container = false, platform}: {container?: boolean; platform?: string} = $props();
@@ -160,7 +161,8 @@
             try { https = await api.get<HTTPSView>('/api/system/v1/https'); } catch { /* the next poll */ }
         }
     }
-    // The install runs in the recovery system, which has no HTTPS (D-56): the notice links to its
+    // The install runs in the recovery system, which may answer over plain HTTP only (D-56; HTTPS with
+    // the system's certificate since task 505, when it is usable): the notice links to its
     // progress by the box's address (lib/recovery.ts), resolved as the install starts, says that
     // the page comes back by itself - it reloads once the box answers again - and points to the
     // same address when the box has been away for longer than an install takes.
@@ -188,6 +190,7 @@
         resuming = true;
         try {
             const [address, before] = await Promise.all([lookupBoxAddress(location.hostname, () => api.get<{network?: NetworkView}>('/api/system/v1/network')), boxUptime()]);
+            if (address.kind !== 'name') rememberRecoveryUrl(address.url);
             const kept = readEntry();
             const entry = kept && kept.kind === 'update' ? kept : await beginBoot('update', () => api.get('/api/system/v1/boot-expect?kind=update'), platform);
             if (installing) return;
@@ -225,6 +228,8 @@
         localPhase = 'install';
         // while the box still answers: where the recovery will be, and the uptime to tell the new boot by
         const [address, before] = await Promise.all([lookupBoxAddress(location.hostname, () => api.get<{network?: NetworkView}>('/api/system/v1/network')), boxUptime()]);
+        // task 505: the recovery's view links it by this address too
+        if (address.kind !== 'name') rememberRecoveryUrl(address.url);
         const entry = await beginBoot('update', () => api.get('/api/system/v1/boot-expect?kind=update'), platform);
         try {
             const r = await api.post<{rebooting: boolean; message?: string}>('/api/system/v1/system-update/install');
@@ -390,8 +395,8 @@
         <div class="ol-notice ol-installnotice" class:error={installing.late} role="status">
             <strong>{t('Rebooting into the recovery system…')}</strong>
             <BootBar entry={installing.boot} url={installing.address.url} hint={false} />
-            <div>{t('The installation runs in the recovery system; its progress is shown at')} <a class="hmm-mono" href={installing.address.url}>{installing.address.url}</a></div>
-            {#if installing.address.kind === 'name'}<div class="ol-muted" data-install-by-name>{t('If the browser refuses the name, open the system by its IP address.')}<Help>{t('No address of the system could be read, so the link uses its name. The recovery system has no HTTPS, and a browser that remembers HSTS for this name refuses it there.')}</Help></div>{/if}
+            <div>{t('The installation runs in the recovery system: this page shows its progress as soon as the recovery system answers. Its own page is at')} <a class="hmm-mono" href={installing.address.url}>{installing.address.url}</a></div>
+            {#if installing.address.kind === 'name'}<div class="ol-muted" data-install-by-name>{t('If the browser refuses the name, open the system by its IP address.')}<Help>{t('No address of the system could be read, so the link uses its name. The recovery system may answer over plain HTTP only, and a browser that remembers HSTS for this name refuses that there.')}</Help></div>{/if}
             <div class="ol-muted">{t('This page comes back by itself when the installation is done.')}</div>
             {#if installing.late}<div class="ol-warn ol-installlate">{t('The system has not come back after {min} minutes. If the installation failed, it stays in the recovery system, which shows what happened at', {min: INSTALL_WAIT_MIN})} <a class="hmm-mono" href={installing.address.url}>{installing.address.url}</a></div>{/if}
         </div>

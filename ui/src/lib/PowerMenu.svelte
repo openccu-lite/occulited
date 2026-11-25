@@ -14,7 +14,7 @@
      * A container has no recovery system, so the entry is left out; a staged system update would
      * be installed by one, so while an update is staged the entry says so and refuses.
      *
-     * The recovery system has no HTTPS, and a browser that remembers HSTS for the box's name refuses
+     * The recovery system may answer over plain HTTP only (task 505: HTTPS only with a usable certificate), and a browser that remembers HSTS for the box's name refuses
      * it by name (D-56): the question and the page after it link to the box's IP address, resolved
      * when the question opens (lib/recovery.ts). The name follows as a second link only while HSTS is
      * known to be off. A plain reboot with an update set to install ends in the recovery too, so its
@@ -37,6 +37,7 @@
     import {bootText, EASE_MS, type BootEntry, type BootKind} from './bootbar';
     import {beginBoot, removeEntry, watchBoot} from './bootwatch';
     import {boxUptime, haltKind, type HaltKind} from './power';
+    import {rememberRecoveryUrl} from './inrecovery.svelte';
     import {isIPLiteral, lookupBoxAddress, LOOKUP_TIMEOUT_MS, nameLink, withTimeout, type BoxAddress, type NetworkView} from './recovery';
     import {hstsRemembered} from './hsts';
     import {step} from './systemmenu';
@@ -165,14 +166,15 @@
             isIPLiteral(host) ? Promise.resolve(null) : withTimeout(api.get<HTTPSView>('/api/system/v1/https').then((v) => hstsRemembered(v)), LOOKUP_TIMEOUT_MS, null),
         ]);
         address = a;
+        if (a.kind !== 'name') rememberRecoveryUrl(a.url);
         nameURL = nameLink(a, host, hsts);
     }
 
     // why the link is the address: one sentence, or the warning when only the name was left
     function addressReason(a: BoxAddress): string {
         return a.kind === 'name'
-            ? t('No address of the system could be read, so the link uses its name: the recovery system has no HTTPS, and a browser that remembers HSTS for this name refuses it there - open the system by its IP address then.')
-            : t('The link uses the address the system has now and not its name: the recovery system has no HTTPS, and a browser that remembers HSTS for the name refuses it there.');
+            ? t('No address of the system could be read, so the link uses its name: the recovery system may answer over plain HTTP only, and a browser that remembers HSTS for this name refuses that there - open the system by its IP address then.')
+            : t('The link uses the address the system has now and not its name: the recovery system may answer over plain HTTP only, and a browser that remembers HSTS for the name refuses that there.');
     }
 
     async function choose(action: Action) {
@@ -307,7 +309,7 @@
             {#if phase === 'rebooting'}
                 <h2>{t('Rebooting…')}</h2>
                 {#if armed && address}
-                    <p>{t('A system update installs at this boot.')} {t('The installation runs in the recovery system; its progress is shown at')} <a class="hmm-mono" href={address.url}>{address.url}</a></p>
+                    <p>{t('A system update installs at this boot.')} {t('The installation runs in the recovery system: this page shows its progress as soon as the recovery system answers. Its own page is at')} <a class="hmm-mono" href={address.url}>{address.url}</a></p>
                     <p class="ol-muted">{addressReason(address)}</p>
                     <p class="ol-muted">{t('This page comes back by itself when the installation is done.')}</p>
                 {:else}

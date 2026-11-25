@@ -33,6 +33,16 @@ export function removeEntry(): void {
     }
 }
 
+/**
+ * Tells the shell that the recovery system answered (openccu-lite task 505): lib/inrecovery.svelte.ts
+ * listens for `ol:recovery` and takes over from there. A plain window event, so this file still
+ * imports nothing of the shell (the waiting page has no listener, and loses nothing).
+ */
+export function announceRecovery(status: number | null, body: unknown): void {
+    if (typeof window === 'undefined' || typeof CustomEvent !== 'function') return;
+    window.dispatchEvent(new CustomEvent('ol:recovery', {detail: {status, body}}));
+}
+
 /** How long one health poll may take before it counts as no answer. */
 export const PROBE_TIMEOUT_MS = 5000;
 
@@ -103,6 +113,7 @@ export function watchBoot(o: WatchOptions): () => void {
         const {status, body} = await probeHealth();
         if (stopped) return;
         const cls = classifyHealth(status, body);
+        if (cls === 'recovery') announceRecovery(status, body);
         const current = readEntry() ?? local;
         const {entry, back} = observe(current, cls, uptimeOf(body), o.before, Date.now());
         if (entry !== current) {

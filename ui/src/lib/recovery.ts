@@ -1,9 +1,10 @@
 // The recovery system by the box's address (D-56).
 //
-// The recovery system and a system update's install phase serve plain HTTP only. A browser that
-// remembers HSTS for the box's name upgrades http://<name>/ to https:// before the request leaves
-// it, so the recovery is "connection refused" by name in every browser, while http://<IP>/ still
-// works: HSTS never applies to an IP literal (RFC 6797 §8.1.1). So wherever the UI sends the
+// The recovery system and a system update's install phase serve plain HTTP on port 80 always, and
+// HTTPS on 443 with the system's certificate only when that certificate is usable (openccu-lite task
+// 505; a recovery before 2.0.0 never). A browser that remembers HSTS for the box's name upgrades
+// http://<name>/ to https:// before the request leaves it, so without HTTPS the recovery is
+// "connection refused" by name in every browser, while http://<IP>/ still works: HSTS never applies to an IP literal (RFC 6797 §8.1.1). So wherever the UI sends the
 // browser into the recovery - the power menu, a system update's install, the HSTS question - it
 // uses an address chosen here, resolved when the dialog opens and never cached from page load:
 //

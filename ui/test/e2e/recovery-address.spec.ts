@@ -1,7 +1,7 @@
 import {type Page} from '@playwright/test';
 import {expect, test} from './fixtures';
 
-// The recovery system has no HTTPS, and a browser that remembers HSTS for the box's name refuses
+// The recovery system may answer over plain HTTP only (no usable certificate, or before 2.0.0), and a browser that remembers HSTS for the box's name refuses
 // it by name: the power menu, a system update's install and the HSTS question send the browser to
 // the box's IP address, resolved when the question opens. The stub's network: wlan0 with the
 // default route at 192.0.2.119, eth0 at 10.10.0.2 with a global and a unique-local IPv6 address.
@@ -50,7 +50,7 @@ test.describe('the power menu', () => {
         await page.goto(`${NAME}/`);
         const dialog = await openRecovery(page);
         await expect(dialog).toContainText(`It answers with a page of its own at ${ADDRESS}; choose normal boot there`);
-        await expect(dialog).toContainText('The link uses the address the system has now and not its name: the recovery system has no HTTPS');
+        await expect(dialog).toContainText('The link uses the address the system has now and not its name: the recovery system may answer over plain HTTP only');
         await expect(dialog).not.toContainText('openccu.test');
         await dialog.getByRole('button', {name: 'Reboot into the recovery system', exact: true}).click();
         const state = page.locator('.ol-powerstate');
@@ -147,7 +147,7 @@ test.describe('the power menu', () => {
         await expect(dialog).toContainText(`A system update is set to install at this boot: it stays in the recovery system for a few minutes, and the progress of the installation is shown at ${ADDRESS}.`);
         await dialog.getByRole('button', {name: 'Reboot', exact: true}).click();
         const state = page.locator('.ol-powerstate');
-        await expect(state).toContainText('A system update installs at this boot. The installation runs in the recovery system; its progress is shown at');
+        await expect(state).toContainText('A system update installs at this boot. The installation runs in the recovery system: this page shows its progress as soon as the recovery system answers. Its own page is at');
         await expect(state.getByRole('link', {name: ADDRESS})).toHaveAttribute('href', ADDRESS);
         await expect(state).toContainText('This page comes back by itself when the installation is done.');
     });
@@ -202,7 +202,7 @@ test.describe('the system update', () => {
         await install(page);
         const notice = page.locator('.ol-installnotice');
         await expect(notice).toContainText('Rebooting into the recovery system…');
-        await expect(notice).toContainText(`The installation runs in the recovery system; its progress is shown at ${ADDRESS}`);
+        await expect(notice).toContainText(`The installation runs in the recovery system: this page shows its progress as soon as the recovery system answers. Its own page is at ${ADDRESS}`);
         await expect(notice.getByRole('link', {name: ADDRESS})).toHaveAttribute('href', ADDRESS);
         await expect(notice).toContainText('This page comes back by itself when the installation is done.');
         await expect(notice).not.toContainText('has not come back');
@@ -241,7 +241,7 @@ test.describe('the system update', () => {
         await page.goto(`${NAME}/system/updates`);
         await install(page, 'Neu starten und installieren');
         const notice = page.locator('.ol-installnotice');
-        await expect(notice).toContainText(`Die Installation läuft im Recovery-System; ihr Fortschritt wird angezeigt unter ${ADDRESS}`);
+        await expect(notice).toContainText(`Die Installation läuft im Recovery-System: diese Seite zeigt ihren Fortschritt, sobald das Recovery-System antwortet. Seine eigene Seite ist unter ${ADDRESS}`);
         await expect(notice).toContainText('Diese Seite ist von selbst wieder da, wenn die Installation fertig ist.');
     });
 });
@@ -264,7 +264,7 @@ test.describe('the HSTS switch', () => {
         await page.goto(`${NAME}/system/certificates`);
         const dialog = await switchOn(page);
         await expect(dialog).toContainText('Every browser that sees the header will insist on https:// for 365 days');
-        await expect(dialog).toContainText(`The recovery system and the installation of a system update have no HTTPS: while a browser remembers HSTS, it reaches them only by the system's IP address, ${ADDRESS}.`);
+        await expect(dialog).toContainText(`The recovery system and the installation of a system update may answer over plain HTTP only: while a browser remembers HSTS, it reaches them for sure only by the system's IP address, ${ADDRESS}.`);
         await expect(dialog).toContainText('The way back to OpenCCU, a reset and a switch back to a self-signed certificate serve a certificate such a browser does not trust: that locks that browser out of the name for up to 365 days, with no way past.');
         await expect(dialog).toContainText('Switching HSTS off later sends max-age=0 for a while, which undoes that only in a browser that opens the system by its name in that time');
         await expect(dialog).toContainText('The IP address always works.');
@@ -297,7 +297,7 @@ test.describe('the HSTS switch', () => {
         await hsts(page, false);
         await page.goto(`${NAME}/system/certificates`);
         const dialog = await switchOn(page, 'Speichern');
-        await expect(dialog).toContainText(`erreicht er sie nur über die IP-Adresse des Systems, ${ADDRESS}.`);
+        await expect(dialog).toContainText(`erreicht er sie sicher nur über die IP-Adresse des Systems, ${ADDRESS}.`);
         await expect(dialog).toContainText('das sperrt diesen Browser bis zu 365 Tage lang unter dem Namen aus');
         await expect(dialog).toContainText('Die IP-Adresse funktioniert immer.');
         await expect(dialog.getByRole('button', {name: 'HSTS einschalten'})).toBeVisible();

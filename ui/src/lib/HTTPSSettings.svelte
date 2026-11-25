@@ -83,8 +83,8 @@
         const message = [
             t('Every browser that sees the header will insist on https:// for {days} days and refuse any certificate it does not trust.', {days}),
             a.kind === 'name'
-                ? t("The recovery system and the installation of a system update have no HTTPS: while a browser remembers HSTS, it reaches them only by the system's IP address, which could not be read just now; the Network page shows it.")
-                : t("The recovery system and the installation of a system update have no HTTPS: while a browser remembers HSTS, it reaches them only by the system's IP address, {url}.", {url: a.url}),
+                ? t("The recovery system and the installation of a system update may answer over plain HTTP only: while a browser remembers HSTS, it reaches them for sure only by the system's IP address, which could not be read just now; the Network page shows it.")
+                : t("The recovery system and the installation of a system update may answer over plain HTTP only: while a browser remembers HSTS, it reaches them for sure only by the system's IP address, {url}.", {url: a.url}),
             t('The way back to OpenCCU, a reset and a switch back to a self-signed certificate serve a certificate such a browser does not trust: that locks that browser out of the name for up to {days} days, with no way past.', {days}),
             t('Switching HSTS off later sends max-age=0 for a while, which undoes that only in a browser that opens the system by its name in that time - before a switch back to self-signed or to OpenCCU. The IP address always works. Continue?'),
         ].join('\n\n');

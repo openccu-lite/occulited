@@ -358,16 +358,30 @@ export function readyView(entry: BootEntry, now: number, lang: Lang, waiting: re
 
 // ---- checkpoints, from the health route's answers ----
 
-export type HealthClass = Checkpoint | 'other';
+export type HealthClass = Checkpoint | 'recovery' | 'other';
+
+/**
+ * The recovery system's own answer on the API (openccu-lite task 505): its lighttpd answers every
+ * /api/ path with 503 {"error": "updating", "recovery": true, "update": {...}} - on port 80 and,
+ * since 2.0.0, on 443 with the system's certificate, so the page that started an install keeps
+ * reading it. Older recovery systems send the same error without "recovery"; "updating" comes from
+ * no other lighttpd (the system's says "starting").
+ */
+export function isRecoveryAnswer(status: number | null, body: unknown): boolean {
+    return status === 503 && (body as {error?: unknown} | null)?.error === 'updating';
+}
 
 /**
  * What an answer of /api/system/v1/health says about the box: no answer at all (a network error,
- * connection refused; `status` null) is down; lighttpd's 503 while occulited does not answer, or
- * any 502/503/504, is lighttpd up; occulited's own JSON with an uptime is occulited up. Anything
- * else - a 404 of the recovery system's lighttpd, a page that is not occulited's - says nothing.
+ * connection refused; `status` null) is down; the recovery system's 503 is the recovery, not yet
+ * the system (task 505: it counted as lighttpd up before, which fired that checkpoint minutes
+ * early); the system's lighttpd 503 while occulited does not answer, or any other 502/503/504, is
+ * lighttpd up; occulited's own JSON with an uptime is occulited up. Anything else - a page that is
+ * not occulited's - says nothing.
  */
 export function classifyHealth(status: number | null, body: unknown): HealthClass {
     if (status === null) return 'down';
+    if (isRecoveryAnswer(status, body)) return 'recovery';
     if (status === 502 || status === 503 || status === 504) return 'http';
     if (status === 200 && uptimeOf(body) !== null) return 'ui';
     return 'other';
@@ -396,6 +410,8 @@ export function isBack(entry: BootEntry, uptimeS: number, before: number, now: n
  */
 export function observe(entry: BootEntry, cls: HealthClass, uptimeS: number | null, before: number, now: number): {entry: BootEntry; back: boolean} {
     if (cls === 'down') return {entry: markSeen(entry, 'down', now), back: false};
+    // the recovery system answering: the system went down before it, whether a poll saw that or not
+    if (cls === 'recovery') return {entry: markSeen(entry, 'down', now), back: false};
     if (cls === 'http') return {entry: entry.seen.down === undefined ? entry : markSeen(entry, 'http', now), back: false};
     if (cls === 'ui' && uptimeS !== null && isBack(entry, uptimeS, before, now)) return {entry: markSeen(entry, 'ui', now), back: true};
     return {entry, back: false};

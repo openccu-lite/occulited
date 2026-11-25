@@ -282,6 +282,9 @@ describe('the checkpoints from the health route', () => {
     it.each<[string, number | null, unknown, string]>([
         ['no answer', null, null, 'down'],
         ["lighttpd's starting page", 503, {error: 'starting'}, 'http'],
+        ["the recovery system's 503 (task 505)", 503, {error: 'updating', recovery: true, update: {running: true, phase: 'install'}}, 'recovery'],
+        ["an older recovery system's 503", 503, {error: 'updating', message: 'the system is in its recovery system'}, 'recovery'],
+        ["the recovery's error on another status", 502, {error: 'updating'}, 'http'],
         ['a bare 502', 502, null, 'http'],
         ['a 504', 504, null, 'http'],
         ["occulited's answer", 200, {ok: true, uptime_s: 3}, 'ui'],
@@ -308,6 +311,19 @@ describe('the checkpoints from the health route', () => {
         expect(observe(e, 'http', null, 4990, at(1)).entry.seen).toEqual({});
         const gone = observe(e, 'down', null, 4990, at(6)).entry;
         expect(observe(gone, 'http', null, 4990, at(30)).entry.seen).toEqual({down: at(6), http: at(30)});
+    });
+
+    it("the recovery system's 503 is never lighttpd up: it marks the box gone, and the http checkpoint waits for the system", () => {
+        const e = reboot();
+        let r = observe(e, 'recovery', null, 4990, at(70));
+        expect(r).toEqual({entry: {...e, seen: {down: at(70)}}, back: false});
+        r = observe(r.entry, 'recovery', null, 4990, at(300));
+        expect(r.entry.seen).toEqual({down: at(70)});
+        r = observe(r.entry, 'down', null, 4990, at(420));
+        r = observe(r.entry, 'http', null, 4990, at(450));
+        expect(r.entry.seen).toEqual({down: at(70), http: at(450)});
+        r = observe(r.entry, 'ui', 3, 4990, at(460));
+        expect(r.back).toBe(true);
     });
 
     it('a poll records its checkpoint and says when the box is back', () => {

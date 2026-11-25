@@ -422,7 +422,30 @@ body { background: var(--hmm-page-bg); }
  * the power menu and the boot (200). App.svelte still names its measured height --ol-header-h - the
  * boot timeline's fixed panel hangs below the bar by it.
  */
-.ol-shell { display: flex; flex-direction: column; height: 100vh; height: 100dvh; }
+.ol-shell { position: relative; display: flex; flex-direction: column; height: 100vh; height: 100dvh; }
+/* openccu-lite task 505: while the system is in its recovery system the top bar is locked (inert,
+   greyed) and a transparent sheet over it carries the reason as its tooltip; the recovery's bar hangs
+   from a zero-height anchor under the header, over the page, so nothing in the layout moves */
+.ol-header.ol-locked > :not(.ol-navrow), .ol-header.ol-locked .ol-nav { opacity: 0.45; }
+.ol-navlock { position: absolute; left: 0; right: 0; top: 0; height: var(--ol-header-h, 36px); z-index: 46; cursor: not-allowed; }
+.ol-recoveryanchor { position: relative; height: 0; flex: 0 0 0; z-index: 44; }
+:root {
+    --ol-recoverybar-bg: #a06800;
+    --ol-recoverybar-fg: #ffffff;
+    --ol-recoverybar-edge: #7a4f00;
+}
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme='light']) {
+        --ol-recoverybar-bg: #cca700;
+        --ol-recoverybar-fg: #1b1f26;
+        --ol-recoverybar-edge: #f0cc33;
+    }
+}
+:root[data-theme='dark'] {
+    --ol-recoverybar-bg: #cca700;
+    --ol-recoverybar-fg: #1b1f26;
+    --ol-recoverybar-edge: #f0cc33;
+}
 .ol-header {
     position: relative; z-index: 45; flex: 0 0 auto;
     display: flex; align-items: center; gap: 12px; min-height: var(--hmm-header-height);
