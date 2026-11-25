@@ -18,7 +18,7 @@
     import Icon from './Icon.svelte';
     import HistoryChart from './HistoryChart.svelte';
     import {i18n, t} from './i18n.svelte';
-    import {MAX_TEMP_RINGS, TEMP_STEPS, bootDip, episodeMarks, formatCelsius, formatSeconds, formatLimit, panelLevel, ringFraction, tempColours, tempLevel, throttleFacts, throttleLevel, throttleState, type Thermal, type ThrottleFlag, type ThrottleState, type TempReading} from './thermal';
+    import {MAX_TEMP_RINGS, TEMP_STEPS, bootDip, causeOf, causeWhen, clockText, episodeMarks, formatGHz, formatCelsius, formatSeconds, formatLimit, panelLevel, ringFraction, tempColours, tempLevel, throttleFacts, throttleLevel, throttleState, type Thermal, type ThrottleFlag, type ThrottleState, type TempReading} from './thermal';
     import {clock, spanMax, type Sample} from './history';
     import {panelEdge} from './storage';
 
@@ -82,7 +82,26 @@
     function factText(f: {flag: ThrottleFlag; now: boolean}): string {
         if (f.now) return t('{what} now', {what: flagWord(f.flag)});
         if (f.flag === 'under_voltage' && th?.events && lastAt) return t('{what} since the boot ({n}×, last at {time})', {what: flagWord(f.flag), n: th.events, time: lastAt});
+        // task 177: when occulited first saw the bit, and how hot the processor was then
+        const c = causeOf(th, f.flag);
+        if (c) {
+            const w = causeWhen(c, lang);
+            const what = flagWord(f.flag);
+            if (w.kind === 'startup') return t('{what} since the start-up', {what});
+            const temp = c.celsius !== undefined ? fmt(c.celsius) : '';
+            if (w.kind === 'before') return temp ? t('{what} before {time} ({temp} then)', {what, time: w.time, temp}) : t('{what} before {time}', {what, time: w.time});
+            return temp ? t('{what} at {time} at {temp}', {what, time: w.time, temp}) : t('{what} at {time}', {what, time: w.time});
+        }
         return t('{what} since the boot', {what: flagWord(f.flag)});
+    }
+    // task 177: the chip's tooltip adds the clock of that moment and what "before" means
+    function factTitle(f: {flag: ThrottleFlag; now: boolean}): string {
+        const c = f.now ? undefined : causeOf(th, f.flag);
+        if (!c) return factText(f);
+        const parts = [factText(f)];
+        if (c.clock_mhz) parts.push(t('Processor clock then: {ghz} GHz', {ghz: formatGHz(c.clock_mhz, lang)}));
+        if (c.before) parts.push(t('The bit was already set when the system first read the firmware state; it appeared before that.'));
+        return parts.join('\n');
     }
     // B-162: a short undervoltage in the boot phase that normalised - an info line, no warning
     const dip = $derived(th ? bootDip(th) : null);
@@ -160,6 +179,14 @@
                     <span class="tp-val" class:warn={l === 'warn'} class:err={l === 'error'} data-celsius>{fmt(r.celsius)}</span>
                 </li>
             {/each}
+            {#if th?.clock}
+                <!-- task 177: the processor's clock now, current / maximum -->
+                <li data-cpu-clock={th.clock.source} title={th.clock.source === 'firmware' ? t('The clock the firmware measures now; it is lower while the firmware caps it.') : t('The clock the system asked for now; the firmware may run it lower while it caps it.')}>
+                    <span class="sw" aria-hidden="true"></span>
+                    <span class="tp-name">{t('Processor clock')}</span>
+                    <span class="tp-val tp-clock">{clockText(th.clock, lang)}</span>
+                </li>
+            {/if}
         </ul>
     </div>
     {#if th}
@@ -167,7 +194,7 @@
         <div class="tp-throttle" data-throttle-facts={facts.length} title={throttleTitle}>
             {#if facts.length}
                 {#each facts as f (f.flag)}
-                    <span class="tp-fact" class:now={f.now} class:err={f.now && f.flag === 'under_voltage'} data-fact={f.flag} data-now={f.now} title={factText(f)}>{factText(f)}</span>
+                    <span class="tp-fact" class:now={f.now} class:err={f.now && f.flag === 'under_voltage'} data-fact={f.flag} data-now={f.now} title={factTitle(f)}>{factText(f)}</span>
                 {/each}
             {:else if dip}
                 <span class="tp-fact info" data-fact="boot_dip" title={dipText}>{dipText}</span>
@@ -203,6 +230,8 @@
     /* room for "100,0 °C" whatever the figure, so a change of the value never moves the row; the
        level is the colour alone - a bolder weight would widen the figure */
     .tp-val { white-space: nowrap; text-align: right; min-width: 8.5ch; color: var(--hmm-fg); font-variant-numeric: tabular-nums; }
+    /* room for "1,5 / 1,5 GHz", so a change of the clock never moves the row */
+    .tp-clock { min-width: 13ch; }
     .tp-val.warn { color: var(--hmm-warn); }
     .tp-val.err { color: var(--hmm-error); }
     /* the throttle's box (B-168): always two lines high, whether it holds nothing, one chip or four -

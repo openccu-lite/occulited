@@ -3645,7 +3645,7 @@ function variant(req, u, res) {
         sendJSON(res, {...structuredClone(routes[key]), security_key_set: false});
         return true;
     }
-    // occulited task 148: the temperature panel (stub-thermal=pi|ssd|hot|crit|bootdip|recurring|capped) - a Pi 4's SoC, with a
+    // occulited task 148: the temperature panel (stub-thermal=pi|ssd|hot|crit|bootdip|recurring|capped|clockcap) - a Pi 4's SoC, with a
     // USB SSD's SMART temperature, hot (throttled), at the limit with a hot disk and undervoltage now;
     // and the processor's temperature in the history. Without the cookie the OVA has no sensor.
     if (jar['stub-thermal'] && THERMAL[jar['stub-thermal']] && (key === 'GET /api/system/v1/status' || key === 'GET /api/system/v1/status/history')) {
@@ -3848,7 +3848,11 @@ const t7 = (celsius) => ({id: 'disk:sda', kind: 'disk', name: 'Samsung PSSD T7',
 // chart draws them; ago(m) is m minutes before the stub's now
 const ago = (m) => new Date(Date.parse(now) - m * 60000).toISOString();
 const THERMAL = {
-    pi: {readings: [piSoC(54.8)], throttle: {source: 'firmware', raw: 0, now: flags(), since_boot: flags()}},
+    pi: {readings: [piSoC(54.8)], throttle: {source: 'firmware', raw: 0, now: flags(), since_boot: flags(), clock: {cur_mhz: 600, max_mhz: 1500, source: 'firmware'}}},
+    // occulited task 177: rpi3-1's 0x20000 - the clock capped once, recorded with the moment, 79 °C and the clock then;
+    // an undervoltage bit that was already set at the first read in the boot phase
+    clockcap: {readings: [piSoC(52.0)], throttle: {source: 'firmware', raw: 0x30000, now: flags(), since_boot: flags({freq_capped: true, under_voltage: true}), state: 'earlier', clock: {cur_mhz: 1200, max_mhz: 1200, source: 'firmware'},
+        causes: [{flag: 'under_voltage', at: ago(99), before: true, uptime_s: 31, celsius: 41.0, clock_mhz: 1200}, {flag: 'freq_capped', at: ago(30), uptime_s: 4200, celsius: 79.2, clock_mhz: 1000}]}},
     ssd: {readings: [piSoC(61.2), t7(38)], throttle: {source: 'firmware', raw: 0x50000, now: flags(), since_boot: flags({under_voltage: true, throttled: true})}},
     hot: {readings: [piSoC(81.4)], throttle: {source: 'firmware', raw: 0xc000c, now: flags({throttled: true, soft_temp_limit: true}), since_boot: flags({throttled: true, soft_temp_limit: true})}},
     crit: {readings: [piSoC(85.3), t7(72)], throttle: {source: 'firmware', raw: 0x50005, now: flags({under_voltage: true, throttled: true}), since_boot: flags({under_voltage: true, throttled: true}), state: 'undervoltage', events: 3, undervoltage_s: 17, last: {start: ago(10), start_s: 5400},
@@ -3862,6 +3866,8 @@ const THERMAL = {
     capped: {readings: [piSoC(58.4)], throttle: {source: 'firmware', raw: 0x70000, now: flags(), since_boot: flags({under_voltage: true, throttled: true, freq_capped: true}), state: 'earlier', events: 2, undervoltage_s: 9, last: {start: ago(30), start_s: 4200, duration_s: 6},
         episodes: [{start: ago(70), start_s: 1800, duration_s: 3}, {start: ago(30), start_s: 4200, duration_s: 6}]}},
 };
+// occulited task 177: a Pi always has a clock - every variant without its own gets one
+for (const v of Object.values(THERMAL)) if (v.throttle && !v.throttle.clock) v.throttle.clock = {cur_mhz: 1500, max_mhz: 1500, source: 'firmware'};
 
 const STORAGE = {
     good: {verdict: 'good', reasons: [], kernel_log: true, health_source: 'device', devices: [PI4_CARD]},

@@ -96,6 +96,10 @@ type Throttle struct {
 	UnderVoltageS float64          `json:"undervoltage_s,omitempty"`
 	Last          *VoltageEpisode  `json:"last,omitempty"`
 	Episodes      []VoltageEpisode `json:"episodes,omitempty"`
+	// Clock is the processor's clock now (task 177), absent when neither the firmware nor cpufreq
+	// tells; Causes when each sticky bit first held this boot and the temperature and clock then
+	Clock  *CPUClock       `json:"clock,omitempty"`
+	Causes []ThrottleCause `json:"causes,omitempty"`
 }
 
 // ThrottleFlags are the four conditions of the firmware's word.
@@ -388,6 +392,14 @@ type ThermalReader struct {
 	vok      bool
 	noVcgen  bool // the helper said vcgencmd is not installed: not asked again
 	reported bool // a failed read is logged once
+	// task 177: the firmware's last answer (its measured clock, where the helper sent one), this
+	// boot's causes and whether the state file was read
+	out          string
+	causes       []ThrottleCause
+	causesLoaded bool
+	// StateFile keeps the causes across a restart of occulited within one boot (task 177); "" =
+	// this process only
+	StateFile string
 }
 
 // Read answers the panel; nil without any reading (the VM, a container).
@@ -427,9 +439,14 @@ func (t *ThermalReader) throttle(ctx context.Context) *Throttle {
 	}
 	t.mu.Lock()
 	late := t.late
+	out := t.out
+	if len(t.causes) > 0 {
+		th.Causes = append([]ThrottleCause(nil), t.causes...)
+	}
 	t.mu.Unlock()
 	up, _ := t.Root.Uptime()
 	th.assess(eps, read, late, up)
+	th.Clock = t.Root.CPUClock(out) // task 177
 	return &th
 }
 
@@ -500,6 +517,7 @@ func (t *ThermalReader) firmwareWord(ctx context.Context) (uint32, bool) {
 	out, err := read(ctx)
 	t.at = time.Now()
 	t.word = nil
+	t.out = ""
 	if errors.Is(err, priv.ErrNotAvailable) {
 		t.noVcgen = true
 		return 0, false
@@ -517,6 +535,9 @@ func (t *ThermalReader) firmwareWord(ctx context.Context) (uint32, bool) {
 		return 0, false
 	}
 	t.word = &w
+	first := t.prev == nil
 	t.seeLate(w)
+	t.out = out
+	t.noteCausesLocked(w, first, t.Root.CPUClock(out)) // task 177: when a sticky bit first held, and why
 	return w, true
 }

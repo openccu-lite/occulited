@@ -47,6 +47,26 @@ export interface Throttle {
     undervoltage_s?: number;
     last?: VoltageEpisode;
     episodes?: VoltageEpisode[];
+    /** occulited task 177: the processor's clock now */
+    clock?: CPUClock;
+    /** occulited task 177: when each sticky bit first held this boot */
+    causes?: ThrottleCause[];
+}
+/** occulited task 177: the processor's clock, MHz; firmware = measured, cpufreq = requested */
+export interface CPUClock {
+    cur_mhz: number;
+    max_mhz?: number;
+    source: 'firmware' | 'cpufreq';
+}
+/** occulited task 177: the first read that showed a sticky bit this boot */
+export interface ThrottleCause {
+    flag: ThrottleFlag;
+    at: string;
+    /** already set at occulited's first read: it appeared before `at` */
+    before?: boolean;
+    uptime_s: number;
+    celsius?: number;
+    clock_mhz?: number;
 }
 export interface Thermal {
     readings: TempReading[];
@@ -203,3 +223,32 @@ export function socSeries(h: SocSample[] | undefined): {t: string; v: number; up
 
 /** the chart's readable tops in °C */
 export const TEMP_STEPS = [40, 50, 60, 70, 80, 90, 100, 125];
+
+/** occulited task 177: MHz as GHz with one decimal in the language's mark ("1,2 GHz" without the unit: "1,2") */
+export function formatGHz(mhz: number, lang: string): string {
+    return new Intl.NumberFormat(lang === 'de' ? 'de-DE' : 'en-US', {minimumFractionDigits: 1, maximumFractionDigits: 1}).format(mhz / 1000);
+}
+
+/** occulited task 177: the panel's clock value, "1,2 / 1,5 GHz", or "1,2 GHz" without a maximum */
+export function clockText(c: CPUClock, lang: string): string {
+    return c.max_mhz ? `${formatGHz(c.cur_mhz, lang)} / ${formatGHz(c.max_mhz, lang)} GHz` : `${formatGHz(c.cur_mhz, lang)} GHz`;
+}
+
+/** occulited task 177: the record of a flag, if any */
+export function causeOf(th: Throttle | undefined, flag: ThrottleFlag): ThrottleCause | undefined {
+    return th?.causes?.find((c) => c.flag === flag);
+}
+
+/**
+ * occulited task 177: how a cause says when - "start-up" for a bit already set at a first read in
+ * the boot phase, "before" for one already set later (it appeared earlier), else "at"; the moment
+ * on the clock, with the day in front when it is not today
+ */
+export function causeWhen(c: ThrottleCause, lang: string, now = new Date()): {kind: 'startup' | 'before' | 'at'; time: string} {
+    const d = new Date(c.at);
+    const t = d.toLocaleTimeString(lang, {hour: '2-digit', minute: '2-digit', hourCycle: 'h23'});
+    const sameDay = d.toDateString() === now.toDateString();
+    const time = sameDay ? t : `${d.toLocaleDateString(lang, {day: 'numeric', month: 'numeric'})} ${t}`;
+    if (c.before && c.uptime_s < 120) return {kind: 'startup', time};
+    return {kind: c.before ? 'before' : 'at', time};
+}

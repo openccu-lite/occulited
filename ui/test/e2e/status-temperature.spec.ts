@@ -363,3 +363,32 @@ test('the chart lines in German', async ({page, baseURL}) => {
     await page.goto('/');
     await expect(panel(page).locator('.ol-card-foot svg rect.event')).toHaveAttribute('data-event-label', /^Unterspannung \d\d:\d\d, 2 s \(beim Start, normalisiert\)$/);
 });
+
+// occulited task 177 (the maintainer, 2026-11-24): the processor's clock, current / maximum, and
+// when each throttling bit first held - with the temperature then - instead of "since the boot"
+test('the clock, and when and how hot the clock was capped', async ({page, baseURL}) => {
+    await thermal(page, baseURL!, 'clockcap');
+    await page.goto('/');
+    const p = panel(page);
+    const clk = p.locator('li[data-cpu-clock="firmware"]');
+    await expect(clk).toContainText('Processor clock');
+    await expect(clk.locator('.tp-clock')).toHaveText('1.2 / 1.2 GHz');
+    const capped = p.locator('[data-fact="freq_capped"]');
+    await expect(capped).toHaveText(/^Clock capped at (\d+\/\d+ )?\d\d:\d\d at 79\.2 °C$/);
+    await expect(capped).toHaveAttribute('title', /Processor clock then: 1\.0 GHz/);
+    // set at the first read within the boot phase: since the start-up, no time
+    await expect(p.locator('[data-fact="under_voltage"]')).toHaveText('Undervoltage since the start-up');
+    // the facts' box keeps its two lines
+    const h = await p.locator('.tp-throttle').evaluate((e) => e.getBoundingClientRect().height);
+    await thermal(page, baseURL!, 'pi');
+    await page.reload();
+    await expect(p.locator('.tp-clock')).toHaveText('0.6 / 1.5 GHz');
+    expect(await p.locator('.tp-throttle').evaluate((e) => e.getBoundingClientRect().height)).toBeCloseTo(h, 0);
+
+    await page.evaluate(() => localStorage.setItem('ol.language', 'de'));
+    await thermal(page, baseURL!, 'clockcap');
+    await page.reload();
+    await expect(p.locator('.tp-clock')).toHaveText('1,2 / 1,2 GHz');
+    await expect(p.locator('li[data-cpu-clock]')).toContainText('Prozessortakt');
+    await expect(p.locator('[data-fact="freq_capped"]')).toHaveText(/^Takt begrenzt um (\d+\.\d+\. )?\d\d:\d\d bei 79,2 °C$/);
+});

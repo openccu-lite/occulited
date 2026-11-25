@@ -10822,6 +10822,24 @@
         ],
         "type": "object"
       },
+      "SystemCPUClock": {
+        "properties": {
+          "cur_mhz": {
+            "type": "integer"
+          },
+          "max_mhz": {
+            "type": "integer"
+          },
+          "source": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "cur_mhz",
+          "source"
+        ],
+        "type": "object"
+      },
       "SystemCalendarCheck": {
         "properties": {
           "available": {
@@ -14897,6 +14915,25 @@
       },
       "SystemThrottle": {
         "properties": {
+          "causes": {
+            "items": {
+              "$ref": "#/components/schemas/SystemThrottleCause"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "clock": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SystemCPUClock"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "episodes": {
             "items": {
               "$ref": "#/components/schemas/SystemVoltageEpisode"
@@ -14950,6 +14987,38 @@
           "since_boot",
           "source",
           "state"
+        ],
+        "type": "object"
+      },
+      "SystemThrottleCause": {
+        "properties": {
+          "at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "before": {
+            "type": "boolean"
+          },
+          "celsius": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "clock_mhz": {
+            "type": "integer"
+          },
+          "flag": {
+            "type": "string"
+          },
+          "uptime_s": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "at",
+          "flag",
+          "uptime_s"
         ],
         "type": "object"
       },

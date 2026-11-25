@@ -1,5 +1,5 @@
 import {describe, expect, it} from 'vitest';
-import {bootDip, episodeMarks, formatCelsius, formatLimit, formatSeconds, panelLevel, ringFraction, socSeries, tempColours, tempLevel, throttleFacts, throttleLevel, throttleState, type TempReading, type Throttle} from './thermal';
+import {bootDip, causeOf, causeWhen, clockText, episodeMarks, formatCelsius, formatLimit, formatSeconds, panelLevel, ringFraction, socSeries, tempColours, tempLevel, throttleFacts, throttleLevel, throttleState, type TempReading, type Throttle} from './thermal';
 
 // occulited task 148: the temperature panel's figures and words
 const soc = (celsius: number): TempReading => ({id: 'thermal_zone0', kind: 'soc', name: 'cpu-thermal', celsius, warn_c: 80, max_c: 85});
@@ -106,5 +106,22 @@ describe('thermal', () => {
         expect(socSeries(undefined)).toEqual([]);
         expect(socSeries([{t: 'a'}, {t: 'b'}])).toEqual([]);
         expect(socSeries([{t: 'a'}, {t: 'b', soc_c: 51.2}])).toEqual([{t: 'a', v: 0, up: false}, {t: 'b', v: 51.2}]);
+    });
+});
+
+describe('occulited task 177: the clock and the causes', () => {
+    it('writes the clock in GHz with the language mark', () => {
+        expect(clockText({cur_mhz: 1200, max_mhz: 1500, source: 'firmware'}, 'en')).toBe('1.2 / 1.5 GHz');
+        expect(clockText({cur_mhz: 600, max_mhz: 1500, source: 'cpufreq'}, 'de')).toBe('0,6 / 1,5 GHz');
+        expect(clockText({cur_mhz: 900, source: 'cpufreq'}, 'en')).toBe('0.9 GHz');
+    });
+    it('says start-up, before or at', () => {
+        const now = new Date('2026-11-24T20:00:00Z');
+        expect(causeWhen({flag: 'freq_capped', at: '2026-11-24T19:00:00Z', uptime_s: 4000}, 'de', now).kind).toBe('at');
+        expect(causeWhen({flag: 'freq_capped', at: '2026-11-24T19:00:00Z', before: true, uptime_s: 4000}, 'de', now).kind).toBe('before');
+        expect(causeWhen({flag: 'under_voltage', at: '2026-11-24T19:00:00Z', before: true, uptime_s: 30}, 'de', now).kind).toBe('startup');
+        // another day: the day in front
+        expect(causeWhen({flag: 'freq_capped', at: '2026-11-22T10:00:00Z', uptime_s: 4000}, 'en', now).time).toMatch(/^\d+\/\d+ \d\d:\d\d$/);
+        expect(causeOf({source: 'firmware', now: {} as never, since_boot: {} as never, causes: [{flag: 'throttled', at: '', uptime_s: 1}]}, 'throttled')?.flag).toBe('throttled');
     });
 });

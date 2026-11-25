@@ -688,6 +688,11 @@ func run(opts daemonOptions) error {
 	// occulited task 37: the system's load and memory, once a minute, the same ring and file
 	// task 148: and the processor's temperature where there is a sensor
 	thermal := &system.ThermalReader{Root: root, Platform: dataStoreMgr.Platform, Log: log}
+	if *sessionDir != "" {
+		// task 177: when each throttling bit first held this boot, kept across a restart in the
+		// unit's runtime directory (occulite/state), gone with the boot
+		thermal.StateFile = filepath.Join(filepath.Dir(filepath.Clean(*sessionDir)), "state", "throttle.json")
+	}
 	// B-162: the supply's undervoltage episodes from rpi_volt's kernel lines - the journal (the unit's
 	// systemd-journal group), the ring buffer where the journal holds no kernel line of this boot
 	thermal.Kernel = func(context.Context) ([]system.LogLine, error) {

@@ -15,7 +15,7 @@ import (
 func TestThrottledOperation(t *testing.T) {
 	dir := t.TempDir()
 	script := filepath.Join(dir, "vcgencmd")
-	if err := os.WriteFile(script, []byte("#!/bin/sh\necho \"args:$*\"\necho throttled=0x50005\n"), 0o755); err != nil {
+	if err := os.WriteFile(script, []byte("#!/bin/sh\nif [ \"$1\" = measure_clock ]; then [ -e \"$0.noclock\" ] && exit 1; echo \"frequency(48)=1200000000\"; exit 0; fi\necho \"args:$*\"\necho throttled=0x50005\n"), 0o755); err != nil {
 		t.Fatal(err)
 	}
 	old := vcgencmdPath
@@ -33,8 +33,16 @@ func TestThrottledOperation(t *testing.T) {
 	go func() { _ = srv.Serve(ctx, l) }()
 	c := Client{Socket: sock}
 	r, err := c.Throttled(ctx)
-	if err != nil || string(r.Stdout) != "args:get_throttled\nthrottled=0x50005\n" {
+	// task 177: the measured clock after the word
+	if err != nil || string(r.Stdout) != "args:get_throttled\nthrottled=0x50005\nfrequency(48)=1200000000\n" {
 		t.Fatalf("%q %v", r.Stdout, err)
+	}
+	// a clock that cannot be read leaves the word alone
+	if err := os.WriteFile(script+".noclock", nil, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if r, err := c.Throttled(ctx); err != nil || string(r.Stdout) != "args:get_throttled\nthrottled=0x50005\n" {
+		t.Fatalf("without the clock: %q %v", r.Stdout, err)
 	}
 	for _, req := range []request{{Op: opThrottled, Args: []string{"otp_dump"}}, {Op: opThrottled, Name: "/bin/sh"}, {Op: opThrottled, Path: "/dev/vcio"}} {
 		if _, err := c.call(ctx, req); err == nil || !errors.Is(err, ErrRefused) {
