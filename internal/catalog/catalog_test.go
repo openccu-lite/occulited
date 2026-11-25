@@ -53,35 +53,30 @@ func TestRepositoryCatalogue(t *testing.T) {
 	if len(v.Addons) < 8 {
 		t.Fatalf("%d entries", len(v.Addons))
 	}
-	// the maintainer's word (2026-09-25): these are marked untested, the rest carry no label
-	// (OpenCCU-Loom lost the label with its own manifest, occulited B-39, 2026-10-03)
-	untested := map[string]bool{
+	// the maintainer's word (2026-09-25): untested entries carry the label, the rest none. Since
+	// occulited task 188 (2026-11-25) the catalogue lists none: the three untested ones -
+	// JP-HB-Devices, CCU-Jack, HomeKit-CCU - were taken out together with their adapter manifests
+	gone := map[string]bool{
 		"https://github.com/jp112sdl/JP-HB-Devices-addon": true,
 		"https://github.com/mdzio/ccu-jack":               true,
 		"https://github.com/bloop16/homekit-ccu":          true,
 	}
-	adapters := 0
 	for _, it := range v.Addons {
-		if it.Untested != untested[it.Git] {
-			t.Errorf("%s: untested %v", it.Git, it.Untested)
+		if gone[it.Git] {
+			t.Errorf("%s: taken out of the catalogue (task 188)", it.Git)
+		}
+		if it.Untested {
+			t.Errorf("%s: untested", it.Git)
 		}
 		// occulited task 153: the one addon that gives its user a root shell carries the label
 		if it.RootAccess != (it.Git == "https://github.com/openccu-lite/lite-addon-shell") {
 			t.Errorf("%s: root_access %v", it.Git, it.RootAccess)
 		}
-		if !it.Adapter {
-			if it.Manifest != nil {
-				t.Errorf("%s: a manifest before any check", it.Git)
-			}
-			continue
+		// no adapter manifests any more: every entry is read from its own repository, so none has
+		// a manifest before a check
+		if it.Adapter || it.Manifest != nil {
+			t.Errorf("%s: adapter %v, manifest before any check %+v", it.Git, it.Adapter, it.Manifest)
 		}
-		adapters++
-		if it.Manifest == nil || it.ID != adapterID(it.ManifestPath) || it.Release == nil {
-			t.Errorf("%s: the bundled adapter is not known: %+v", it.Git, it.Manifest)
-		}
-	}
-	if adapters != 3 {
-		t.Errorf("%d adapters", adapters)
 	}
 	// B-39: OpenCCU-Loom ships its own manifest and the entry reads it from its repository
 	for _, it := range v.Addons {
@@ -89,34 +84,20 @@ func TestRepositoryCatalogue(t *testing.T) {
 			t.Errorf("OpenCCU-Loom: %+v", it)
 		}
 	}
-	// every adapter manifest the image carries is one an entry names, and every adapter an entry
-	// names is there: a stale file would still count as ReGa-free at the first boot
-	names, _ := filepath.Glob(filepath.Join(s.BundledManifests, "*.json"))
-	named := map[string]bool{}
-	for _, it := range v.Addons {
-		if it.Adapter {
-			named[filepath.Base(it.ManifestPath)] = true
-		}
+	// the image carries no adapter manifest a catalogue entry does not name: a stale file would
+	// still count as ReGa-free at the first boot
+	if names, _ := filepath.Glob(filepath.Join(s.BundledManifests, "*.json")); len(names) != 0 {
+		t.Errorf("adapter files no entry names: %v", names)
 	}
-	if len(names) != len(named) {
-		t.Errorf("%d adapter files, %d named by the catalogue", len(names), len(named))
-	}
-	for _, n := range names {
-		if !named[filepath.Base(n)] {
-			t.Errorf("%s: no catalogue entry names it", n)
-		}
-	}
-	// homekit-ccu and CCU-Jack declare requires.rega: they are no exception to the ReGa scan.
-	// occulited B-32: CCU-Jack 2.13.0 waits for ReGaHss before it starts its interfaces, so the
-	// scan must flag an installed one and the page must warn before its install
-	if ids := RegaFreeAdapterIDs(s.BundledManifests); strings.Join(ids, ",") != "jp-hb-devices-addon" {
+	if ids := RegaFreeAdapterIDs(s.BundledManifests); len(ids) != 0 {
 		t.Errorf("%v", ids)
 	}
-	if m := s.Manifest("ccu-jack"); m == nil || !m.NeedsRega() {
-		t.Errorf("CCU-Jack needs the ReGa: %+v", m)
-	}
-	if s.Manifest("jp-hb-devices-addon") == nil || s.Manifest("nope") != nil {
-		t.Error("Manifest by id")
+	// task 188: an installed addon the catalogue no longer lists has no catalogue word - its stored
+	// manifest (the install's copy) is what it keeps
+	for _, id := range []string{"jp-hb-devices-addon", "ccu-jack", "homekit-ccu", "nope"} {
+		if s.Manifest(id) != nil || s.Item(t.Context(), id) != nil {
+			t.Errorf("%s: still known to the catalogue", id)
+		}
 	}
 }
 

@@ -96,3 +96,20 @@ func TestLegacyLeftovers(t *testing.T) {
 		t.Error("the ReGa database removed with the leftovers")
 	}
 }
+
+// occulited task 188: JP-HB-Devices left the catalogue with its adapter manifest; an installed one
+// without a manifest of its own is still known to run without the ReGa, Tcl code or not.
+func TestRegaDependenceJPHBDevicesWithoutCatalogue(t *testing.T) {
+	r := rootWith(t, map[string]string{
+		"usr/local/etc/config/rc.d/jp-hb-devices-addon":  "#!/bin/sh\n",
+		"usr/local/addons/jp-hb-devices-addon/www/x.cgi": "set x [rega_script dom.GetObject(\"x\")]\n",
+	})
+	_ = os.Chmod(r.join("/usr/local/etc/config/rc.d/jp-hb-devices-addon"), 0o755)
+	regaScanCache.Delete("jp-hb-devices-addon")
+	if dep, why := r.RegaDependence("jp-hb-devices-addon"); dep {
+		t.Errorf("flagged: %s", why)
+	}
+	if d := r.DisableRegaDependentAddons(); len(d) != 0 || !r.AddonEnabled("jp-hb-devices-addon") {
+		t.Errorf("disabled: %v", d)
+	}
+}

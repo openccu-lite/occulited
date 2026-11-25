@@ -256,8 +256,9 @@ func TestFromArchive(t *testing.T) {
 func TestRepositoryCatalogueParses(t *testing.T) {
 	root := filepath.Join("..", "..", "catalog")
 	entries, err := filepath.Glob(filepath.Join(root, "manifests", "*.json"))
-	if err != nil || len(entries) == 0 {
-		t.Fatalf("no adapter manifests: %v", err)
+	// occulited task 188: none at the moment (the three left the catalogue); a new one is checked here
+	if err != nil {
+		t.Fatal(err)
 	}
 	for _, p := range entries {
 		m, err := ParseFile(p)

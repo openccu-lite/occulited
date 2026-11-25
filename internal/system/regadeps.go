@@ -57,7 +57,12 @@ var regaScanCache sync.Map // id -> regaVerdict
 // scan alone would punish exactly the addons that did it right. main fills it from the ids of the
 // adapter manifests the image carries (addons whose authors ship no manifest); every other addon
 // says it itself - with the manifest it ships (D-119), or the older marker file below.
-var RegaCompatible = map[string]bool{}
+//
+// JP-HB-Devices is named here since occulited task 188: its adapter manifest was the only one that
+// said "runs without the ReGa", and it left the catalogue with it. An installed one keeps that
+// verdict (its device descriptions work without the ReGa; its WebUI patches run into the void),
+// so it is neither flagged nor disabled by the scan of its Tcl code.
+var RegaCompatible = map[string]bool{"jp-hb-devices-addon": true}
 
 // RegaCompatibleMarker in the addon's directory says "runs without ReGa" (porting kit, before the
 // manifest). Still accepted for an addon without a manifest.

@@ -105,6 +105,22 @@ test('the ⋯ menu holds Stop, Restart, Disable at boot, Reinstall and Uninstall
     await expect.poll(() => posted).toEqual(['/api/system/v1/services/addon-redmatic/stop']);
 });
 
+// occulited task 188: JP-HB-Devices, CCU-Jack and HomeKit-CCU left the catalogue. An installed one
+// (the stub's JP-HB-Devices: installed, no catalogue entry) is still a whole card - its state, its
+// version, Uninstall in the ⋯ menu - and offers neither an install nor a catalogue reinstall.
+test('an installed addon the catalogue no longer lists: a whole card, manageable, no catalogue actions', async ({page}) => {
+    await page.goto('/addons');
+    const jp = card(page, 'jp-hb-devices-addon');
+    await expect(jp.locator('.ad-name')).toHaveText('JP HB Devices');
+    await expect(jp.locator('[data-card-error]')).toHaveCount(0);
+    await expect(jp.locator('.ad-sub')).toContainText('6.1');
+    await expect(jp.getByRole('button', {name: 'Install', exact: true})).toHaveCount(0);
+    await jp.getByRole('button', {name: 'More actions'}).click();
+    const items = jp.getByRole('menu').getByRole('menuitem');
+    await expect(items.filter({hasText: 'Uninstall'})).toHaveCount(1);
+    await expect(items.filter({hasText: 'Reinstall from the catalogue'})).toHaveCount(0);
+});
+
 // openccu-lite task 146 (D-106): the addons a restore brought back without their program files -
 // listed above the toolbar with Reinstall where the catalogue knows the addon, "install it by hand"
 // where it does not, Reinstall all, and Dismiss; the list is what the API marks payload_missing.
