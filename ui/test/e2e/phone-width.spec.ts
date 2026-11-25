@@ -205,12 +205,12 @@ test.describe("a real box's data fits a phone", () => {
 });
 
 // task 139: the Addons page is cards - two columns above 1100 px, one below - and fits at the
-// edges, in German
+// edges, in German; occulited task 188: three from 1400 px
 test.describe('the Addons page at the edges of its steps', () => {
     test.beforeEach(({}, info) => {
         test.skip(info.project.name !== 'desktop-light', 'widths of a desktop window');
     });
-    for (const width of [701, 900, 1100, 1101]) {
+    for (const width of [701, 900, 1100, 1101, 1399, 1400]) {
         test(`${width} px in German`, async ({page, baseURL}) => {
             await page.setViewportSize({width, height: 900});
             await open(page, baseURL!, 'de', '/addons');
@@ -218,7 +218,7 @@ test.describe('the Addons page at the edges of its steps', () => {
             await expect(cards.first()).toBeVisible();
             await expectFits(page, `/addons at ${width} px`);
             const lefts = new Set(await cards.evaluateAll((els) => els.map((e) => Math.round(e.getBoundingClientRect().left))));
-            expect(lefts.size).toBe(width <= 1100 ? 1 : 2);
+            expect(lefts.size).toBe(width <= 1100 ? 1 : width < 1400 ? 2 : 3);
         });
     }
 });

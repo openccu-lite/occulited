@@ -18,6 +18,7 @@
 import type {Addon} from './api';
 import type {AddonImages} from './addonimages';
 import {compareEntries} from './catalog';
+import {readEntryTags} from './catalogtags';
 
 export interface Text { de?: string; en?: string }
 // a catalogue item (D-119): the entry - repository, manifest path, untested - and the addon's
@@ -25,6 +26,8 @@ export interface Text { de?: string; en?: string }
 export interface Entry {
     git: string; manifest_path: string; untested?: boolean; root_access?: boolean; adapter?: boolean;
     id?: string; name?: Text; description?: Text; homepage?: string; licence?: string;
+    /** occulited task 188: the manifest's one line for the card, and the catalogue's tags of the entry */
+    summary?: Text; tags?: string[];
     release?: {github?: string; prerelease?: boolean}; requires?: {architectures?: string[]; lite?: string}; lite_unmet?: boolean;
     ui?: {own_updater?: boolean}; runtime?: {note?: Text};
     /** openccu-lite task 100: the manifest's images as the check fetched them, kind → URL on this origin */
@@ -105,6 +108,8 @@ export function readEntry(x: unknown): Entry | BrokenWhy {
         id,
         name: asText(x.name),
         description: asText(x.description),
+        summary: asText(x.summary),
+        tags: readEntryTags(x.tags),
         homepage: str(x.homepage),
         licence: str(x.licence),
         untested: yes(x.untested),

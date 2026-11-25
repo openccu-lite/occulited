@@ -12,7 +12,12 @@
      * (the maintainer, 2026-09-22); a card with a frontend says so in one quiet line.
      *
      * Above the list: the filter, *Installed only* (remembered per browser), *Check for updates*
-     * (the catalogue refresh) and *Update all* when more than one update waits. Below: the
+     * (the catalogue refresh) and *Update all* when more than one update waits; below them the
+     * catalogue's tags as chips with counts (occulited task 188), several at a time, remembered per
+     * browser. A card shows the manifest's one-line summary, else the description; the runtime
+     * note and a long Info: line are behind *Details*, a dialog (the note is in the install
+     * question as well). One, two or three
+     * columns by the window's width. Below: the
      * addons' ports (task 157), the legacy session and early start switches, Install from file.
      */
     import {onMount} from 'svelte';
@@ -46,6 +51,8 @@
     import {scrollToAnchor} from '../lib/anchor';
     import CheckDaily from '../lib/CheckDaily.svelte';
     import Icon from '../lib/Icon.svelte';
+    import ModalDialog from '../lib/ModalDialog.svelte';
+    import {knownChosen, matchesTags, orderTags, parseChosen, readTags, shownTags, tagCounts, TAGS_KEY, TAGS_MORE_KEY, toggleTag, visibleTags, type CatalogTag} from '../lib/catalogtags';
 
     interface InstallResult { exit: number; meaning: string; reboot_required: boolean; output?: string; seconds: number; stopped_addons?: StoppedAddon[]; started?: string[] }
     interface UpdateInfo { installed: string; available: string; update_available: boolean; url: string; error?: string }
@@ -60,6 +67,8 @@
         addons: Entry[]; checked?: string; releases_error?: ReleasesError;
         /** B-52: `bundled` while the list is the image's own copy alone, `published` once a check reached GitHub */
         source?: 'published' | 'bundled'; bundled_date?: string; check_error?: CheckError;
+        /** occulited task 188: the fixed tag list, `{id, label}` */
+        tags?: unknown;
     }
     let catalogue = $state<CatalogView | null>(null);
     // B-157: the answers' entries the page cannot use - each becomes a card that says why
@@ -111,6 +120,39 @@
             /* no storage */
         }
     });
+    // occulited task 188: the tags chosen in the filter, remembered per browser like Installed only
+    let chosenTags = $state<string[]>([]);
+    try {
+        chosenTags = parseChosen(localStorage.getItem(TAGS_KEY));
+    } catch {
+        /* no storage */
+    }
+    $effect(() => {
+        const v = JSON.stringify(chosenTags);
+        try {
+            localStorage.setItem(TAGS_KEY, v);
+        } catch {
+            /* no storage */
+        }
+    });
+    // the collapsed chip row shows the most used tags; *More* shows all (remembered per browser)
+    let tagsExpanded = $state(false);
+    try {
+        tagsExpanded = localStorage.getItem(TAGS_MORE_KEY) === '1';
+    } catch {
+        /* no storage */
+    }
+    $effect(() => {
+        const v = tagsExpanded ? '1' : '0';
+        try {
+            localStorage.setItem(TAGS_MORE_KEY, v);
+        } catch {
+            /* no storage */
+        }
+    });
+    let tagList = $state<CatalogTag[]>([]);
+    // the card whose details are open (occulited task 188), null while none
+    let details = $state<Card | null>(null);
 
     // task 125 (D-77): the legacy session's switches, and task 119 (D-75): the early start's - the
     // global ones in their sections below the list, the per-addon ones in the ⋯ menu
@@ -155,6 +197,7 @@
             const c = r.catalog && typeof r.catalog === 'object' ? r.catalog : {addons: []};
             const read = readEntries(c.addons ?? []);
             catalogue = {...c, addons: read.ok};
+            tagList = readTags(c.tags);
             brokenEntries = read.broken;
             daily = r.daily ?? null;
             installedVersions = r.installed ?? {};
@@ -195,13 +238,24 @@
             : why === 'not-a-list' ? t('the system sent no list')
             : why;
     const cards = $derived(buildCards(catalogue?.addons ?? [], addons ?? [], [...brokenEntries, ...brokenAddons], lang));
-    const shown = $derived(cards.filter((c) => {
+    // the cards the text filter and Installed only let through; the tag chips count among them
+    const filtered = $derived(cards.filter((c) => {
         if (installedOnly && !c.addon) return false;
         if (!filter) return true;
         // the repository's name counts only where it is all the card has (no manifest yet)
-        const hay = `${c.id} ${c.name} ${tx(c.entry?.description)} ${c.entry && !c.entry.id ? repoName(c.entry) : ''}`.toLowerCase();
+        const hay = `${c.id} ${c.name} ${tx(c.entry?.summary)} ${tx(c.entry?.description)} ${c.entry && !c.entry.id ? repoName(c.entry) : ''}`.toLowerCase();
         return hay.includes(filter.toLowerCase());
     }));
+    // occulited task 188: a tag the list no longer has is no choice (kept while the list is unknown)
+    const activeTags = $derived(knownChosen(chosenTags, tagList));
+    const shown = $derived(filtered.filter((c) => matchesTags(c.entry?.tags, activeTags)));
+    // the chips: the tags some card carries, ordered by the whole catalogue's counts (stable while
+    // filtering), collapsed to the most used ones until *More*
+    const allTagged = $derived(cards.map((c) => ({tags: c.entry?.tags})));
+    const orderedChips = $derived(orderTags(visibleTags(tagList, allTagged, activeTags), allTagged));
+    const chipRow = $derived(shownTags(orderedChips, activeTags, tagsExpanded));
+    const tagChips = $derived(chipRow.tags);
+    const counts = $derived(tagCounts(filtered.map((c) => ({tags: c.entry?.tags})), tagList));
     const pending = $derived(cards.filter((c) => c.update));
     // B-52: a first visit - no check has reached GitHub yet - and what failed, in the user's words
     const firstVisit = $derived(!!catalogue && !catalogue.checked && catalogue.source !== 'published');
@@ -330,7 +384,7 @@
         if (!c.entry?.id) return;
         notice = '';
         cardNotice = null;
-        const r = await installFromCatalog({id: c.entry.id, name: c.name, latest: c.entry.latest, install_mode: c.entry.install_mode}, c.addon?.version ?? installedVersions[c.id]);
+        const r = await installFromCatalog({id: c.entry.id, name: c.name, latest: c.entry.latest, install_mode: c.entry.install_mode, note: tx(c.entry.runtime?.note) || undefined}, c.addon?.version ?? installedVersions[c.id]);
         if (r === null) return;
         if (r) {
             notice = r;
@@ -562,6 +616,10 @@
     }
 
     // the Info line is the addon's own HTML: tags dropped, entities decoded, what looks like a link linked (30.3)
+    // occulited task 188: an installed addon's Info: line longer than this goes behind Details;
+    // a short one (a sentence and the repository link) stays on the card
+    const INFO_ON_CARD = 110;
+    const infoBehindDetails = (a: Addon | null | undefined): boolean => !!a?.info && plain(a.info).length > INFO_ON_CARD;
     const plain = (html: string) => (new DOMParser().parseFromString(html.replace(/<br\s*\/?>|<\/(p|div|li|h[1-6])>/gi, ' '), 'text/html').body.textContent ?? '').replace(/\s+/g, ' ').trim();
     type Seg = {text: string; href?: string};
     function linkify(text: string): Seg[] {
@@ -688,6 +746,23 @@
             {/if}
         </span>
     </div>
+    {#if tagChips.length}
+        <!-- occulited task 188: the catalogue's tags; several at a time, a card with any of them shows.
+             The count is of the cards the text filter and Installed only let through; its width is
+             reserved, so a chip keeps its size while the counts change -->
+        <div class="ad-tags" role="group" aria-label={t('Filter by tag')} data-tag-filter>
+            <button type="button" class="ad-tag" aria-pressed={activeTags.length === 0} onclick={() => (chosenTags = [])} data-tag="">{t('All')}</button>
+            {#each tagChips as tg (tg.id)}
+                {@const on = activeTags.includes(tg.id)}
+                <button type="button" class="ad-tag" aria-pressed={on} aria-label={t('{tag}: {n}', {tag: tx(tg.label), n: counts[tg.id] ?? 0})} title={tx(tg.label)} onclick={() => (chosenTags = toggleTag(activeTags, tg.id, tagList))} data-tag={tg.id}>
+                    <span class="ad-tag-label">{tx(tg.label)}</span><span class="ad-tag-count" data-tag-count>{counts[tg.id] ?? 0}</span>
+                </button>
+            {/each}
+            {#if shownTags(orderedChips, [], false).more > 0}
+                <button type="button" class="ad-tag ad-tag-more" aria-expanded={tagsExpanded} onclick={() => (tagsExpanded = !tagsExpanded)} data-tag-more>{tagsExpanded ? t('Fewer') : t('{n} more', {n: chipRow.more})}</button>
+            {/if}
+        </div>
+    {/if}
     {#if firstVisit || failure}
         <!-- occulited B-52: the catalogue comes from GitHub, and a first visit is told so with a
              button that loads it; a failed load or check says why and offers it again -->
@@ -723,7 +798,7 @@
     <!-- B-52: one card that cannot render must not blank the whole list without a word -->
     <svelte:boundary onerror={(e) => console.error('addons: the list could not be rendered', e)}>
     {#if shown.length === 0}
-        <div class="ol-notice">{installedOnly && !filter ? t('No addons installed. Install a frontend such as homematic-manager to pair devices.') : t('Nothing matches the filter.')}</div>
+        <div class="ol-notice">{installedOnly && !filter && activeTags.length === 0 ? t('No addons installed. Install a frontend such as homematic-manager to pair devices.') : t('Nothing matches the filter.')}</div>
     {/if}
     <div class="ol-cards ad-cards" data-addon-cards={shown.length}>
         {#each shown as c (c.id)}
@@ -743,6 +818,10 @@
             {@const u = a ? updates[a.id] : undefined}
             <!-- the id is what the Addons popup's ⚙ scrolls to (/addons?addon=<id>, task 55) -->
             {@const edge = cardEdge(a)}
+            <!-- occulited task 188: the card's text and what goes behind Details (below) -->
+            {@const sum = e?.id ? tx(e.summary) : ''}
+            {@const desc = e?.id ? tx(e.description) : ''}
+            {@const longInfo = infoBehindDetails(a)}
             <div class="ol-card ad-card {edge}" class:dim={!!e && !e.id && !a} id={`addon-row-${c.id}`} data-addon-card={c.id} data-installed={a ? '1' : '0'} data-warn-for={a ? ADDON_WARNINGS.join(' ') : undefined} data-warn-edge={edge || undefined}>
                 <div class="ad-head">
                     <span class="ad-logo">
@@ -842,9 +921,16 @@
                         {/if}
                     {/if}
                 </div>
+                <!-- occulited task 188 (the maintainer, 2026-11-25): the card shows the summary when the
+                     manifest has one, else the description; the grey texts under it - the runtime note,
+                     and an installed addon's long Info: line - are behind Details (and the note is in
+                     the install question too) -->
                 {#if e?.id}
-                    {#if tx(e.description)}<p class="ad-desc">{tx(e.description)}</p>{/if}
-                    {#if e.runtime?.note}<p class="ol-muted ad-note">{tx(e.runtime.note)}</p>{/if}
+                    {#if sum}
+                        <p class="ad-desc ad-summary" title={sum} data-addon-summary>{sum}</p>
+                    {:else if desc}
+                        <p class="ad-desc" data-addon-description>{desc}</p>
+                    {/if}
                 {:else if e}
                     <p class="ol-muted ad-desc">{t('Its description arrives with the next check for updates, which reads the addon\'s manifest from its repository.')}</p>
                 {/if}
@@ -861,8 +947,11 @@
                         {/if}
                     </p>
                 {/if}
-                {#if a?.info}
+                {#if a?.info && !longInfo}
                     <p class="ol-muted ad-info">{#each linkify(plain(a.info)) as seg, i (i)}{#if seg.href}<a href={seg.href} target="_blank" rel="noopener">{seg.text}</a>{:else}{seg.text}{/if}{/each}</p>
+                {/if}
+                {#if (sum && desc) || (e?.id && e.runtime?.note) || longInfo}
+                    <button type="button" class="ad-details-btn" aria-haspopup="dialog" aria-label={t('Details of {name}', {name: c.name})} onclick={() => (details = c)} data-addon-details>{t('Details')}</button>
                 {/if}
                 {#if u}
                     {#if u.error}<p class="ol-muted ad-check">{u.error}</p>
@@ -966,6 +1055,36 @@
             </div>
         {/snippet}
     </svelte:boundary>
+    <!-- occulited task 188: what the card leaves out - the whole description, the runtime note,
+         the tags and the repository line - for the card whose Details was clicked -->
+    <ModalDialog open={!!details} title={details?.name ?? ''} size="medium" onclose={() => (details = null)}>
+        {#if details && !details.entry && details.addon?.info}
+            <div class="ad-detail" data-addon-detail={details.id}>
+                <p class="ol-muted ad-info" data-detail-info>{#each linkify(plain(details.addon.info)) as seg, i (i)}{#if seg.href}<a href={seg.href} target="_blank" rel="noopener">{seg.text}</a>{:else}{seg.text}{/if}{/each}</p>
+            </div>
+        {/if}
+        {#if details?.entry}
+            {@const de = details.entry}
+            <div class="ad-detail" data-addon-detail={details.id}>
+                {#if tx(de.summary)}<p class="ad-detail-summary" data-detail-summary>{tx(de.summary)}</p>{/if}
+                {#if tx(de.description)}<p class="ad-detail-desc" data-detail-description>{tx(de.description)}</p>{/if}
+                {#if de.runtime?.note}<p class="ol-muted ad-note" data-detail-note>{tx(de.runtime.note)}</p>{/if}
+                {#if details.addon?.info && infoBehindDetails(details.addon)}
+                    <p class="ol-muted ad-info" data-detail-info>{#each linkify(plain(details.addon.info)) as seg, i (i)}{#if seg.href}<a href={seg.href} target="_blank" rel="noopener">{seg.text}</a>{:else}{seg.text}{/if}{/each}</p>
+                {/if}
+                {#if de.tags?.length}
+                    <p class="ad-detail-tags" data-detail-tags>
+                        {#each de.tags as id (id)}{@const tg = tagList.find((x) => x.id === id)}{#if tg}<span class="ol-badge">{tx(tg.label)}</span>{/if}{/each}
+                    </p>
+                {/if}
+                <p class="ol-muted ad-meta-line">
+                    {repoName(de)}{de.licence ? ` · ${de.licence}` : ''}
+                    {#if de.homepage && httpURL(de.homepage)}{' · '}<a href={de.homepage} target="_blank" rel="noopener">{t('Homepage')}</a>{/if}
+                </p>
+            </div>
+        {/if}
+        {#snippet footer()}<button class="hmm-button" onclick={() => (details = null)}>{t('Close')}</button>{/snippet}
+    </ModalDialog>
     <!-- task 157: the addons' declared ports and their switches -->
     <AddonPorts {admin} />
     {#if admin}
@@ -1008,8 +1127,36 @@
     .ad-spinner { width: 1em; height: 1em; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; animation: ad-spin 0.8s linear infinite; }
     @keyframes ad-spin { to { transform: rotate(360deg); } }
     @media (prefers-reduced-motion: reduce) { .ad-spinner { animation-duration: 2.4s; } }
-    .ad-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
-    @media (max-width: 1100px) { .ad-cards { grid-template-columns: minmax(0, 1fr); } }
+    /* occulited task 188 (the maintainer, 2026-11-25): three cards side by side on a large screen,
+       two above 1100 px (Q3 kept), one up to it */
+    .ad-cards { grid-template-columns: minmax(0, 1fr); gap: 14px; }
+    @media (min-width: 1101px) { .ad-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+    @media (min-width: 1400px) { .ad-cards { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+    /* the tag chips: a pressed chip changes its colours only, never its box; the count's width is
+       reserved for two digits, so nothing moves while the counts change */
+    .ad-tags { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 14px; }
+    .ad-tag {
+        display: inline-flex; align-items: center; gap: 6px; min-height: 28px; padding: 2px 10px;
+        border: 1px solid var(--hmm-border); border-radius: 14px; background: var(--hmm-control-bg, transparent);
+        color: var(--hmm-fg); font: inherit; font-size: var(--hmm-font-size-small); cursor: pointer; white-space: nowrap;
+    }
+    .ad-tag:hover { background: var(--hmm-control-bg-hover); }
+    .ad-tag:focus-visible { outline: 2px solid var(--hmm-accent); outline-offset: 2px; }
+    .ad-tag[aria-pressed='true'] { background: var(--hmm-accent-bg); border-color: var(--hmm-accent); color: var(--hmm-accent); }
+    .ad-tag-count { min-width: 2ch; text-align: right; font-variant-numeric: tabular-nums; color: var(--hmm-fg-muted); }
+    .ad-tag[aria-pressed='true'] .ad-tag-count { color: inherit; }
+    .ad-tag-more { border-style: dashed; color: var(--hmm-link, var(--hmm-accent)); }
+    /* the summary on one line, cut with an ellipsis and whole in its tooltip */
+    .ad-summary { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .ad-details-btn {
+        align-self: flex-start; margin: 0 0 4px; padding: 0; border: 0; background: none; font: inherit; font-size: var(--hmm-font-size-small);
+        color: var(--hmm-link, var(--hmm-accent)); cursor: pointer;
+    }
+    .ad-details-btn:hover { text-decoration: underline; }
+    .ad-details-btn:focus-visible { outline: 2px solid var(--hmm-accent); outline-offset: 2px; }
+    .ad-detail p { margin: 0 0 10px; overflow-wrap: anywhere; }
+    .ad-detail-summary { font-weight: 600; }
+    .ad-detail-tags { display: flex; flex-wrap: wrap; gap: 4px; }
     .ad-card { padding: 16px 18px; }
     /* task 129: the 4 px edge takes its three extra pixels from the padding, so the card's content
        stays where it is without an edge (as .ol-panel.warn does) */

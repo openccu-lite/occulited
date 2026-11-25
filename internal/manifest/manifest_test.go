@@ -4,6 +4,7 @@ import (
 	"archive/tar"
 	"bytes"
 	"compress/gzip"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -571,5 +572,56 @@ func TestRegadomImportURL(t *testing.T) {
 		if err != nil || m.UI.RegadomImportURL != u {
 			t.Errorf("%s: %v", u, err)
 		}
+	}
+}
+
+// occulited task 188: summary - one line per language, at most SummaryMax characters; a longer one
+// is cut with an ellipsis and a warning, never refused.
+func TestSummary(t *testing.T) {
+	with := func(summary string) string {
+		return strings.Replace(good, `"description":`, `"summary": `+summary+`, "description":`, 1)
+	}
+	m, err := Parse([]byte(with(`{"de": "Der MQTT-Broker", "en": "The MQTT broker"}`)))
+	if err != nil || m.Summary.In("de") != "Der MQTT-Broker" || m.Summary.In("en") != "The MQTT broker" || len(m.Warnings) != 0 {
+		t.Fatalf("%v %+v %v", err, m.Summary, m.Warnings)
+	}
+	// one plain string for both; line breaks and runs of space become one space
+	if m, err = Parse([]byte(with(`"  Broker\n  for   MQTT "`))); err != nil || m.Summary["de"] != "Broker for MQTT" || m.Summary["en"] != "Broker for MQTT" {
+		t.Fatalf("%v %+v", err, m.Summary)
+	}
+	// exactly the limit (umlauts count as one character each) stays as it is
+	exact := strings.Repeat("ä", SummaryMax)
+	if m, err = Parse([]byte(with(`{"de": "` + exact + `"}`))); err != nil || m.Summary["de"] != exact || len(m.Warnings) != 0 {
+		t.Fatalf("%v %q %v", err, m.Summary["de"], m.Warnings)
+	}
+	// longer: cut at the last word boundary near the limit, an ellipsis, a warning per language
+	long := strings.Repeat("word ", 30)
+	m, err = Parse([]byte(with(`{"de": "` + long + `", "en": "short"}`)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := []rune(m.Summary["de"])
+	if len(got) > SummaryMax || !strings.HasSuffix(m.Summary["de"], "word…") || m.Summary["en"] != "short" {
+		t.Fatalf("%d %q", len(got), m.Summary["de"])
+	}
+	if len(m.Warnings) != 1 || !strings.Contains(m.Warnings[0], "summary (de) is 149 characters") {
+		t.Fatalf("%v", m.Warnings)
+	}
+	// one long word: cut at the limit
+	m, _ = Parse([]byte(with(`"` + strings.Repeat("x", 100) + `"`)))
+	if r := []rune(m.Summary["en"]); len(r) != SummaryMax || r[SummaryMax-1] != '…' {
+		t.Fatalf("%q", m.Summary["en"])
+	}
+	// empty texts leave no summary; absent is fine
+	if m, err = Parse([]byte(with(`{"de": "  ", "en": ""}`))); err != nil || m.Summary != nil {
+		t.Fatalf("%v %+v", err, m.Summary)
+	}
+	if m, _ = Parse([]byte(good)); m.Summary != nil || m.Warnings != nil {
+		t.Fatalf("%+v", m)
+	}
+	// the warnings are not part of the manifest's JSON (the stored copy, the API)
+	b, _ := json.Marshal(m)
+	if strings.Contains(string(b), "arnings") {
+		t.Fatal(string(b))
 	}
 }

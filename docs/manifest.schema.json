@@ -46,6 +46,21 @@
       "description": "The package's version; informational, the installed version is read from the rc.d script's info."
     },
     "name": {"$ref": "#/$defs/text"},
+    "summary": {
+      "description": "One line for the catalogue's card, at most 80 characters per language (occulited task 188). A system cuts a longer one with an ellipsis.",
+      "oneOf": [
+        {"type": "string", "minLength": 1, "maxLength": 80, "pattern": "^[^\\n\\r]*$"},
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "de": {"type": "string", "minLength": 1, "maxLength": 80, "pattern": "^[^\\n\\r]*$"},
+            "en": {"type": "string", "minLength": 1, "maxLength": 80, "pattern": "^[^\\n\\r]*$"}
+          },
+          "anyOf": [{"required": ["de"]}, {"required": ["en"]}]
+        }
+      ]
+    },
     "description": {"$ref": "#/$defs/text"},
     "homepage": {"type": "string", "pattern": "^https?://"},
     "changelog": {"type": "string", "pattern": "^https?://"},

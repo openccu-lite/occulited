@@ -67,6 +67,10 @@ type Entry struct {
 	// shell) although its own process is confined: a label like Untested, set by the catalogue
 	// maintainers, grants and refuses nothing (occulited task 153).
 	RootAccess bool `json:"root_access,omitempty"`
+	// Tags are the entry's tags out of the fixed list Tags (occulited task 188), set by the
+	// catalogue maintainers; the Addons page filters by them. One this system does not know is
+	// dropped when the file is read.
+	Tags []string `json:"tags,omitempty"`
 }
 
 // Adapter says whether the entry's manifest is an adapter in the catalogue's repository.
@@ -79,6 +83,8 @@ type Item struct {
 	Untested     bool   `json:"untested,omitempty"`
 	RootAccess   bool   `json:"root_access,omitempty"`
 	Adapter      bool   `json:"adapter,omitempty"`
+	// Tags are the entry's catalogue tags this system knows (occulited task 188).
+	Tags []string `json:"tags,omitempty"`
 	// Manifest is the fetched (or bundled adapter) manifest, flattened into the item: id, name,
 	// description, homepage, release, requires, ui, runtime. Nil until the first check.
 	*manifest.Manifest
@@ -147,6 +153,9 @@ type View struct {
 	// fetched, no addon's manifest could be read, or nothing loaded at all. Nil after a check that
 	// worked. Checked stays the time of the last check that worked.
 	CheckError *CheckFailure `json:"check_error,omitempty"`
+	// Tags is the fixed tag list with its labels (occulited task 188), in the order of the page's
+	// filter chips: the page names a tag by it and shows no chip for one it does not hold.
+	Tags []Tag `json:"tags"`
 }
 
 // CheckFailure is a check of the catalogue that failed (B-52): the user's or the daily one.
@@ -582,6 +591,7 @@ func (s *Service) loadCatalog(ctx context.Context, network bool) (*Catalog, map[
 				continue
 			}
 			seen[key] = true
+			e.Tags = knownTags(e.Tags)
 			merged.Addons = append(merged.Addons, e)
 			sources[key] = u
 		}
@@ -692,7 +702,7 @@ func (s *Service) getETag(ctx context.Context, u, etag string, limit int64) ([]b
 func (s *Service) view() *View {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	v := &View{Format: Format, Checked: s.cache.Checked, Addons: []Item{}}
+	v := &View{Format: Format, Checked: s.cache.Checked, Addons: []Item{}, Tags: Tags}
 	if n := s.cache.ReleasesError; n != nil {
 		c := *n
 		if c.RetryAt != nil {
@@ -719,7 +729,7 @@ func (s *Service) view() *View {
 				v.Source = "published"
 			}
 		}
-		it := Item{Git: e.Git, ManifestPath: e.Manifest, Untested: e.Untested, RootAccess: e.RootAccess, Adapter: e.Adapter()}
+		it := Item{Git: e.Git, ManifestPath: e.Manifest, Untested: e.Untested, RootAccess: e.RootAccess, Adapter: e.Adapter(), Tags: e.Tags}
 		if c, ok := s.cache.Entries[entryKey(e.Git)]; ok {
 			it.Manifest, it.Tag, it.Error = c.Manifest, c.Tag, c.Error
 			if len(c.Images) > 0 {
@@ -941,6 +951,10 @@ func (s *Service) fetchManifest(ctx context.Context, e Entry, source string) cac
 	}
 	if e.Adapter() && m.ID != adapterID(e.Manifest) {
 		return fail(fmt.Errorf("the adapter manifest names %s, not its file", m.ID))
+	}
+	for _, w := range m.Warnings {
+		// occulited task 188: e.g. a summary cut to its limit - the manifest is used all the same
+		slog.Warn("catalog: a manifest was put right", "git", e.Git, "warning", w)
 	}
 	out.Manifest, out.ETag, out.Error = m, etag, ""
 	out.Images, out.PackageRead = s.fetchImages(ctx, e, out, prev)

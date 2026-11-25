@@ -99,6 +99,8 @@ export interface Installable {
     latest?: {version: string; prerelease?: boolean};
     /** occulited B-174: the catalogue's word on how it would run; absent = not known (no manifest read) */
     install_mode?: 'root' | 'confined';
+    /** occulited task 188: the manifest's runtime note in the user's language - what it needs and contacts; the card keeps it behind Details, the install question says it */
+    note?: string;
 }
 
 /**
@@ -127,7 +129,8 @@ export async function installFromCatalog(e: Installable, installed?: string): Pr
           : installQuestion(e);
     // occulited task 171: the question says it when what comes is a pre-release
     const pre = prereleaseKind(e.latest?.version, e.latest?.prerelease) ? '\n\n' + t('{version} is a pre-release: not all functions have been tested yet.', {version: e.latest?.version ?? ''}) : '';
-    if (!(await ask({message: warn + pre, confirm: installed ? t('Update') : t('Install')}))) return null;
+    const note = !installed && e.note ? '\n\n' + e.note : '';
+    if (!(await ask({message: warn + note + pre, confirm: installed ? t('Update') : t('Install')}))) return null;
     try {
         await api.post(`/api/system/v1/catalog/${encodeURIComponent(e.id)}/install`);
         return '';

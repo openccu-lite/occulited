@@ -3,76 +3,94 @@
   "addons": [
     {
       "git": "https://github.com/hobbyquaker/homematic-manager",
-      "manifest": "apps/ccu-addon/files/openccu-lite.json"
+      "manifest": "apps/ccu-addon/files/openccu-lite.json",
+      "tags": ["device-management"]
     },
     {
       "git": "https://github.com/rdmtc/RedMatic",
-      "manifest": "addon_files/openccu-lite.json"
+      "manifest": "addon_files/openccu-lite.json",
+      "tags": ["automation", "control", "integration", "mqtt", "matter", "home-assistant", "homekit"]
     },
     {
       "git": "https://github.com/homematic-community/ccu-addon-mosquitto",
-      "manifest": "addon_files/openccu-lite.json"
+      "manifest": "addon_files/openccu-lite.json",
+      "tags": ["integration", "mqtt"]
     },
     {
       "git": "https://github.com/hobbyquaker/hm2mqtt.js",
-      "manifest": "addon/files/openccu-lite.json"
+      "manifest": "addon/files/openccu-lite.json",
+      "tags": ["integration", "mqtt", "home-assistant"]
     },
     {
       "git": "https://github.com/hobbyquaker/ccu-addon-longpressdim",
-      "manifest": "addon/openccu-lite.json"
+      "manifest": "addon/openccu-lite.json",
+      "tags": ["automation"]
     },
     {
       "git": "https://github.com/hobbyquaker/ccu-addon-battery",
-      "manifest": "addon/openccu-lite.json"
+      "manifest": "addon/openccu-lite.json",
+      "tags": ["devices", "monitoring", "history"]
     },
     {
       "git": "https://github.com/hobbyquaker/lite-addon-forwarder",
-      "manifest": "addon/openccu-lite.json"
+      "manifest": "addon/openccu-lite.json",
+      "tags": ["monitoring", "history"]
     },
     {
       "git": "https://github.com/hobbyquaker/lite-addon-snmp",
-      "manifest": "addon/openccu-lite.json"
+      "manifest": "addon/openccu-lite.json",
+      "tags": ["monitoring", "history"]
     },
     {
       "git": "https://github.com/hobbyquaker/lite-addon-nut",
-      "manifest": "addon/openccu-lite.json"
+      "manifest": "addon/openccu-lite.json",
+      "tags": ["monitoring"]
     },
     {
       "git": "https://github.com/hobbyquaker/lite-addon-wireguard",
-      "manifest": "addon/openccu-lite.json"
+      "manifest": "addon/openccu-lite.json",
+      "tags": ["remote"]
     },
     {
       "git": "https://github.com/hobbyquaker/lite-addon-tailscale",
-      "manifest": "addon/openccu-lite.json"
+      "manifest": "addon/openccu-lite.json",
+      "tags": ["remote"]
     },
     {
       "git": "https://github.com/hobbyquaker/lite-addon-tools",
-      "manifest": "addon/openccu-lite.json"
+      "manifest": "addon/openccu-lite.json",
+      "tags": ["tools"]
     },
     {
       "git": "https://github.com/openccu-lite/lite-addon-sync",
-      "manifest": "addon/openccu-lite.json"
+      "manifest": "addon/openccu-lite.json",
+      "tags": ["tools"]
     },
     {
       "git": "https://github.com/openccu-lite/lite-addon-shell",
       "manifest": "addon/openccu-lite.json",
-      "root_access": true
+      "root_access": true,
+      "tags": ["tools", "remote"]
     },
     {
       "git": "https://github.com/openccu-lite/lite-addon-notify",
-      "manifest": "addon/openccu-lite.json"
+      "manifest": "addon/openccu-lite.json",
+      "tags": ["monitoring", "mqtt"]
     },
     {
       "git": "https://github.com/openccu-lite/lite-addon-logic",
-      "manifest": "addon/openccu-lite.json"
+      "manifest": "addon/openccu-lite.json",
+      "tags": ["automation"]
     },
     {
       "git": "https://github.com/SukramJ/openccu-loom",
-      "manifest": "packaging/ccu-addon/ccu/openccu-lite.json"
+      "manifest": "packaging/ccu-addon/ccu/openccu-lite.json",
+      "tags": ["integration", "control", "device-management", "home-assistant", "mqtt", "mcp", "alarm", "matter"]
     },
     {
       "git": "https://github.com/firsttris/ccu-addon-mui",
-      "manifest": "addon_installer/openccu-lite.json"
+      "manifest": "addon_installer/openccu-lite.json",
+      "tags": ["control", "device-management", "history"]
     }
   ]
 }

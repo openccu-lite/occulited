@@ -11,12 +11,14 @@ the repository for the Addons page. To list an addon, open a pull request that a
   "addons": [
     {
       "git": "https://github.com/homematic-community/ccu-addon-mosquitto",
-      "manifest": "addon_files/openccu-lite.json"
+      "manifest": "addon_files/openccu-lite.json",
+      "tags": ["integration", "mqtt"]
     },
     {
       "git": "https://github.com/example-author/ccu-addon-example",
       "manifest": "catalog/manifests/ccu-addon-example.json",
-      "untested": true
+      "untested": true,
+      "tags": ["devices"]
     }
   ]
 }
@@ -30,7 +32,29 @@ the repository for the Addons page. To list an addon, open a pull request that a
 | `untested` | Optional, `true` when **nobody has tried the addon on openccu-lite yet**; set by the catalogue maintainers. The Addons page shows it as the label *untested* ("install at your own risk"). It grants and refuses nothing — every addon's manifest is applied as declared, and the install is the same (D-119, revised 2026-09-25). An entry without it carries no label. Catalogues written before then have a `verified` flag instead; the system ignores it. |
 | `root_access` | Optional, `true` for an addon **whose purpose is to give its user root on the system** - a web shell - although its own process runs confined; set by the catalogue maintainers (occulited task 153). The Addons page shows it as the label *root access* in the warning colour, with a sentence that says so. Like `untested` it grants and refuses nothing: what the addon's process may do is its manifest's `runtime` block, and an addon that itself runs as root says so there (`root`). |
 
-That is the whole format. Not in the catalogue, because the manifest has it: names, descriptions, icons, the
+| `tags` | Required for an entry of this repository (CI), one or more out of the fixed list below, each once; set by the catalogue maintainers, not by the addon (occulited task 188; openccu-lite from 2.0.0-rc.5). The Addons page filters by them. A system ignores a tag it does not know, so a catalogue with a newer tag still loads on an older system. |
+
+**The tags** (`catalog.Tags` in `internal/catalog/tags.go`; a new tag goes there, here and into the tests in one commit). The page shows a chip for each tag at least one entry carries, the most used first (counted over the whole catalogue, so the chips stay put while the user filters; this table's order breaks ties), the first eight and *n more* for the rest; a chosen tag is always shown.
+
+| Tag | de | en |
+| --- | --- | --- |
+| `control` | Bedienung | Control |
+| `automation` | Automation | Automation |
+| `integration` | Anbindung | Integration |
+| `devices` | Geräte | Devices |
+| `device-management` | Geräteverwaltung | Device management |
+| `monitoring` | Monitoring | Monitoring |
+| `history` | Historie | History |
+| `remote` | Fernzugriff | Remote access |
+| `tools` | Werkzeuge | Tools |
+| `mqtt` | MQTT | MQTT |
+| `matter` | Matter | Matter |
+| `home-assistant` | Home Assistant | Home Assistant |
+| `homekit` | HomeKit | HomeKit |
+| `mcp` | MCP | MCP |
+| `alarm` | Alarmsystem | Alarm system |
+
+That is the whole format. Not in the catalogue, because the manifest has it: names, summaries, descriptions, icons, the
 homepage, the release source, compatibility, the `runtime` block. Not anywhere: status notes, tiers, star counts
 (the system fetches those from GitHub when the user runs an update check, and caches them).
 
@@ -103,6 +127,7 @@ everyone:
 ## The check on a pull request
 
 `go test ./internal/manifest/` parses every file under `catalog/manifests/` and `catalog/catalog.json`: the JSON
-must parse, an adapter manifest's `id` must equal its file name and it must name a `release`. CI runs it. The
+must parse, an adapter manifest's `id` must equal its file name and it must name a `release`. `go test ./internal/catalog/`
+checks the tags: every entry has at least one, each out of the fixed list and once, and every tag of the list is used. CI runs both. The
 manifest at `<git>/<manifest>` of a new entry is read by the reviewer, not by CI: the catalogue makes no promise
 about a repository it does not own.

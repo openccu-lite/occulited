@@ -533,3 +533,65 @@ func TestStartOneAtATime(t *testing.T) {
 		t.Errorf("the failed run's error: %v", err)
 	}
 }
+
+// occulited task 188: every entry of the repository's catalogue carries at least one tag, every
+// tag is one of the fixed list, none twice. CI fails on an unknown tag here; a system only drops it.
+func TestRepositoryCatalogueTags(t *testing.T) {
+	b, err := os.ReadFile(filepath.Join("..", "..", "catalog", "catalog.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var c Catalog
+	if err := json.Unmarshal(b, &c); err != nil {
+		t.Fatal(err)
+	}
+	used := map[string]int{}
+	for _, e := range c.Addons {
+		if len(e.Tags) == 0 {
+			t.Errorf("%s: no tag", e.Git)
+		}
+		seen := map[string]bool{}
+		for _, tag := range e.Tags {
+			if !KnownTag(tag) {
+				t.Errorf("%s: unknown tag %q (the list is catalog.Tags)", e.Git, tag)
+			}
+			if seen[tag] {
+				t.Errorf("%s: tag %q twice", e.Git, tag)
+			}
+			seen[tag] = true
+			used[tag]++
+		}
+	}
+	// a tag of the list that no entry uses would be a chip with no addon behind it
+	for _, tag := range Tags {
+		if used[tag.ID] == 0 {
+			t.Errorf("tag %q: no entry", tag.ID)
+		}
+		if tag.Label["de"] == "" || tag.Label["en"] == "" {
+			t.Errorf("tag %q: label %v", tag.ID, tag.Label)
+		}
+	}
+}
+
+// occulited task 188: a system drops a tag it does not know (a newer catalogue still loads) and
+// one named twice; the view carries the entries' tags and the fixed list with its labels.
+func TestTagsInView(t *testing.T) {
+	dir := t.TempDir()
+	u := writeFile(t, dir, "catalog.json", `{"format": 1, "addons": [
+		{"git": "https://github.com/o/a", "manifest": "m.json", "tags": ["tools", "future", "tools", "remote"]},
+		{"git": "https://github.com/o/b", "manifest": "m.json"}]}`)
+	v, err := New([]string{u}, "x86_64", nil).Fetch(t.Context(), false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(v.Addons) != 2 || strings.Join(v.Addons[0].Tags, ",") != "tools,remote" || v.Addons[1].Tags != nil {
+		t.Fatalf("%+v", v.Addons)
+	}
+	if len(v.Tags) != len(Tags) || v.Tags[0].ID != "control" {
+		t.Fatalf("%+v", v.Tags)
+	}
+	b, _ := json.Marshal(v)
+	if !strings.Contains(string(b), `"tags":["tools","remote"]`) || !strings.Contains(string(b), `{"id":"remote","label":{"de":"Fernzugriff","en":"Remote access"}}`) {
+		t.Fatal(string(b))
+	}
+}

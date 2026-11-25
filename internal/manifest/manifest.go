@@ -15,6 +15,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"maps"
 	"net/netip"
 	"os"
 	"regexp"
@@ -82,8 +83,12 @@ type Manifest struct {
 	ID string `json:"id"`
 	// Version is the package's version, informational; the system reads the installed version
 	// from the rc.d script's info as it always did.
-	Version     string `json:"version,omitempty"`
-	Name        Text   `json:"name"`
+	Version string `json:"version,omitempty"`
+	Name    Text   `json:"name"`
+	// Summary is one line for the catalogue's card (occulited task 188): at most SummaryMax
+	// characters per language. Parse makes it one line and cuts a longer one with an ellipsis -
+	// a summary too long is the author's slip, never a reason to refuse the addon.
+	Summary     Text   `json:"summary,omitempty"`
 	Description Text   `json:"description,omitempty"`
 	Homepage    string `json:"homepage,omitempty"`
 	// Changelog is where the release notes are (occulited task 26): an http(s) URL, e.g. a
@@ -102,6 +107,48 @@ type Manifest struct {
 	// backup's tar, which takes the staging like any other content of /usr/local. Absent: the addon's
 	// tree is backed up as it lies, as always.
 	Backup *Backup `json:"backup,omitempty"`
+	// Warnings are what Parse put right instead of refusing (a summary cut to SummaryMax): for the
+	// log and the catalogue's check, never part of the manifest.
+	Warnings []string `json:"-"`
+}
+
+// SummaryMax is the most characters (Unicode code points) a summary keeps per language (occulited
+// task 188): about what one line of a catalogue card holds on a phone and in a third of a wide
+// window. The schema says the same with maxLength.
+const SummaryMax = 80
+
+// normalizeSummary makes every language's summary one line - runs of white space, line breaks
+// included, become one space - and cuts one longer than SummaryMax to SummaryMax characters, the
+// last of them an ellipsis, at a word boundary when one is near. It says which languages it cut.
+func (m *Manifest) normalizeSummary() {
+	for _, lang := range slices.Sorted(maps.Keys(m.Summary)) {
+		v := strings.Join(strings.Fields(m.Summary[lang]), " ")
+		if r := []rune(v); len(r) > SummaryMax {
+			cut := r[:SummaryMax-1]
+			if i := lastSpace(cut); i >= SummaryMax-1-20 {
+				cut = cut[:i]
+			}
+			v = strings.TrimRight(string(cut), " ,;:.-") + "…"
+			m.Warnings = append(m.Warnings, fmt.Sprintf("summary (%s) is %d characters, more than %d: cut to %q", lang, len(r), SummaryMax, v))
+		}
+		if v == "" {
+			delete(m.Summary, lang)
+			continue
+		}
+		m.Summary[lang] = v
+	}
+	if len(m.Summary) == 0 {
+		m.Summary = nil
+	}
+}
+
+func lastSpace(r []rune) int {
+	for i := len(r) - 1; i >= 0; i-- {
+		if r[i] == ' ' {
+			return i
+		}
+	}
+	return -1
 }
 
 // Backup is an addon's declaration of its part in the system backup (openccu-lite task 399). The
@@ -562,6 +609,7 @@ func Parse(b []byte) (*Manifest, error) {
 	if err := m.Validate(); err != nil {
 		return nil, fmt.Errorf("%s: %w", FileName, err)
 	}
+	m.normalizeSummary()
 	return &m, nil
 }
 

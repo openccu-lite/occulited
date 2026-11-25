@@ -3862,6 +3862,13 @@ const CATALOGUE: Record<string, {de: string; en?: string}> = {
     'The public mode is not available on this system.': {de: 'Der öffentliche Modus ist auf diesem System nicht verfügbar.'},
     'Every addon the catalogue knows and every one installed on this system, on one page. Installed with one click from their GitHub releases through the same installer a manual upload uses; the catalogue is fetched on demand only, and this system makes no other outbound call for it.': {de: 'Jedes Addon, das der Katalog kennt, und jedes auf diesem System installierte, auf einer Seite. Mit einem Klick aus den GitHub-Releases installiert, über denselben Installer wie ein manueller Upload; der Katalog wird nur auf Anfrage geholt, und dieses System macht dafür keinen weiteren ausgehenden Aufruf.'},
     'Installed only': {de: 'Nur installierte'},
+    // occulited task 188: the catalogue's tag filter and a card's details
+    'Filter by tag': {de: 'Nach Schlagwort filtern'},
+    All: {de: 'Alle'},
+    '{tag}: {n}': {de: '{tag}: {n}'},
+    'Details of {name}': {de: 'Details zu {name}'},
+    Fewer: {de: 'Weniger'},
+    '{n} more': {de: '{n} weitere'},
     'Check for updates': {de: 'Nach Updates suchen'},
     'Checking…': {de: 'Suche…'},
     'Update all': {de: 'Alle aktualisieren'},

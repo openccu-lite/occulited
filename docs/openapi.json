@@ -3150,8 +3150,26 @@
           "stars": {
             "type": "integer"
           },
+          "summary": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": [
+              "object",
+              "null"
+            ]
+          },
           "tag": {
             "type": "string"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
           },
           "ui": {
             "$ref": "#/components/schemas/ManifestUI"
@@ -3272,6 +3290,27 @@
         ],
         "type": "object"
       },
+      "CatalogTag": {
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "label": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": [
+              "object",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "label"
+        ],
+        "type": "object"
+      },
       "CatalogView": {
         "properties": {
           "addons": {
@@ -3322,11 +3361,21 @@
           },
           "source": {
             "type": "string"
+          },
+          "tags": {
+            "items": {
+              "$ref": "#/components/schemas/CatalogTag"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
           }
         },
         "required": [
           "addons",
-          "format"
+          "format",
+          "tags"
         ],
         "type": "object"
       },
