@@ -1,6 +1,6 @@
 {
   "format": 1,
-  "generated_at": "2026-11-24T18:29:27Z",
+  "generated_at": "2026-11-25T02:25:54Z",
   "catalog": "file:///home/runner/work/occulited/occulited/catalog/catalog.json",
   "repos": {
     "SukramJ/openccu-loom": {
@@ -13382,6 +13382,46 @@
     "openccu-lite/lite-addon-logic": {
       "releases": [
         {
+          "tag_name": "v1.0.0-beta.1",
+          "name": "v1.0.0-beta.1",
+          "draft": false,
+          "prerelease": true,
+          "html_url": "https://github.com/openccu-lite/lite-addon-logic/releases/tag/v1.0.0-beta.1",
+          "published_at": "2026-11-24T20:41:00Z",
+          "assets": [
+            {
+              "name": "logic-aarch64-1.0.0-beta.1.tar.gz",
+              "size": 7128042,
+              "browser_download_url": "https://github.com/openccu-lite/lite-addon-logic/releases/download/v1.0.0-beta.1/logic-aarch64-1.0.0-beta.1.tar.gz"
+            },
+            {
+              "name": "logic-aarch64-1.0.0-beta.1.tar.gz.sha256",
+              "size": 100,
+              "browser_download_url": "https://github.com/openccu-lite/lite-addon-logic/releases/download/v1.0.0-beta.1/logic-aarch64-1.0.0-beta.1.tar.gz.sha256"
+            },
+            {
+              "name": "logic-armv7l-1.0.0-beta.1.tar.gz",
+              "size": 7444561,
+              "browser_download_url": "https://github.com/openccu-lite/lite-addon-logic/releases/download/v1.0.0-beta.1/logic-armv7l-1.0.0-beta.1.tar.gz"
+            },
+            {
+              "name": "logic-armv7l-1.0.0-beta.1.tar.gz.sha256",
+              "size": 99,
+              "browser_download_url": "https://github.com/openccu-lite/lite-addon-logic/releases/download/v1.0.0-beta.1/logic-armv7l-1.0.0-beta.1.tar.gz.sha256"
+            },
+            {
+              "name": "logic-x86_64-1.0.0-beta.1.tar.gz",
+              "size": 7691420,
+              "browser_download_url": "https://github.com/openccu-lite/lite-addon-logic/releases/download/v1.0.0-beta.1/logic-x86_64-1.0.0-beta.1.tar.gz"
+            },
+            {
+              "name": "logic-x86_64-1.0.0-beta.1.tar.gz.sha256",
+              "size": 99,
+              "browser_download_url": "https://github.com/openccu-lite/lite-addon-logic/releases/download/v1.0.0-beta.1/logic-x86_64-1.0.0-beta.1.tar.gz.sha256"
+            }
+          ]
+        },
+        {
           "tag_name": "v1.0.0-beta.0",
           "name": "v1.0.0-beta.0",
           "draft": false,
@@ -21821,7 +21861,7 @@
       "git": "https://github.com/openccu-lite/lite-addon-logic",
       "manifest": "addon/openccu-lite.json",
       "id": "logic",
-      "tag": "v1.0.0-beta.0",
+      "tag": "v1.0.0-beta.1",
       "release_repo": "openccu-lite/lite-addon-logic",
       "images": {
         "icon": "ok",
