@@ -371,3 +371,52 @@ describe('devices announced again', () => {
         expect(asked().slice(first)).toEqual(['getDeviceDescription INT0000001:1', 'paramsets INT0000001:1']);
     });
 });
+
+// occulited task 183: the unassigned list reads each interface's whole device list once
+describe('a whole view', () => {
+    beforeEach(() => {
+        vi.stubGlobal('sessionStorage', {getItem: () => 'S1'});
+        vi.stubGlobal('window', {dispatchEvent: () => true});
+    });
+    afterEach(() => vi.unstubAllGlobals());
+
+    it('takes the types and FLAGS from one listDevices, and asks address by address only what it did not name', async () => {
+        const calls: string[] = [];
+        vi.stubGlobal('fetch', async (url: string, init: RequestInit) => {
+            const u = new URL(url, 'http://system');
+            const json = (body: unknown) => new Response(JSON.stringify(body), {status: 200});
+            if (u.pathname === '/api/rpc/v1/state') return json({entries: [], total: 0, event_id: 'b-1'});
+            if (u.pathname.startsWith('/api/rpc/v1/paramsets/')) {
+                const {addresses} = JSON.parse(init.body as string) as {addresses: string[]};
+                const keys: Record<string, string> = {};
+                for (const a of addresses) keys[a] = 'K';
+                return json({keys, paramsets: {K: SWITCH}, errors: {}});
+            }
+            const body = JSON.parse(init.body as string) as Rpc[];
+            return json(body.map((r) => {
+                calls.push(`${r.method} ${r.params[0] ?? ''}`.trim());
+                if (r.method === 'listDevices') return {jsonrpc: '2.0', id: r.id, result: [
+                    {ADDRESS: 'PRG0000001', TYPE: 'LOGIC-PROGRAM', CHILDREN: ['PRG0000001:0', 'PRG0000001:1']},
+                    {ADDRESS: 'PRG0000001:1', TYPE: 'SWITCH', PARENT_TYPE: 'LOGIC-PROGRAM', FLAGS: 0},
+                    {ADDRESS: 'PRG0000002:1', TYPE: 'SWITCH', FLAGS: 1},
+                ]};
+                return {jsonrpc: '2.0', id: r.id, result: {ADDRESS: r.params[0], TYPE: 'SWITCH'}};
+            }));
+        });
+        const r = await loadChannels(['Logic.PRG0000001:1', 'Logic.PRG0000002:1', 'Logic.PRG0000009:1'], {whole: true});
+        expect(calls).toEqual(['listDevices', 'getDeviceDescription PRG0000009:1']);
+        expect(r.channels.get('Logic.PRG0000001:1')?.flags).toBe(0);
+        expect(r.channels.get('Logic.PRG0000001:1')?.parent).toBe('LOGIC-PROGRAM');
+        expect(r.channels.get('Logic.PRG0000002:1')?.flags).toBe(1);
+        // once per interface: the next whole view asks nothing of it
+        calls.length = 0;
+        await loadChannels(['Logic.PRG0000001:1'], {whole: true});
+        expect(calls).toEqual([]);
+    });
+    it('a view of a few tiles asks address by address, never the whole list', async () => {
+        const s = system({entries: []});
+        await loadChannels(['HmIP-RF.AAA0000077:1']);
+        expect(s.calls.map((c) => c.method)).not.toContain('listDevices');
+        expect(s.calls.map((c) => `${c.method} ${c.address}`)).toContain('getDeviceDescription AAA0000077:1');
+    });
+});

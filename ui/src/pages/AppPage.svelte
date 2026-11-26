@@ -687,7 +687,8 @@
             return;
         }
         try {
-            const r = await loadChannels(list);
+            // occulited task 183: the unassigned list needs nearly every channel - one listDevices per interface
+            const r = await loadChannels(list, {whole: view.kind === 'unassigned'});
             // task 411: the types before the tiles, so that the list arrives whole and nothing moves afterwards
             if (view.kind === 'unassigned') deviceTypes = new Map(await loadDeviceTypes([...r.channels.values()].filter((c) => mayBeVirtualChannel(c.type)).map((c) => c.ref)));
             const next = new Map(channels);

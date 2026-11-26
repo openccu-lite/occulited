@@ -1608,6 +1608,12 @@ function liteRoute(req, u, res) {
             if (r.method === 'setValue' && i4OnFloat(addr, key, sent)) return err(-1, 'Failure');
             if (!LITE_IFACES.includes(iface)) return err(-32000, `the interface process does not answer: ${iface}`);
             switch (r.method) {
+                case 'listDevices': {
+                    // occulited task 183: the whole list - every channel the stub knows, and the devices naming them
+                    const chans = Object.keys(liteTypes).map((a) => ({ADDRESS: a, TYPE: liteTypes[a], PARENT: a.split(':')[0], ...(liteParents[a] ? {PARENT_TYPE: liteParents[a]} : {}), ...(a in liteFlags ? {FLAGS: liteFlags[a]} : {})}));
+                    const devs = [...new Set(Object.keys(liteTypes).map((a) => a.split(':')[0]))].map((d) => ({ADDRESS: d, TYPE: d, CHILDREN: Object.keys(liteTypes).filter((a) => a.startsWith(`${d}:`))}));
+                    return {jsonrpc: '2.0', result: [...devs, ...chans], id: r.id};
+                }
                 case 'getDeviceDescription':
                     // openccu-lite task 411: a device's own description names its channels
                     if (!String(addr).includes(':')) {

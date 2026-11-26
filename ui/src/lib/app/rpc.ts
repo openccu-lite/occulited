@@ -170,7 +170,50 @@ export function needsRead(model: Model, stored: Values | undefined): boolean {
  * state store, and from the interface process for the channels the store cannot answer. eventId is
  * the stream's resume point of the store's read ('' without one).
  */
-export async function loadChannels(refs: string[]): Promise<{channels: Map<string, Channel>; errors: string[]; eventId: string; unknown: string[]}> {
+/** occulited task 183: the interfaces whose whole device list the page has read (listDevices) */
+const listed = new Set<string>();
+
+/**
+ * occulited task 183: one listDevices fills the types, parents and FLAGS of every address of an interface, and the
+ * channel types of its devices (loadDeviceTypes'). Measured: for a page that needs (nearly) every channel - the
+ * unassigned list - it is 2-4x faster than the getDeviceDescription batch (rpi3-1, 3315 Logic objects: 0.2 s against
+ * 0.8 s at the interface); for a few tiles on a large interface it is much slower, so only that view asks for it.
+ */
+async function listInterface(iface: string): Promise<void> {
+    if (listed.has(iface)) return;
+    const ans = await batch(iface, [{method: 'listDevices', params: []}]);
+    const list = ans[0]?.result as {ADDRESS?: string; TYPE?: string; PARENT_TYPE?: string; FLAGS?: unknown; CHILDREN?: unknown}[] | undefined;
+    if (!Array.isArray(list)) return; // an error: the batch below asks address by address
+    const typeOf = new Map<string, string>();
+    for (const d of list) {
+        if (!d?.ADDRESS) continue;
+        const ref = `${iface}.${d.ADDRESS}`;
+        if (d.TYPE) {
+            typeByRef.set(ref, d.TYPE);
+            typeOf.set(d.ADDRESS, d.TYPE);
+        }
+        if (d.PARENT_TYPE) parentByRef.set(ref, d.PARENT_TYPE);
+        if (typeof d.FLAGS === 'number') flagsByRef.set(ref, d.FLAGS);
+    }
+    for (const d of list) {
+        if (!d?.ADDRESS || d.ADDRESS.includes(':') || !Array.isArray(d.CHILDREN)) continue;
+        const m = new Map<number, string>();
+        for (const child of d.CHILDREN as string[]) {
+            const t = typeof child === 'string' ? typeOf.get(child) : undefined;
+            if (t) m.set(Number(child.slice(child.lastIndexOf(':') + 1)), t);
+        }
+        deviceTypes.set(`${iface}.${d.ADDRESS}`, m);
+    }
+    listed.add(iface);
+}
+
+export interface LoadOptions {
+    /** occulited task 183: the page needs (nearly) every channel of the interfaces - read each interface's whole
+     *  device list once instead of describing the channels one by one */
+    whole?: boolean;
+}
+
+export async function loadChannels(refs: string[], opt: LoadOptions = {}): Promise<{channels: Map<string, Channel>; errors: string[]; eventId: string; unknown: string[]}> {
     const channels = new Map<string, Channel>();
     const errors: string[] = [];
     // B-84: the interfaces lite-rpc does not have - left out, never an error on the page
@@ -185,7 +228,9 @@ export async function loadChannels(refs: string[]): Promise<{channels: Map<strin
     const state = byIface.size ? await loadState(byIface) : undefined;
     for (const [iface, addrs] of byIface) {
         try {
-            // 1. the types of the channels not seen yet
+            // 1. the types of the channels not seen yet - for a whole view from the interface's list (task 183),
+            // what that did not name address by address
+            if (opt.whole && addrs.some((a) => !typeByRef.has(`${iface}.${a}`))) await listInterface(iface);
             const unknown = addrs.filter((a) => !typeByRef.has(`${iface}.${a}`));
             if (unknown.length) {
                 const ans = await batch(iface, unknown.map((a) => ({method: 'getDeviceDescription', params: [a]})));
