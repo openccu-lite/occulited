@@ -391,6 +391,13 @@ func TestPrepReadyStopped(t *testing.T) {
 	if exists(filepath.Join(root, "run/lock/LCK..mmd_hmip")) {
 		t.Fatal("a lock file of another user must be removed")
 	}
+	// B-188: the lock directory keeps (gets) its sticky bit, 1775 as tmpfiles.d makes it
+	if st, err := os.Stat(filepath.Join(root, "run/lock")); err != nil || st.Mode()&os.ModeSticky == 0 || st.Mode().Perm() != 0o775 {
+		t.Fatalf("/run/lock: %v %v", st.Mode(), err)
+	}
+	if !has(*calls, "chmod /run/lock trwxrwxr-x") {
+		t.Errorf("/run/lock not chmodded with the sticky bit: %v", *calls)
+	}
 	if !has(*calls, "chown /dev/mmd_hmip 0:8123") || !has(*calls, "chown /var/HMSERVER.handlers 8111:8111") || !has(*calls, "chown /etc/config/groups.gson 8111:8111") || !has(*calls, "chown /run/lock 0:54") {
 		t.Fatalf("hmipserver prep: %v", *calls)
 	}

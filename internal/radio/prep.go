@@ -159,8 +159,8 @@ func Prep(ctx context.Context, d Detector, daemon string, p Plan, logf func(stri
 		// the serial library's lock: the directory is 1775 root:lock, and a lock another user
 		// left behind would refuse the node
 		lock := d.path("/run/lock")
-		_ = os.MkdirAll(lock, 0o1775)
-		Own(lock, "root", "lock", 0o1775)
+		_ = os.MkdirAll(lock, LockDirMode)
+		Own(lock, "root", "lock", LockDirMode)
 		locks, _ := filepath.Glob(filepath.Join(lock, "LCK..*"))
 		for _, l := range locks {
 			if owner(l) != "hmipserver" {
@@ -522,6 +522,10 @@ func ids(userName, groupName string) (uid, gid int, ok bool) {
 	}
 	return uid, gid, true
 }
+
+// LockDirMode is /run/lock's mode, 1775 as tmpfiles.d makes it. B-188: Go keeps the sticky bit in
+// os.ModeSticky, not in 0o1000 - an os.FileMode of 0o1775 is 0775, and every prep took the bit away.
+const LockDirMode = 0o775 | os.ModeSticky
 
 // Own sets a path's owner and mode where they differ; a missing path is left alone, a symlink
 // gets the owner only.
