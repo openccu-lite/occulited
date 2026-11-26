@@ -34,9 +34,16 @@ type RunReport struct {
 	Enabled []string // the daemons the markers enable
 }
 
+// ModuleDaemons are the interface daemons that hold a radio module, in boot order: multimacd and
+// rfd and hmipserver open it (directly or through the multiplexer), hmlangw opens /dev/mmd_bidcos.
+// hs485d is not one of them: BidCos-Wired runs over a wired LAN gateway or an RS485 adapter, and a
+// radio connection change or a coprocessor flash leaves it running (openccu-lite B-364).
+var ModuleDaemons = []string{"multimacd", "rfd", "hmipserver", "hmlangw"}
+
 // ErrDaemonsRunning is Run's refusal while an interface daemon holds the module: the detection
 // resets the module and could only fail against a busy UART, and the plan it would write would
-// switch a working stack off.
+// switch a working stack off. Only ModuleDaemons count: a running hs485d made every connection
+// change on a system with a wired interface fail (B-364).
 var ErrDaemonsRunning = errors.New("the interface daemons are running; stop them before the detection runs again")
 
 // Run detects, plans, renders and writes.
@@ -340,20 +347,17 @@ const Log4j2FixedLevelMarker = "occulite:fixed-level"
 // log4jLevelRe is upstream's s/level=".*"/.../g: greedy within a line.
 var log4jLevelRe = regexp.MustCompile(`level=".*"`)
 
-// activeDaemons asks systemd which interface daemons are active or starting.
+// activeDaemons asks systemd which of the daemons that hold a module are active or starting.
 func activeDaemons(ctx context.Context, run Runner) []string {
-	args := append([]string{"is-active", "--"}, func() []string {
-		var u []string
-		for _, n := range Daemons {
-			u = append(u, n+".service")
-		}
-		return u
-	}()...)
+	args := []string{"is-active", "--"}
+	for _, n := range ModuleDaemons {
+		args = append(args, n+".service")
+	}
 	out, _ := run(ctx, "systemctl", args...)
 	var active []string
 	for i, l := range strings.Split(strings.TrimSpace(string(out)), "\n") {
-		if i < len(Daemons) && (l == "active" || l == "activating" || l == "reloading") {
-			active = append(active, Daemons[i])
+		if i < len(ModuleDaemons) && (l == "active" || l == "activating" || l == "reloading") {
+			active = append(active, ModuleDaemons[i])
 		}
 	}
 	return active

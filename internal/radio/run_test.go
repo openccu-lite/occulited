@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/user"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -266,17 +267,86 @@ func TestRunWritesTheBox(t *testing.T) {
 	}
 }
 
+// The guard asks systemd about the daemons that hold a module, in the order of ModuleDaemons
+// (multimacd, rfd, hmipserver, hmlangw); hs485d is not asked and never refuses the run (B-364: a
+// wired gateway made every connection change fail).
 func TestRunRefusesWithDaemonsRunning(t *testing.T) {
+	for _, c := range []struct {
+		name, isActive, refused string
+	}{
+		{"the stack running", "active\nactive\nactivating\ninactive\n", "multimacd, rfd, hmipserver"},
+		{"hmipserver alone", "inactive\ninactive\nactive\ninactive\n", "hmipserver"},
+		{"rfd reloading", "inactive\nreloading\ninactive\ninactive\n", "rfd"},
+		{"hmlangw", "inactive\ninactive\ninactive\nactive\n", "hmlangw"},
+		{"nothing running", "inactive\ninactive\ninactive\ninactive\n", ""},
+		{"failed units hold nothing", "failed\nfailed\ninactive\nfailed\n", ""},
+		{"no answer from systemd", "", ""},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			fakeUsers(t)
+			root, rec := boxRoot(t, map[string]string{"raw-uart": "GPIO@3f201000.serial"})
+			rec.answers["systemctl"] = c.isActive
+			d := Detector{Root: root, Run: rec.run, GPIOLimit: 0, Sleep: func(time.Duration) {}}
+			_, err := Run(context.Background(), root, d, func(string, ...any) {})
+			if !has(rec.calls, "systemctl is-active -- multimacd.service rfd.service hmipserver.service hmlangw.service") {
+				t.Fatalf("the guard's question: %v", rec.calls)
+			}
+			if c.refused == "" {
+				if errors.Is(err, ErrDaemonsRunning) {
+					t.Fatalf("refused: %v", err)
+				}
+				return
+			}
+			if !errors.Is(err, ErrDaemonsRunning) || !strings.HasSuffix(err.Error(), "("+c.refused+")") {
+				t.Fatalf("expected the refusal for %s: %v", c.refused, err)
+			}
+			if rec.probe.calls != nil {
+				t.Fatal("the module must not be probed while the daemons run")
+			}
+		})
+	}
+}
+
+// B-364: a system with a wired gateway - hs485d runs through a connection change. systemd answers
+// per unit, hs485d active: the run goes through, keeps hs485d in the plan and its marker, and
+// leaves its configuration as it was.
+func TestRunWithHS485DRunning(t *testing.T) {
 	fakeUsers(t)
 	root, rec := boxRoot(t, map[string]string{"raw-uart": "GPIO@3f201000.serial"})
-	rec.answers["systemctl"] = "active\nactive\nactivating\ninactive\ninactive\n"
-	d := Detector{Root: root, Run: rec.run, GPIOLimit: 0, Sleep: func(time.Duration) {}}
-	_, err := Run(context.Background(), root, d, func(string, ...any) {})
-	if !errors.Is(err, ErrDaemonsRunning) || !strings.Contains(err.Error(), "multimacd, rfd, hmipserver") {
-		t.Fatalf("expected the refusal: %v", err)
+	conf := "[Interface 0]\nType = HMW-LGW\nSerial Number = LEQ0000001\nIP Address = 192.0.2.1\n"
+	if err := os.WriteFile(filepath.Join(root, "etc/config/hs485d.conf"), []byte(conf), 0o640); err != nil {
+		t.Fatal(err)
 	}
-	if rec.probe.calls != nil {
-		t.Fatal("the module must not be probed while the daemons run")
+	state := map[string]string{"hs485d.service": "active"}
+	run := func(ctx context.Context, name string, args ...string) ([]byte, error) {
+		if filepath.Base(name) == "systemctl" && len(args) > 2 && args[0] == "is-active" {
+			var out []string
+			for _, u := range args[2:] {
+				if s, ok := state[u]; ok {
+					out = append(out, s)
+				} else {
+					out = append(out, "inactive")
+				}
+			}
+			return []byte(strings.Join(out, "\n") + "\n"), nil
+		}
+		return rec.run(ctx, name, args...)
+	}
+	d := Detector{Root: root, Run: run, GPIOLimit: 0, Sleep: func(time.Duration) {}}
+	r, err := Run(context.Background(), root, d, func(string, ...any) {})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !r.Render.Plan.HS485D.Run || !slices.Contains(r.Enabled, "hs485d") || !exists(shadowPath(root, "hs485d.enabled")) {
+		t.Fatalf("hs485d stays in the plan: %+v %v", r.Render.Plan.HS485D, r.Enabled)
+	}
+	if b, _ := os.ReadFile(filepath.Join(root, "etc/config/hs485d.conf")); string(b) != conf {
+		t.Fatalf("hs485d.conf changed: %q", b)
+	}
+	// and with rfd active as well the run still refuses, naming rfd alone
+	state["rfd.service"] = "active"
+	if _, err := Run(context.Background(), root, d, func(string, ...any) {}); !errors.Is(err, ErrDaemonsRunning) || !strings.HasSuffix(err.Error(), "(rfd)") {
+		t.Fatalf("expected the refusal for rfd: %v", err)
 	}
 }
 
