@@ -80,6 +80,17 @@
     const first = $derived(hnStep ? 1 : 0);
     const steps = $derived(first + 3 + (hoOffer ? 1 : 0) + (lkStep ? 1 : 0));
     const blocked = $derived(lkBlocked || hoBlocked);
+    // B-179: the intro counts the numbered steps the page really shows - Logic's step only when
+    // the catalogue lists the addon - so "Five things" never stands above six points
+    let logicShown = $state(false);
+    const total = $derived(steps + (logicShown ? 1 : 0));
+    const intro = $derived(
+        total === 7 ? t('The administrator exists. Seven things worth deciding now; each can be changed later on its page.')
+        : total === 6 ? t('The administrator exists. Six things worth deciding now; each can be changed later on its page.')
+        : total === 5 ? t('The administrator exists. Five things worth deciding now; each can be changed later on its page.')
+        : total === 4 ? t('The administrator exists. Four things worth deciding now; each can be changed later on its page.')
+        : t('The administrator exists. Three things worth deciding now; each can be changed later on its page.'),
+    );
 
     onMount(async () => {
         try {
@@ -231,7 +242,7 @@
 </script>
 
 <h1>{t('Welcome')}</h1>
-<p>{steps === 6 ? t('The administrator exists. Six things worth deciding now; each can be changed later on its page.') : steps === 5 ? t('The administrator exists. Five things worth deciding now; each can be changed later on its page.') : steps === 4 ? t('The administrator exists. Four things worth deciding now; each can be changed later on its page.') : t('The administrator exists. Three things worth deciding now; each can be changed later on its page.')}</p>
+<p data-welcome-intro>{intro}</p>
 
 <!-- openccu-lite task 319: the three statements of the update packages' EULA preamble, without the licence text -->
 <section class="about" data-welcome-about aria-labelledby="welcome-about">
@@ -328,7 +339,7 @@
 <!-- occulited task 143: device management needs an addon - Homematic Manager in one click, the catalogue beside it -->
 <WelcomeFrontend step={steps} blocked={blocked || busy !== ''} onopen={(p) => void done(p)} />
 <!-- occulited task 168: the programs and system variables in one click - only when the catalogue lists lite-addon-logic -->
-<WelcomeLogic step={steps + 1} blocked={blocked || busy !== ''} onopen={(p) => void done(p)} />
+<WelcomeLogic step={steps + 1} bind:shown={logicShown} blocked={blocked || busy !== ''} onopen={(p) => void done(p)} />
 
 <div class="ol-actions" style="margin-top:16px">
     <button class="hmm-button" disabled={blocked || busy !== ''} onclick={() => done()} data-action="welcome-done">{t('Done')}</button>

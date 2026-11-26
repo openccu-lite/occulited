@@ -4,6 +4,8 @@ B-23: the German text addresses the user as "Sie", never with "du" (du, dein, di
 the du-imperatives such as "gib", "wähle", "bestätige" not followed by "Sie").
 openccu-lite task 305: the German text says "Netzwerkschlüssel", never "Netzschlüssel" (compounds too,
 e.g. "HmIP-Netzschlüssel").
+B-179: the German text writes "Script" (plural "Scripts"), never "Skript", and never the plural
+"Scripte" (compounds too, e.g. "Init-Skript", "Deinstallationsskript").
 
 Checks four places for the word box/Box as its own word:
 
@@ -55,6 +57,15 @@ DU_IMPERATIVE_RE = re.compile(
 PLACEHOLDER_RE = re.compile(r"\{[A-Za-z_][A-Za-z0-9_]*\}")
 # task 305 (maintainer, 2026-10-01): "Netzwerkschlüssel" is the word, as the fork's docs say it.
 NETZ_RE = re.compile(r"netzschlüssel", re.IGNORECASE)
+
+
+# B-179 (maintainer, 2026-11-25): a program is a "Script" in German as well
+SKRIPT_RE = re.compile(r"skript|scripte(?![a-zäöüß])", re.IGNORECASE)
+
+
+def has_skript(text):
+    """True if the German `text` writes Skript or the plural Scripte where the UI says Script(s) (B-179)."""
+    return bool(SKRIPT_RE.search(text))
 
 
 def has_old_netz(text):
@@ -125,6 +136,8 @@ def scan_i18n_table():
             violations.append(f"{path.relative_to(ROOT)}:{line}: de says du, not Sie (B-23): {de_val[:100]!r}")
         if de_val and has_old_netz(de_val):
             violations.append(f"{path.relative_to(ROOT)}:{line}: de says Netzschlüssel, not Netzwerkschlüssel (task 305): {de_val[:100]!r}")
+        if de_val and has_skript(de_val):
+            violations.append(f"{path.relative_to(ROOT)}:{line}: de says Skript/Scripte, not Script/Scripts (B-179): {de_val[:100]!r}")
     return violations
 
 
@@ -148,6 +161,9 @@ def scan_bootbar_catalogue():
         if has_old_netz(val):
             line = src.count("\n", 0, m.start()) + 1
             violations.append(f"{path.relative_to(ROOT)}:{line}: de says Netzschlüssel, not Netzwerkschlüssel (task 305): {val[:100]!r}")
+        if has_skript(val):
+            line = src.count("\n", 0, m.start()) + 1
+            violations.append(f"{path.relative_to(ROOT)}:{line}: de says Skript/Scripte, not Script/Scripts (B-179): {val[:100]!r}")
     return violations
 
 
@@ -196,7 +212,7 @@ def main():
             print("   ", v)
         print(len(violations), "violation(s)")
         sys.exit(1)
-    print("no user-facing \"box\" wording found (task 160), no \"du\" (B-23) and no \"Netzschlüssel\" (task 305) in German text")
+    print("no user-facing \"box\" wording found (task 160), no \"du\" (B-23), no \"Netzschlüssel\" (task 305) and no \"Skript\" (B-179) in German text")
 
 
 if __name__ == "__main__":

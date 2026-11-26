@@ -673,7 +673,7 @@ const CATALOGUE: Record<string, {de: string; en?: string}> = {
     'Install requested': {de: 'Installation angefordert'},
     // occulited task 70: the login page's options
     'Hide the name-and-password login': {de: 'Anmeldung mit Benutzername und Passwort ausblenden'},
-    'The login page shows the button of {name} (and the passkey\'s) and puts the name-and-password form behind a small link "Sign in with a password", which is always there - so a provider that is down never locks anyone out. Scripts and the API keep signing in with a password.': {de: 'Die Anmeldeseite zeigt die Schaltfläche von {name} (und die des Passkeys) und legt das Formular mit Benutzername und Passwort hinter einen kleinen Link „Mit Passwort anmelden“, der immer da ist - so sperrt ein ausgefallener Anbieter niemanden aus. Skripte und die API melden sich weiter mit Passwort an.'},
+    'The login page shows the button of {name} (and the passkey\'s) and puts the name-and-password form behind a small link "Sign in with a password", which is always there - so a provider that is down never locks anyone out. Scripts and the API keep signing in with a password.': {de: 'Die Anmeldeseite zeigt die Schaltfläche von {name} (und die des Passkeys) und legt das Formular mit Benutzername und Passwort hinter einen kleinen Link „Mit Passwort anmelden“, der immer da ist - so sperrt ein ausgefallener Anbieter niemanden aus. Scripts und die API melden sich weiter mit Passwort an.'},
     'Possible once an account has signed in through {name}.': {de: 'Möglich, sobald sich ein Konto über {name} angemeldet hat.'},
     'Offer a passkey on the login page': {de: 'Passkey beim Öffnen der Anmeldeseite anbieten'},
     'In the name field: the browser offers the passkey in the user name\'s autofill, without a dialog. Ask at once: the passkey dialog opens by itself when the login page opens (once per browser tab; cancelled, the page stays as it is). Off: only the button "Sign in with a passkey".': {de: 'Im Namensfeld: Der Browser bietet den Passkey im Autofill des Benutzernamens an, ohne Dialog. Sofort fragen: Der Passkey-Dialog öffnet sich von selbst, wenn die Anmeldeseite geöffnet wird (einmal je Browser-Tab; abgebrochen, bleibt die Seite, wie sie ist). Aus: nur die Schaltfläche „Mit Passkey anmelden“.'},
@@ -988,7 +988,7 @@ const CATALOGUE: Record<string, {de: string; en?: string}> = {
     Enabled: {de: 'Aktiviert'},
     Yes: {de: 'Ja'},
     No: {de: 'Nein'},
-    "Comes from the addon's rc.d script; Disable switches it off at boot.": {de: 'Stammt aus dem rc.d-Skript der Zusatzsoftware; Deaktivieren schaltet sie auch beim Booten ab.'},
+    "Comes from the addon's rc.d script; Disable switches it off at boot.": {de: 'Stammt aus dem rc.d-Script der Zusatzsoftware; Deaktivieren schaltet sie auch beim Booten ab.'},
     'No install section: it starts when another unit needs it and cannot be switched.': {de: 'Kein Install-Abschnitt: sie startet, wenn eine andere Unit sie braucht, und lässt sich nicht schalten.'},
     'Masked: systemd does not start it, not even when another unit needs it.': {de: 'Maskiert: systemd startet sie nicht, auch nicht, wenn eine andere Unit sie braucht.'},
     // the Services page: a unit a condition keeps from starting is skipped (the word itself is the Metadata import's)
@@ -1213,7 +1213,7 @@ const CATALOGUE: Record<string, {de: string; en?: string}> = {
     'The last copy of the journal to the USB stick {label} failed ({when}): {reason}. Until a copy works again, a power loss loses everything since the last good copy, and the RAM limit can drop the oldest lines.': {de: 'Die letzte Kopie des Journals auf den USB-Stick {label} ist fehlgeschlagen ({when}): {reason}. Bis eine Kopie wieder gelingt, verliert ein Stromausfall alles seit der letzten guten Kopie, und das RAM-Limit kann die ältesten Zeilen verwerfen.'},
     'Copy now': {de: 'Jetzt kopieren'},
     'Copied: {n} files.': {de: 'Kopiert: {n} Dateien.'},
-    'The journal could not be kept on the userfs ({mode}) and is in RAM until the next boot. The boot script said: {reason}': {de: 'Das Journal konnte nicht auf dem Userfs gehalten werden ({mode}) und liegt bis zum nächsten Start im RAM. Das Startskript meldete: {reason}'},
+    'The journal could not be kept on the userfs ({mode}) and is in RAM until the next boot. The boot script said: {reason}': {de: 'Das Journal konnte nicht auf dem Userfs gehalten werden ({mode}) und liegt bis zum nächsten Start im RAM. Das Startscript meldete: {reason}'},
     'The last copy of the journal to the userfs failed ({when}): {reason}. Until a copy works again, a power loss loses everything since the last good copy, and the RAM limit can drop the oldest lines.': {de: 'Die letzte Kopie des Journals auf das Userfs ist fehlgeschlagen ({when}): {reason}. Bis wieder eine Kopie gelingt, verliert ein Stromausfall alles seit der letzten gelungenen Kopie, und das RAM-Limit kann die ältesten Zeilen verwerfen.'},
     'Journal settings': {de: 'Journal-Einstellungen'},
     'The journal is kept in RAM only: the logs are lost at every reboot. The Journal settings keep them on the userfs, a USB stick or a network share.': {de: 'Das Journal liegt nur im RAM: Die Protokolle gehen bei jedem Neustart verloren. Die Journal-Einstellungen halten sie auf dem Userfs, einem USB-Stick oder einer Netzwerkfreigabe.'},
@@ -1351,10 +1351,10 @@ const CATALOGUE: Record<string, {de: string; en?: string}> = {
     'kept before HmIP-RF moved to another module; the Interfaces page offers the way back': {de: 'aufbewahrt, bevor HmIP-RF auf ein anderes Modul wechselte; die Schnittstellen-Seite bietet den Weg zurück'},
     'The system removed the remaining files: {list}.': {de: 'Die restlichen Dateien hat das System entfernt: {list}.'},
     'The addon is disabled: should its uninstall script fail, the system removes its rc.d entry and its directory {dir} with everything in it.': {
-        de: 'Die Zusatzsoftware ist deaktiviert: Schlägt ihr Deinstallationsskript fehl, entfernt das System ihren rc.d-Eintrag und ihr Verzeichnis {dir} mit allem darin.',
+        de: 'Die Zusatzsoftware ist deaktiviert: Schlägt ihr Deinstallationsscript fehl, entfernt das System ihren rc.d-Eintrag und ihr Verzeichnis {dir} mit allem darin.',
     },
     'Its uninstall script failed ({error}); the addon was disabled, so the system removed it anyway.': {
-        de: 'Ihr Deinstallationsskript ist fehlgeschlagen ({error}); die Zusatzsoftware war deaktiviert, deshalb hat das System sie trotzdem entfernt.',
+        de: 'Ihr Deinstallationsscript ist fehlgeschlagen ({error}); die Zusatzsoftware war deaktiviert, deshalb hat das System sie trotzdem entfernt.',
     },
     Uninstall: {de: 'Deinstallieren'},
     'Check for update': {de: 'Auf Update prüfen'},
@@ -1425,7 +1425,7 @@ const CATALOGUE: Record<string, {de: string; en?: string}> = {
     'API tokens: Remote access': {de: 'API-Tokens: Fernzugriff'},
     'API tokens': {de: 'API-Tokens'},
     'For programs, not people: a daemon addon, a script, a CI job. A token carries scopes - what it may read and change - and is shown once. Addons on the system read the local token from the state directory (local-token) without any setup; it reads names and rooms and nothing else.': {
-        de: 'Für Programme, nicht für Menschen: ein Daemon-Addon, ein Skript, ein CI-Job. Ein Token trägt Berechtigungen (Scopes) - was es lesen und ändern darf - und wird einmal angezeigt. Addons auf dem System lesen das lokale Token ohne Einrichtung aus dem Zustandsverzeichnis (local-token); es liest Namen und Räume und sonst nichts.',
+        de: 'Für Programme, nicht für Menschen: ein Daemon-Addon, ein Script, ein CI-Job. Ein Token trägt Berechtigungen (Scopes) - was es lesen und ändern darf - und wird einmal angezeigt. Addons auf dem System lesen das lokale Token ohne Einrichtung aus dem Zustandsverzeichnis (local-token); es liest Namen und Räume und sonst nichts.',
     },
     // the token scopes (task 66): the labels of the picker and the list, keyed by the API's names
     'Permissions (scopes)': {de: 'Berechtigungen (Scopes)'},
@@ -1609,7 +1609,7 @@ const CATALOGUE: Record<string, {de: string; en?: string}> = {
     'The administrator exists. Three things worth deciding now; each can be changed later on its page.': {de: 'Der Administrator existiert. Drei Dinge lohnen sich jetzt zu entscheiden; jedes lässt sich später auf seiner Seite ändern.'},
     // openccu-lite task 319: the welcome page's "about" box - the update packages' EULA preamble, without the licence text
     'About openccu-lite': {de: 'Über openccu-lite'},
-    'openccu-lite is a separate project based on OpenCCU, but it is not OpenCCU: no ReGaHSS, no WebUI programs or Homematic scripts, its own web interface and the system service occulited.': {de: 'openccu-lite ist ein eigenständiges Projekt auf Basis von OpenCCU, aber nicht OpenCCU: ohne ReGaHSS, ohne WebUI-Programme und Homematic-Scripte, mit einer eigenen Oberfläche und dem Systemdienst occulited.'},
+    'openccu-lite is a separate project based on OpenCCU, but it is not OpenCCU: no ReGaHSS, no WebUI programs or Homematic scripts, its own web interface and the system service occulited.': {de: 'openccu-lite ist ein eigenständiges Projekt auf Basis von OpenCCU, aber nicht OpenCCU: ohne ReGaHSS, ohne WebUI-Programme und Homematic-Scripts, mit einer eigenen Oberfläche und dem Systemdienst occulited.'},
     'Support: please report questions and problems with openccu-lite only in its issue tracker - not in the OpenCCU forum and not in OpenCCU\'s issue tracker. The OpenCCU team cannot help with openccu-lite.': {de: 'Unterstützung: Fragen und Probleme mit openccu-lite bitte nur in seinem Issue-Tracker melden - nicht im OpenCCU-Forum und nicht im Issue-Tracker von OpenCCU. Das OpenCCU-Team kann zu openccu-lite nicht helfen.'},
     'openccu-lite\'s issue tracker': {de: 'Issue-Tracker von openccu-lite'},
     'Donations: openccu-lite\'s maintainer does not accept donations. If you want to support the project, give it a star on GitHub.': {de: 'Spenden: Der Maintainer von openccu-lite nimmt keine Spenden an. Wer das Projekt unterstützen möchte, gibt ihm einen Stern auf GitHub.'},
@@ -1618,6 +1618,7 @@ const CATALOGUE: Record<string, {de: string; en?: string}> = {
     'The licence': {de: 'Die Lizenz'},
     // openccu-lite task 322: the welcome page's HmIP-only step
     // openccu-lite task 327 (#4): the welcome page's name step, and a rename's router hint
+    'The administrator exists. Seven things worth deciding now; each can be changed later on its page.': {de: 'Der Administrator existiert. Sieben Dinge lohnen sich jetzt zu entscheiden; jedes lässt sich später auf seiner Seite ändern.'},
     'The administrator exists. Six things worth deciding now; each can be changed later on its page.': {de: 'Der Administrator existiert. Sechs Dinge lohnen sich jetzt zu entscheiden; jedes lässt sich später auf seiner Seite ändern.'},
     "The system's name": {de: 'Der Name des Systems'},
     'The system tells the router this name, and the router lists it so; where the router resolves names, the system can be reached by it. A fresh system is called openccu-lite and the end of its network address (MAC). A rename is easiest now: later it also orphans passkeys and certificates made for the old name.': {
@@ -1724,7 +1725,7 @@ const CATALOGUE: Record<string, {de: string; en?: string}> = {
     'Each addon runs in its own unit: stop ends every process it started, and its output is in the log under the unit name.': {
         de: 'Jede Zusatzsoftware läuft in einer eigenen Unit: Stoppen beendet alle von ihr gestarteten Prozesse, ihre Ausgabe steht im Protokoll unter dem Unit-Namen.',
     },
-    'Addon start/stop scripts from /usr/local/etc/config/rc.d.': {de: 'Start/Stopp-Skripte der Zusatzsoftware aus /usr/local/etc/config/rc.d.'},
+    'Addon start/stop scripts from /usr/local/etc/config/rc.d.': {de: 'Start/Stopp-Scripts der Zusatzsoftware aus /usr/local/etc/config/rc.d.'},
     System: {de: 'System'},
     Timers: {de: 'Zeitpläne'},
     Timer: {de: 'Zeitplan'},
@@ -1819,7 +1820,7 @@ const CATALOGUE: Record<string, {de: string; en?: string}> = {
     'Came from the CCU': {de: 'Von der CCU übernommen'},
     'Remove the rc.d entry': {de: 'rc.d-Eintrag entfernen'},
     'Remove the rc.d entry of {name}? The script came along from the CCU; it is no longer started, and its unit goes. The CCU backup from before the switch keeps it.': {
-        de: 'Den rc.d-Eintrag von {name} entfernen? Das Skript wurde von der CCU übernommen; es wird nicht mehr gestartet, und seine Unit entfällt. Die CCU-Sicherung von vor dem Wechsel enthält es weiterhin.',
+        de: 'Den rc.d-Eintrag von {name} entfernen? Das Script wurde von der CCU übernommen; es wird nicht mehr gestartet, und seine Unit entfällt. Die CCU-Sicherung von vor dem Wechsel enthält es weiterhin.',
     },
     'Only the rc.d entry': {de: 'Nur den rc.d-Eintrag'},
     'The rc.d entry and {path}': {de: 'Den rc.d-Eintrag und {path}'},
@@ -2086,7 +2087,7 @@ const CATALOGUE: Record<string, {de: string; en?: string}> = {
     '{name} carries binaries this system cannot execute ({why}). Install a release built for this architecture — from the catalogue, if it has one. Enable it anyway?': {
         de: '{name} enthält Programme, die dieses System nicht ausführen kann ({why}). Installieren Sie eine für diese Architektur gebaute Version — aus dem Katalog, falls vorhanden. Trotzdem aktivieren?',
     },
-    'The rc.d script is not executable; nothing starts it.': {de: 'Das rc.d-Skript ist nicht ausführbar; nichts startet es.'},
+    'The rc.d script is not executable; nothing starts it.': {de: 'Das rc.d-Script ist nicht ausführbar; nichts startet es.'},
     '{name} needs the ReGa, which this system does not have: it will start, and fail or misbehave. Enable it anyway?': {
         de: '{name} braucht die ReGa, die dieses System nicht hat: es wird starten und fehlschlagen oder sich falsch verhalten. Trotzdem aktivieren?',
     },
@@ -2124,7 +2125,7 @@ const CATALOGUE: Record<string, {de: string; en?: string}> = {
     'self-signed': {de: 'selbstsigniert'},
     'Self-signed': {de: 'Selbstsigniert'},
     'ACME, issued by this system': {de: 'ACME, von diesem System bezogen'},
-    'managed: the system renews it, the init script leaves it alone': {de: 'verwaltet: das System erneuert es, das Init-Skript lässt es in Ruhe'},
+    'managed: the system renews it, the init script leaves it alone': {de: 'verwaltet: das System erneuert es, das Init-Script lässt es in Ruhe'},
     'from a CA': {de: 'von einer CA'},
     'Valid until': {de: 'Gültig bis'},
     'Fingerprint (SHA-256)': {de: 'Fingerabdruck (SHA-256)'},
@@ -2347,7 +2348,7 @@ const CATALOGUE: Record<string, {de: string; en?: string}> = {
     'restarted: {list}': {de: 'neu gestartet: {list}'},
     // task 38: the manual mode - upload or paste, the previews, the key and request
     'manual, installed by hand': {de: 'manuell, von Hand installiert'},
-    'managed: installed by hand, the init script leaves it alone': {de: 'verwaltet: von Hand installiert, das Init-Skript lässt es in Ruhe'},
+    'managed: installed by hand, the init script leaves it alone': {de: 'verwaltet: von Hand installiert, das Init-Script lässt es in Ruhe'},
     'Manual': {de: 'Manuell'},
     'your own certificate - from a company CA, bought, or made elsewhere - uploaded or pasted; or a key and request made here for your CA to sign': {de: 'ein eigenes Zertifikat - von einer Firmen-CA, gekauft oder anderswo erzeugt - hochgeladen oder eingefügt; oder ein hier erzeugter Schlüssel samt Antrag, den Ihre CA signiert'},
     'Certificate, chain and key as files (PEM or DER) or pasted as PEM; the chain may be appended to the certificate instead. The key can be left out when the system generated it below and the certificate was signed for that request. Install writes it to the system.': {de: 'Zertifikat, Kette und Schlüssel als Dateien (PEM oder DER) oder als PEM eingefügt; die Kette kann stattdessen an das Zertifikat angehängt sein. Der Schlüssel kann entfallen, wenn das System ihn unten erzeugt hat und das Zertifikat für diesen Antrag signiert wurde. Installieren schreibt es auf das System.'},
@@ -2404,7 +2405,7 @@ const CATALOGUE: Record<string, {de: string; en?: string}> = {
     '<domain>': {de: '<Domäne>'},
     'Redirect https://{host} to https://{fqdn}': {de: 'https://{host} auf https://{fqdn} umleiten'},
     'A browser that comes by the short name moves on to the full one, so the login, saved passwords and HSTS belong to one name. Only page visits are redirected (GET and HEAD, not /api/): scripts, Node-RED and addons that talk to the API keep working. The loopback, IP addresses and the ACME challenge path are left alone.': {
-        de: 'Ein Browser, der über den kurzen Namen kommt, wechselt auf den vollen - so gehören Anmeldung, gespeicherte Passwörter und HSTS zu einem Namen. Umgeleitet werden nur Seitenaufrufe (GET und HEAD, nicht /api/): Skripte, Node-RED und Zusatzsoftware, die mit der API sprechen, arbeiten weiter. Loopback, IP-Adressen und der ACME-Challenge-Pfad bleiben unberührt.',
+        de: 'Ein Browser, der über den kurzen Namen kommt, wechselt auf den vollen - so gehören Anmeldung, gespeicherte Passwörter und HSTS zu einem Namen. Umgeleitet werden nur Seitenaufrufe (GET und HEAD, nicht /api/): Scripts, Node-RED und Zusatzsoftware, die mit der API sprechen, arbeiten weiter. Loopback, IP-Adressen und der ACME-Challenge-Pfad bleiben unberührt.',
     },
     'Not available:': {de: 'Nicht verfügbar:'},
     'Suspended:': {de: 'Ausgesetzt:'},
@@ -2804,7 +2805,7 @@ const CATALOGUE: Record<string, {de: string; en?: string}> = {
     'This daemon runs without a configuration file; the switch cannot be changed here.': {de: 'Dieser Dienst läuft ohne Konfigurationsdatei; der Schalter kann hier nicht geändert werden.'},
     'Pass the session in addon URLs (legacy CCU convention)': {de: 'Sitzung in den URLs der Zusatzsoftware übergeben (alte CCU-Konvention)'},
     'Addons written for the CCU expect the session as ?sid=@…@ in the URL of their pages, and their scripts check it that way. What goes there is not your session but an alias of it: ten characters that only addon pages accept, never the API, and that end with your session.': {
-        de: 'Für die CCU geschriebene Zusatzsoftware erwartet die Sitzung als ?sid=@…@ in der URL ihrer Seiten, und ihre Skripte prüfen sie so. Dort steht nicht Ihre Sitzung, sondern ein Alias davon: zehn Zeichen, die nur Seiten der Zusatzsoftware annehmen, nie die API, und die mit Ihrer Sitzung enden.',
+        de: 'Für die CCU geschriebene Zusatzsoftware erwartet die Sitzung als ?sid=@…@ in der URL ihrer Seiten, und ihre Scripts prüfen sie so. Dort steht nicht Ihre Sitzung, sondern ein Alias davon: zehn Zeichen, die nur Seiten der Zusatzsoftware annehmen, nie die API, und die mit Ihrer Sitzung enden.',
     },
     'Only addons that do not read the session header get it; the list above marks them, and its ⋯ menu switches it off per addon. Switched off here, none gets it, and their pages refuse to open until the addon reads the header.': {
         de: 'Nur Zusatzsoftware, die den Sitzungs-Header nicht liest, bekommt ihn; die Liste oben markiert sie, und ihr Menü ⋯ schaltet ihn je Zusatzsoftware ab. Hier abgeschaltet, bekommt ihn keine, und ihre Seiten lassen sich nicht öffnen, bis die Zusatzsoftware den Header liest.',
@@ -4408,7 +4409,7 @@ const CATALOGUE: Record<string, {de: string; en?: string}> = {
     'a CCU': {de: 'einer CCU'},
     'a ReGa database: names, rooms and functions (its programs and system variables cannot be used here)': {de: 'eine ReGa-Datenbank: Namen, Räume und Gewerke (ihre Programme und Systemvariablen lassen sich hier nicht verwenden)'},
     'every address (0/0)': {de: 'jede Adresse (0/0)'},
-    'everything else under /usr/local (own scripts, device firmware files)': {de: 'alles Übrige unter /usr/local (eigene Skripte, Firmware-Dateien für Geräte)'},
+    'everything else under /usr/local (own scripts, device firmware files)': {de: 'alles Übrige unter /usr/local (eigene Scripts, Firmware-Dateien für Geräte)'},
     'everything: network, firewall, certificates, remote access, the system\'s own settings': {de: 'alles: Netzwerk, Firewall, Zertifikate, Fernzugriff, die eigenen Einstellungen des Systems'},
     'it can be imported: its devices, keys and names come onto this system, and what you choose of the rest. It cannot be restored here.': {de: 'sie lässt sich importieren: Ihre Geräte, Schlüssel und Namen kommen auf dieses System, dazu das, was Sie vom Rest auswählen. Einspielen lässt sie sich hier nicht.'},
     'it can be restored: this system becomes the one the backup was made of.': {de: 'sie lässt sich einspielen: Dieses System wird das, von dem die Sicherung stammt.'},
@@ -4418,7 +4419,7 @@ const CATALOGUE: Record<string, {de: string; en?: string}> = {
     'mediola\'s NEO Server': {de: 'mediolas NEO Server'},
     'not encrypted: the file holds its keys in plain': {de: 'nicht verschlüsselt: Die Datei enthält ihre Schlüssel im Klartext'},
     'on OpenCCU {v}': {de: 'auf OpenCCU {v}'},
-    'programs, system variables and scripts of the ReGa (this system has no ReGa)': {de: 'Programme, Systemvariablen und Skripte der ReGa (dieses System hat keine ReGa)'},
+    'programs, system variables and scripts of the ReGa (this system has no ReGa)': {de: 'Programme, Systemvariablen und Scripts der ReGa (dieses System hat keine ReGa)'},
     'scheduled jobs (crontab) and monit files': {de: 'geplante Aufgaben (crontab) und monit-Dateien'},
     'settings only': {de: 'nur Einstellungen'},
     'syslog server {v}': {de: 'Syslog-Server {v}'},
@@ -4431,7 +4432,7 @@ const CATALOGUE: Record<string, {de: string; en?: string}> = {
     'the users of the old WebUI and their passwords': {de: 'die Benutzer der alten WebUI und ihre Passwörter'},
     'the web certificate': {de: 'das Web-Zertifikat'},
     'time zone, time servers and location': {de: 'Zeitzone, Zeitserver und Standort'},
-    'what an addon keeps outside its own directories, and addon directories without a start script': {de: 'was eine Zusatzsoftware außerhalb ihrer eigenen Verzeichnisse ablegt, und Verzeichnisse von Zusatzsoftware ohne Startskript'},
+    'what an addon keeps outside its own directories, and addon directories without a start script': {de: 'was eine Zusatzsoftware außerhalb ihrer eigenen Verzeichnisse ablegt, und Verzeichnisse von Zusatzsoftware ohne Startscript'},
     '{u} users, {k} API tokens': {de: '{u} Benutzer, {k} API-Token'},
     '{n} BidCos-RF devices': {de: '{n} BidCos-RF-Geräte'},
     '{n} HmIP devices': {de: '{n} HmIP-Geräte'},

@@ -70,3 +70,41 @@ test('installed without a kept database: no import; German', async ({page}) => {
     await sec.locator('[data-action="welcome-logic"]').click();
     await expect(page).toHaveURL(/\/nav\/logic$/);
 });
+
+// B-179: the intro counts the numbered steps the page really shows - with Logic's step one more
+// than without it - and the last heading's number is that count
+const WORDS: Record<string, number> = {Three: 3, Four: 4, Five: 5, Six: 6, Seven: 7, Drei: 3, Vier: 4, 'Fünf': 5, Sechs: 6, Sieben: 7};
+async function counted(page: import('@playwright/test').Page) {
+    const intro = (await page.locator('[data-welcome-intro]').textContent()) ?? '';
+    const word = Object.keys(WORDS).find((w) => intro.includes(` ${w} `));
+    expect(word, intro).toBeTruthy();
+    const nums = (await page.locator('h2').allTextContents()).map((h) => /^(\d+) ·/.exec(h.trim())?.[1]).filter(Boolean).map(Number);
+    return {said: WORDS[word!], shown: nums.length, last: Math.max(...nums)};
+}
+
+for (const lang of ['en', 'de']) {
+    test(`the intro's count matches the numbered steps, with and without Logic (${lang})`, async ({page}) => {
+        if (lang === 'de') await page.addInitScript(() => localStorage.setItem('ol.language', 'de'));
+        await page.goto('/welcome');
+        await expect(page.locator('[data-welcome-frontend]')).toBeVisible();
+        const without = await counted(page);
+        expect(without.said).toBe(without.shown);
+        expect(without.last).toBe(without.shown);
+
+        await page.route(/\/api\/system\/v1\/catalog(\?refresh=1)?$/, (route) => route.fulfill({json: {catalog: {format: 1, source: 'published', addons: [HM, LOGIC_ENTRY]}, installed: {hmm: '3.1.3'}, arch: 'x86_64', daily: false}}));
+        await page.reload();
+        await expect(page.locator('[data-welcome-logic]')).toBeVisible();
+        await expect.poll(async () => (await counted(page)).said).toBe(without.said + 1);
+        const withLogic = await counted(page);
+        expect(withLogic.shown).toBe(without.shown + 1);
+        expect(withLogic.last).toBe(withLogic.shown);
+    });
+}
+
+test('German: Homematic-Scripts, never Skript or Scripte (B-179)', async ({page}) => {
+    await page.addInitScript(() => localStorage.setItem('ol.language', 'de'));
+    await page.goto('/welcome');
+    const about = page.locator('.about');
+    await expect(about).toContainText('Homematic-Scripts');
+    await expect(page.locator('body')).not.toContainText(/Skript|Scripte\b/);
+});

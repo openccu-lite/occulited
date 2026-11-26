@@ -87,6 +87,23 @@ class NetzTest(unittest.TestCase):
                 self.assertEqual(wc.has_old_netz(text), want)
 
 
+class SkriptTest(unittest.TestCase):
+    def test_skript(self):
+        for text, want in [
+            ("ohne Homematic-Skripte", True),
+            ("Das rc.d-Skript ist nicht ausführbar", True),
+            ("das Deinstallationsskript", True),
+            ("ohne Homematic-Scripte", True),
+            ("ohne Homematic-Scripts", False),
+            ("Das rc.d-Script ist nicht ausführbar", False),
+            ("das Deinstallationsscript", False),
+            ("JavaScript", False),
+            ("eines Scriptes", False),
+        ]:
+            with self.subTest(text=text):
+                self.assertEqual(wc.has_skript(text), want)
+
+
 class TreeTest(unittest.TestCase):
     def test_the_tree_is_clean(self):
         self.assertEqual(wc.scan_i18n_table(), [])

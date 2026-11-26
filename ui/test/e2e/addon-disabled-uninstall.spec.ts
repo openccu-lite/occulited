@@ -77,10 +77,10 @@ test('the notice\'s Uninstall, in German', async ({page}) => {
     await expect(hint).toContainText('Von der CCU übernommen');
     await hint.getByRole('button', {name: 'Deinstallieren', exact: true}).click();
     const dialog = page.getByRole('dialog');
-    await expect(dialog).toContainText('Die Zusatzsoftware ist deaktiviert: Schlägt ihr Deinstallationsskript fehl, entfernt das System ihren rc.d-Eintrag und ihr Verzeichnis /usr/local/addons/hm-watchdog mit allem darin.');
+    await expect(dialog).toContainText('Die Zusatzsoftware ist deaktiviert: Schlägt ihr Deinstallationsscript fehl, entfernt das System ihren rc.d-Eintrag und ihr Verzeichnis /usr/local/addons/hm-watchdog mit allem darin.');
     await dialog.getByRole('button', {name: 'Deinstallieren', exact: true}).click();
     await expect.poll(() => asked).toBe(1);
-    await expect(page.getByText(/Deinstalliert: HM Watchdog/)).toContainText('Ihr Deinstallationsskript ist fehlgeschlagen (exit status 3); die Zusatzsoftware war deaktiviert, deshalb hat das System sie trotzdem entfernt.');
+    await expect(page.getByText(/Deinstalliert: HM Watchdog/)).toContainText('Ihr Deinstallationsscript ist fehlgeschlagen (exit status 3); die Zusatzsoftware war deaktiviert, deshalb hat das System sie trotzdem entfernt.');
 });
 
 test('an addon the user disabled: Uninstall in the menu, and no word of a failure when its script worked', async ({page}) => {

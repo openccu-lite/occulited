@@ -35,8 +35,10 @@
         step: number;
         onopen: (path: string) => void;
         blocked?: boolean;
+        /** out: the step is on the page, so the welcome page counts it (B-179) */
+        shown?: boolean;
     }
-    let {step, onopen, blocked = false}: Props = $props();
+    let {step, onopen, blocked = false, shown = $bindable(false)}: Props = $props();
 
     type State = 'loading' | 'hidden' | 'ready' | 'checking' | 'installing' | 'installed' | 'failed' | 'unreachable' | 'unavailable';
     let st = $state<State>('loading');
@@ -144,6 +146,8 @@
             st = 'failed';
         }
     }
+
+    $effect(() => { shown = st !== 'hidden' && st !== 'loading'; });
 
     const busy = $derived(st === 'loading' || st === 'checking' || st === 'installing');
     const otherRun = $derived(slotBusy && st !== 'installing' && !(job?.kind === 'catalog' && job.addon_id === id));

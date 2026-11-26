@@ -1,7 +1,7 @@
 /*
  * The App's service worker (task 193, the PWA). It caches the shell - the page, the hashed
  * bundles under /assets, the icons and the manifest - under the version of the build that
- * emitted it (vite.config.ts writes 3c9b27fa70e9), and never an API answer: a cached value or a
+ * emitted it (vite.config.ts writes 93966e184fc4), and never an API answer: a cached value or a
  * cached session would be worse than no offline mode. A new version takes over at once
  * (skipWaiting, clients.claim) and drops the old caches, so an updated system is not served
  * yesterday's UI from a phone's cache; the page reloads itself when the controller changes
@@ -13,7 +13,7 @@
  * unknown path with a redirect to it, and a worker that kept any 200 would store the recovery's
  * page as the App's shell (or as an icon, or as a bundle). Such an answer still goes to the page.
  */
-const VERSION = '3c9b27fa70e9';
+const VERSION = '93966e184fc4';
 const CACHE = `ol-shell-${VERSION}`;
 const SHELL = ['/', '/app.webmanifest', '/icons/icon-192.png', '/icons/icon-512.png', '/icons/maskable-512.png', '/icons/apple-touch-icon.png'];
 
