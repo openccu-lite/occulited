@@ -1,6 +1,6 @@
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest';
 import {classify} from './channels';
-import {loadChannels, needsRead, operable, putValues, readsFree, setValue, streamValue, wireValue} from './rpc';
+import {devicesMessage, forgetDevices, loadChannels, needsRead, operable, putValues, readsFree, setValue, streamValue, wireValue} from './rpc';
 
 // occulited B-47: the tiles' values come from the state store; an interface process is asked only
 // for what the store does not have (BidCos answers a getParamset VALUES by asking the device over
@@ -332,5 +332,42 @@ describe('a FLOAT datapoint is written as a double', () => {
         expect(bodies.find((b) => b.method === 'setValue')?.params).toEqual(['DIM0000001:1', 'LEVEL', {double: 0}]);
         expect(bodies.find((b) => b.method === 'putParamset')?.params).toEqual(['DIM0000001:1', 'VALUES', {LEVEL: {double: 1}, MODE: 1}]);
         vi.stubGlobal('fetch', real);
+    });
+});
+
+// occulited task 182: a device announced as new is described again on an open page
+describe('devices announced again', () => {
+    beforeEach(() => {
+        vi.stubGlobal('sessionStorage', {getItem: () => 'S1'});
+        vi.stubGlobal('window', {dispatchEvent: () => true});
+    });
+    afterEach(() => vi.unstubAllGlobals());
+
+    it('takes newDevices, readdedDevice, replaceDevice and updateDevice with hint 2', () => {
+        expect(devicesMessage('newDevices', '{"interface":"Logic","addresses":["INT0000001","INT0000001:1"],"ts":"x"}')).toEqual({iface: 'Logic', addresses: ['INT0000001', 'INT0000001:1']});
+        expect(devicesMessage('readdedDevice', '{"interface":"HmIP-RF","addresses":["000DD8"]}')).toEqual({iface: 'HmIP-RF', addresses: ['000DD8']});
+        expect(devicesMessage('replaceDevice', '{"interface":"BidCos-RF","addresses":["OLD","NEW"],"old":"OLD","new":"NEW"}')).toEqual({iface: 'BidCos-RF', addresses: ['OLD', 'NEW']});
+        expect(devicesMessage('updateDevice', '{"interface":"HmIP-RF","addresses":["000DD8"],"hint":2}')).toEqual({iface: 'HmIP-RF', addresses: ['000DD8']});
+    });
+    it('leaves out the links-only update, the others, an empty list and a torn line', () => {
+        expect(devicesMessage('updateDevice', '{"interface":"HmIP-RF","addresses":["000DD8"],"hint":1}')).toBeUndefined();
+        expect(devicesMessage('deleteDevices', '{"interface":"HmIP-RF","addresses":["000DD8"]}')).toBeUndefined();
+        expect(devicesMessage('event', '{"interface":"HmIP-RF","address":"000DD8:1","key":"STATE","value":true}')).toBeUndefined();
+        expect(devicesMessage('newDevices', '{"interface":"HmIP-RF","addresses":[]}')).toBeUndefined();
+        expect(devicesMessage('newDevices', '{"interface":"HmIP-RF","devices":[{}]}')).toBeUndefined();
+        expect(devicesMessage('newDevices', '{"interf')).toBeUndefined();
+    });
+    it('forgets what the page knew of the device and its channels, so the next load asks again', async () => {
+        const s = system({entries: [], types: {'INT0000001:1': 'SWITCH'}, descs: {'INT0000001:1': SWITCH}});
+        await loadChannels(['Logic.INT0000001:1', 'Logic.INT0000002:1']);
+        const asked = () => s.calls.filter((c) => c.method === 'getDeviceDescription' || c.method === 'paramsets').map((c) => `${c.method} ${c.address}`);
+        const first = asked().length;
+        await loadChannels(['Logic.INT0000001:1', 'Logic.INT0000002:1']);
+        expect(asked().length).toBe(first); // kept: nothing asked again
+        expect(forgetDevices('Logic', ['INT0000001']).sort()).toEqual(['Logic.INT0000001:1']);
+        // another interface's device of the same address is not touched
+        expect(forgetDevices('HmIP-RF', ['INT0000002'])).toEqual([]);
+        await loadChannels(['Logic.INT0000001:1', 'Logic.INT0000002:1']);
+        expect(asked().slice(first)).toEqual(['getDeviceDescription INT0000001:1', 'paramsets INT0000001:1']);
     });
 });

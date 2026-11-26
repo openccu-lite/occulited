@@ -52,7 +52,7 @@ for (const where of ['plain http, no secure context', 'a secure context'] as con
         expect(h.authorization).toBe('Bearer A1b2C3d4E5');
         expect(req.resourceType()).toBe('fetch');
         // no credential in the address: it would be in every log on the way
-        expect(new URL(req.url()).search).toBe('?interface=BidCos-RF&interface=HmIP-RF&type=event,state');
+        expect(new URL(req.url()).search).toBe('?interface=BidCos-RF&interface=HmIP-RF&type=event,state,newDevices,readdedDevice,updateDevice,replaceDevice');
         expect(res.status()).toBe(200);
 
         // the first values are the state store's: no interface process is asked for them

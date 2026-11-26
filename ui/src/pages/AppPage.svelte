@@ -21,7 +21,7 @@
     import {actionOf, blindAction, isVirtualKey, mayBeVirtualChannel, virtualChannels, formatPower, heldKeys, isMeter, isOn, motion, withPending, LEVEL_KEYS, longAction, mainAction, meterPairs, shown as hasUI, stateText, thermoParts, thermoRow, working, type Model, type Values} from '../lib/app/channels';
     import {fit} from '../lib/app/fit';
     import {durationLine, hasDuration, nextDurationChange} from '../lib/app/duration';
-    import {invisible, loadChannels, loadDeviceTypes, openEvents, operable, setValue, type Channel, putValues} from '../lib/app/rpc';
+    import {forgetDevices, invisible, loadChannels, loadDeviceTypes, openEvents, operable, setValue, type Channel, putValues} from '../lib/app/rpc';
     import {controlSettings, lockedModel, programModel} from '../lib/app/variables';
     import type {StreamState} from '../lib/app/eventstream';
     import {subscribeShell} from '../lib/shellstream/client';
@@ -502,6 +502,14 @@
         loadedRefs = list.join(' ');
         void loadValues(list);
     }
+    // occulited task 182: an interface announced devices as new (an addon update changed their firmware, say): their
+    // types and descriptions are read again for the tiles on the page, without a reload
+    function redescribe(iface: string, addresses: string[]) {
+        forgetDevices(iface, addresses);
+        const devs = new Set(addresses.map((a) => (a.includes(':') ? a.slice(0, a.lastIndexOf(':')) : a)));
+        const refs = [...channels.values()].filter((c) => c.iface === iface && devs.has(c.address.includes(':') ? c.address.slice(0, c.address.lastIndexOf(':')) : c.address)).map((c) => c.ref);
+        if (refs.length) void loadValues(refs);
+    }
     function onEvent(ref: string, key: string, value: unknown, changedAt?: string) {
         if (ref.endsWith(':0')) {
             maintEvent(ref, key, value);
@@ -701,6 +709,7 @@
                     lastEventId: r.eventId,
                     onResync: reloadValues,
                     onState: (s) => (streamState = s),
+                    onDevices: redescribe,
                     // refused: nothing is tried again by the stream; the next load of values opens one
                     onRefused: () => (streamFor = ''),
                 });

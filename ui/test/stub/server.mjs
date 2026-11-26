@@ -1478,6 +1478,14 @@ function liteEmit(app, iface, address, key, value) {
         if (st.ifaces.length === 0 || st.ifaces.includes(iface)) st.res.write(`id: stub-${liteSeq}\nevent: event\ndata: ${data}\n\n`);
     }
 }
+// occulited task 182: a message of another kind (newDevices, updateDevice, …) to this app's streams, as
+// the interface's announcement comes on the system - POST /__stub/lite-push {app, event, data}
+function litePush(app, event, data) {
+    liteSeq++;
+    for (const st of liteOpen.get(app) ?? []) {
+        if (st.ifaces.length === 0 || st.ifaces.includes(data.interface)) st.res.write(`id: stub-${liteSeq}\nevent: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+    }
+}
 // what reached the stream's gate with ?probe=<id>, for the spec that tries the ways in from another
 // origin: a request the browser never sent (a refused preflight) is not in it
 const liteProbes = [];
@@ -4721,6 +4729,16 @@ const srv = http.createServer((req, res) => {
     }
     if (key === 'GET /api/rpc/v1/events') {
         return liteEventsRoute(req, u, res);
+    }
+    if (key === 'POST /__stub/lite-push') {
+        let body = '';
+        req.on('data', (c) => (body += c));
+        req.on('end', () => {
+            const b = JSON.parse(body || '{}');
+            litePush(b.app, b.event, b.data);
+            sendJSON(res, {ok: true});
+        });
+        return true;
     }
     if (key === 'GET /__stub/lite-probes') {
         return sendJSON(res, liteProbes.filter((p) => p.probe === u.searchParams.get('probe')).map(({probe: _, ...p}) => p));

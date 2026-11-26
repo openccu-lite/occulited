@@ -258,6 +258,43 @@ export function invisible(c: {flags?: number; model: Model} | undefined): boolea
 }
 
 /**
+ * occulited task 182: what the page keeps of the devices an interface announces as new, readded or with a changed
+ * description (an addon update that changes their FIRMWARE, say) is forgotten - the device's own entries and its
+ * channels' - so the next loadChannels asks for their types, FLAGS and descriptions again. The descriptions under the
+ * old paramset keys stay: another device may still have that firmware. Answers the refs forgotten.
+ */
+export function forgetDevices(iface: string, addresses: readonly string[]): string[] {
+    const devices = new Set(addresses.map(deviceAddress));
+    const out = new Set<string>();
+    for (const m of [typeByRef, parentByRef, flagsByRef, descByRef] as Map<string, unknown>[]) {
+        for (const ref of [...m.keys()]) {
+            const {iface: i, address} = splitRef(ref);
+            if (i === iface && devices.has(deviceAddress(address))) {
+                m.delete(ref);
+                out.add(ref);
+            }
+        }
+    }
+    for (const d of devices) deviceTypes.delete(`${iface}.${d}`);
+    return [...out];
+}
+
+/** occulited task 182: the stream's message that the devices of an interface are to be described again - new,
+ *  readded, replaced, or updated with hint 2 (the description changed) - or undefined for any other. */
+export function devicesMessage(event: string, data: string): {iface: string; addresses: string[]} | undefined {
+    if (event !== 'newDevices' && event !== 'readdedDevice' && event !== 'updateDevice' && event !== 'replaceDevice') return undefined;
+    try {
+        const d = JSON.parse(data) as {interface?: string; addresses?: unknown; hint?: number};
+        if (!d.interface || !Array.isArray(d.addresses)) return undefined;
+        if (event === 'updateDevice' && d.hint !== 2) return undefined; // 1: only the links changed
+        const addresses = d.addresses.filter((a): a is string => typeof a === 'string' && a !== '');
+        return addresses.length ? {iface: d.interface, addresses} : undefined;
+    } catch {
+        return undefined;
+    }
+}
+
+/**
  * openccu-lite task 411: the channel types of whole devices - the address' own CHILDREN, then each child's
  * getDeviceDescription, a question to the interface process with nothing on the radio. Kept like the page's other
  * types. A device or an interface that does not answer gets an empty entry, asked no second time, and nothing of it is left out.
@@ -329,6 +366,8 @@ export interface EventsOptions {
     onRefused?: (status: number) => void;
     /** where the stream stands: live, or why not (occulited task 19) */
     onState?: (s: StreamState) => void;
+    /** occulited task 182: an interface announced devices as new, readded, replaced or with a changed description */
+    onDevices?: (iface: string, addresses: string[]) => void;
 }
 
 /** One message of the stream as the tiles take it, or undefined for the others (hello, interface, …). */
@@ -355,7 +394,7 @@ export function openEvents(ifaces: string[], onEvent: (ref: string, key: string,
     if (typeof fetch === 'undefined' || ifaces.length === 0) return () => undefined;
     const q = ifaces.map((i) => `interface=${encodeURIComponent(i)}`).join('&');
     return openEventStream({
-        url: `/api/rpc/v1/events?${q}&type=event,state`,
+        url: `/api/rpc/v1/events?${q}&type=event,state${opt.onDevices ? ',newDevices,readdedDevice,updateDevice,replaceDevice' : ''}`,
         lastEventId: opt.lastEventId,
         onRefused: opt.onRefused,
         onState: opt.onState,
@@ -368,6 +407,11 @@ export function openEvents(ifaces: string[], onEvent: (ref: string, key: string,
                     /* the reason is for the log only */
                 }
                 opt.onResync?.(reason);
+                return;
+            }
+            const dev = opt.onDevices && devicesMessage(m.event, m.data);
+            if (dev) {
+                opt.onDevices!(dev.iface, dev.addresses);
                 return;
             }
             const v = streamValue(m.event, m.data);
