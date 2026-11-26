@@ -228,7 +228,7 @@ func TestFlow(t *testing.T) {
 	p := m.Pending()
 	nonce, _ := hex.DecodeString(ans.Nonce)
 	cnb, _ := hex.DecodeString(cn)
-	if len(p) != 1 || p[0].Code != Code(nonce, cnb, fp) || p[0].Name != "hm2mqtt.js on nas" || p[0].Fingerprint != "AB:CD" || p[0].Purpose["bogus"] != "" || p[0].Purpose["devices"] == "" {
+	if len(p) != 1 || p[0].Code != Code(nonce, cnb, fp) || p[0].Name != "hm2mqtt.js (nas)" || p[0].Fingerprint != "AB:CD" || p[0].Purpose["bogus"] != "" || p[0].Purpose["devices"] == "" {
 		t.Fatalf("card %+v", p)
 	}
 	// the waiting poll wakes on the approval and gets the token once
@@ -239,7 +239,7 @@ func TestFlow(t *testing.T) {
 	}()
 	time.Sleep(50 * time.Millisecond)
 	client, name, err := m.Approve(ans.ID, p[0].Code, "admin", false)
-	if err != nil || name != "hm2mqtt-js-nas" || client.PairedBy != "admin" || client.Address != "192.168.1.50" || client.Fingerprint != "abcd" || client.Label != "hm2mqtt.js on nas" {
+	if err != nil || name != "hm2mqtt-js-nas" || client.PairedBy != "admin" || client.Address != "192.168.1.50" || client.Fingerprint != "abcd" || client.Label != "hm2mqtt.js (nas)" {
 		t.Fatalf("approve: %v %s %+v", err, name, client)
 	}
 	select {
@@ -360,9 +360,16 @@ func TestRejectExpireWithdrawLookAlike(t *testing.T) {
 func TestSlug(t *testing.T) {
 	for in, want := range map[[2]string]string{
 		{"hm2mqtt.js", "nas"}:                      "hm2mqtt-js-nas",
-		{"node-red-contrib-ccu", "Node-RED on Pi"}: "node-red-contrib-ccu-node-re",
+		{"node-red-contrib-ccu", "Node-RED on Pi"}: "node-red-contrib-ccu-node",
 		{"x", ""}:          "client",
 		{"Homematic", "Ü"}: "homematic",
+		// B-183: ioBroker's hm-rpc sends "<namespace> on <host>"
+		{"ioBroker.hm-rpc", "hm-rpc.0 on infinite"}:     "iobroker-hm-rpc-0-infinite",
+		{"ioBroker.hm-rpc", "hm-rpc.12 on a-long-host"}: "iobroker-hm-rpc-12-a-long",
+		{"homematicip_local", "Home"}:                   "homematicip_local-home",
+		{"a", ""}:                                       "client",
+		{"abcdefghijklmnopqrstuvwxyz0123456789", ""}:    "abcdefghijklmnopqrstuvwxyz01",
+		{"redmatic", "redmatic on ccu"}:                 "redmatic-ccu",
 	} {
 		if got := slug(in[0], in[1]); got != want {
 			t.Errorf("%v: %q", in, got)

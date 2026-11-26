@@ -472,10 +472,12 @@ func (m *Manager) Request(a Ask, addr string, fingerprint []byte) (Answer, error
 		}
 	}
 	a.Purpose = purpose
+	// B-183: the name the request shows when the program gave none - in no language, since the
+	// instance is the program's own text ("hm-rpc.0 on nas" came out as "… on hm-rpc.0 on nas")
 	if a.Name == "" {
 		a.Name = a.App
 		if a.Instance != "" {
-			a.Name += " on " + a.Instance
+			a.Name += " (" + a.Instance + ")"
 		}
 	}
 	now := m.now()
@@ -672,33 +674,74 @@ func (m *Manager) Pending() []View {
 	return out
 }
 
-// slug makes a token name from the program and its instance: lower case, [a-z0-9.-_], 2-28
-// characters (room for "-NN").
+// slug makes a token name from the program and its instance: lower case, [a-z0-9-_], 2-28
+// characters (room for "-NN"). B-183: a name too long is cut between words, never inside one; the
+// instance's own repetition of the program's name ("ioBroker.hm-rpc" with "hm-rpc.0") and its
+// connecting words ("hm-rpc.0 on nas") are left out first, so "iobroker-hm-rpc-0-nas", not
+// "iobroker-hm-rpc-hm-rpc-0-on".
 func slug(app, instance string) string {
-	s := strings.ToLower(app)
-	if instance != "" {
-		s += "-" + strings.ToLower(instance)
+	words := func(s string) []string {
+		var b strings.Builder
+		for _, c := range strings.ToLower(s) {
+			switch {
+			case c >= 'a' && c <= 'z', c >= '0' && c <= '9', c == '_':
+				b.WriteRune(c)
+			default:
+				b.WriteRune('-')
+			}
+		}
+		var out []string
+		for _, w := range strings.Split(b.String(), "-") {
+			if w = strings.Trim(w, "_"); w != "" {
+				out = append(out, w)
+			}
+		}
+		return out
 	}
-	var b strings.Builder
-	for _, c := range s {
-		switch {
-		case c >= 'a' && c <= 'z', c >= '0' && c <= '9', c == '_', c == '-':
-			b.WriteRune(c)
-		default:
-			b.WriteRune('-')
+	a, in := words(app), words(instance)
+	// the instance names the program again: its last part ("hm-rpc" of "ioBroker.hm-rpc")
+	if last := lastPart(app); last != "" {
+		lw := words(last)
+		if len(lw) > 0 && len(in) >= len(lw) && strings.Join(in[:len(lw)], "-") == strings.Join(lw, "-") {
+			in = in[len(lw):]
 		}
 	}
-	out := strings.Trim(b.String(), "-_.")
-	for strings.Contains(out, "--") {
-		out = strings.ReplaceAll(out, "--", "-")
+	var kept []string
+	for _, w := range in {
+		switch w {
+		case "on", "at", "auf", "an", "bei", "in", "of", "von":
+			continue
+		}
+		kept = append(kept, w)
 	}
-	if len(out) > 28 {
-		out = strings.TrimRight(out[:28], "-_.")
+	all := append(append([]string{}, a...), kept...)
+	out := ""
+	for _, w := range all {
+		next := w
+		if out != "" {
+			next = out + "-" + w
+		}
+		if len(next) > 28 {
+			if out == "" {
+				out = w[:28]
+			}
+			break
+		}
+		out = next
 	}
 	if len(out) < 2 {
 		out = "client"
 	}
 	return out
+}
+
+// lastPart is the program's name after its vendor's: "hm-rpc" of "ioBroker.hm-rpc", the name
+// itself when it has no dot.
+func lastPart(app string) string {
+	if i := strings.LastIndex(app, "."); i >= 0 {
+		return app[i+1:]
+	}
+	return app
 }
 
 // NeedsConfirmation says whether approving the request asks for the administrator's confirmation:

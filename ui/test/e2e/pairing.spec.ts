@@ -6,7 +6,7 @@ import {shellStreamInWindow} from './fixtures';
 // the API tokens panel's switch and a paired program's line.
 
 const REQ = {
-    id: 'a1b2c3', app: 'homematic-manager', app_version: '3.0.0', instance: 'pc', name: 'homematic-manager on pc', address: '192.168.1.50',
+    id: 'a1b2c3', app: 'homematic-manager', app_version: '3.0.0', instance: 'pc', name: 'homematic-manager (pc)', address: '192.168.1.50',
     access: {devices: 'administer', names: 'configure', system: 'read'}, purpose: {devices: 'pairs and configures devices'},
     scopes: ['meta:write', 'rpc:admin', 'system:read'], code: '482719', fingerprint: 'AB:CD:EF:01:23:45:67:89:AB:CD:EF', created: '2026-09-25T00:00:00Z', expires: '2026-09-25T00:05:00Z',
 };
@@ -27,7 +27,7 @@ test('the card: code, access, approve with the code', async ({page}) => {
     });
     await page.goto('/');
     const card = page.locator('[data-pair="a1b2c3"]');
-    await expect(card).toContainText('homematic-manager on pc asks for access');
+    await expect(card).toContainText('homematic-manager (pc) asks for access');
     await expect(card.locator('[data-pair-code]')).toHaveText('482 719');
     await expect(card.locator('[data-pair-area="devices"] dd')).toContainText('administer · may pair and delete devices');
     await expect(card.locator('[data-pair-area="devices"] dd')).toHaveClass(/pr-red/);
@@ -94,7 +94,7 @@ test('no request, no card; German', async ({page}) => {
     await withRequests(page, [REQ]);
     await page.addInitScript(() => localStorage.setItem('ol.language', 'de'));
     await page.goto('/');
-    await expect(page.locator('[data-pair="a1b2c3"]')).toContainText('homematic-manager on pc bittet um Zugriff');
+    await expect(page.locator('[data-pair="a1b2c3"]')).toContainText('homematic-manager (pc) bittet um Zugriff');
     await expect(page.locator('[data-notice="pairing"]').getByRole('button', {name: 'Genehmigen'})).toBeVisible();
 });
 
@@ -129,7 +129,7 @@ test('the API tokens panel: the switch and a paired program', async ({page}) => 
 // occulited task 135: a request for backups - the card says loudly what a backup holds and who asks,
 // and Approve asks for the administrator's confirmation; without it nothing is approved.
 const BACKUP = {
-    ...REQ, id: 'b0b0b0', app: 'occulite-backup', name: 'occulite-backup on nas', app_version: undefined, access: {backup: 'download'}, purpose: {backup: 'nightly backups to the NAS'},
+    ...REQ, id: 'b0b0b0', app: 'occulite-backup', name: 'occulite-backup (nas)', app_version: undefined, access: {backup: 'download'}, purpose: {backup: 'nightly backups to the NAS'},
     scopes: ['backup'], code: '135135', needs_confirmation: true, token_ips: ['192.168.1.50/32'],
 };
 const APPROVE = '**/api/auth/v1/pairing/b0b0b0/approve';
@@ -151,7 +151,7 @@ test('a request for backups: the loud card, the password, the ticket on the appr
     const notice = page.locator('[data-notice="pairing"]');
     await expect(notice).toHaveAttribute('data-severity', 'error');
     const card = page.locator('[data-pair="b0b0b0"]');
-    await expect(card.locator('[data-pair-backup]')).toContainText('occulite-backup on nas (occulite-backup) on 192.168.1.50 asks for the backups');
+    await expect(card.locator('[data-pair-backup]')).toContainText('occulite-backup (nas) (occulite-backup) on 192.168.1.50 asks for the backups');
     await expect(card.locator('[data-pair-backup]')).toContainText('Backups contain the radio keys');
     await expect(card.locator('[data-pair-backup-note]')).toContainText('192.168.1.50/32');
     await expect(card.locator('[data-pair-area="backup"] dd')).toContainText('download · contains the radio keys');
