@@ -15211,6 +15211,30 @@
         ],
         "type": "object"
       },
+      "SystemUSBCheck": {
+        "properties": {
+          "at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "exit": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "fstype": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "state"
+        ],
+        "type": "object"
+      },
       "SystemUSBDevice": {
         "properties": {
           "bus": {
@@ -15291,6 +15315,16 @@
       },
       "SystemUSBPartition": {
         "properties": {
+          "check": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SystemUSBCheck"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "free_bytes": {
             "type": "integer"
           },
@@ -41110,11 +41144,15 @@
                         "array",
                         "null"
                       ]
+                    },
+                    "fsck_at_dirty_mount": {
+                      "type": "boolean"
                     }
                   },
                   "required": [
                     "disks",
-                    "filesystems"
+                    "filesystems",
+                    "fsck_at_dirty_mount"
                   ],
                   "type": "object"
                 }
@@ -41150,6 +41188,97 @@
         ],
         "x-occulite-scopes": [
           "system:read"
+        ]
+      }
+    },
+    "/api/system/v1/storage/usb/settings": {
+      "put": {
+        "operationId": "putSystemStorageUsbSettings",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "fsck_at_dirty_mount": {
+                    "type": [
+                      "boolean",
+                      "null"
+                    ]
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "disks": {
+                      "items": {
+                        "$ref": "#/components/schemas/UsbDiskView"
+                      },
+                      "type": [
+                        "array",
+                        "null"
+                      ]
+                    },
+                    "filesystems": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": [
+                        "array",
+                        "null"
+                      ]
+                    },
+                    "fsck_at_dirty_mount": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "disks",
+                    "filesystems",
+                    "fsck_at_dirty_mount"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": [
+              "system:write"
+            ]
+          },
+          {
+            "cookie": [
+              "system:write"
+            ]
+          }
+        ],
+        "summary": "Switches the check of a USB stick that was not unmounted cleanly",
+        "tags": [
+          "system/storage"
+        ],
+        "x-occulite-scopes": [
+          "system:write"
         ]
       }
     },

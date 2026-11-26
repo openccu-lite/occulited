@@ -6,10 +6,12 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/hobbyquaker/occulited/internal/priv"
 	"github.com/hobbyquaker/occulited/internal/system"
+	"github.com/hobbyquaker/occulited/internal/warnings"
 )
 
 type fakeUSBHelper struct{ calls []string }
@@ -80,4 +82,80 @@ func TestStorageUSBRoutes(t *testing.T) {
 		t.Errorf("helper: %q", h.calls)
 	}
 	var _ = system.USBLoopTestMarker
+}
+
+// occulited task 35: the switch of the check at a dirty mount, the mount's record per partition, and
+// the Status warning of a stick that was not checked or whose check failed.
+func TestStorageUSBCheck(t *testing.T) {
+	r := fakeRoot(t)
+	real := filepath.Join(string(r), "sys/devices/pci0/usb1/1-1/host0/block/sda")
+	_ = os.MkdirAll(filepath.Join(real, "sda1"), 0o755)
+	_ = os.WriteFile(filepath.Join(real, "sda1", "size"), []byte("62519296\n"), 0o644)
+	_ = os.MkdirAll(filepath.Join(string(r), "sys/block"), 0o755)
+	_ = os.Symlink(real, filepath.Join(string(r), "sys/block/sda"))
+	_ = os.MkdirAll(filepath.Join(string(r), "usr/local/etc/config"), 0o755)
+	check := filepath.Join(string(r), "run/lite-usb-check")
+	_ = os.MkdirAll(check, 0o755)
+	_ = os.WriteFile(filepath.Join(check, "sda1"), []byte("STATE=unchecked\nFSTYPE=vfat\nEXIT=\nAT=1795700000\n"), 0o644)
+	old := system.Priv
+	system.Priv = priv.Local{}
+	t.Cleanup(func() { system.Priv = old })
+
+	mux := http.NewServeMux()
+	a := &SystemAPI{Root: r}
+	a.Register(mux)
+	a.Warnings = &warnings.Tracker{Sources: a.warningSources()}
+	srv := httptest.NewServer(mux)
+	t.Cleanup(srv.Close)
+
+	st, out, _ := do(t, srv, "GET", "/api/system/v1/storage/usb", "", nil)
+	if st != 200 || out["fsck_at_dirty_mount"] != false {
+		t.Fatalf("list: %d %v", st, out)
+	}
+	p := out["disks"].([]any)[0].(map[string]any)["partitions"].([]any)[0].(map[string]any)
+	if c, _ := p["check"].(map[string]any); c["state"] != "unchecked" || c["fstype"] != "vfat" || c["at"] != "2026-11-26T13:33:20Z" {
+		t.Errorf("the partition's check: %v", p)
+	}
+	usb := func() *warnings.Warning {
+		for _, w := range a.Warnings.Evaluate(context.Background()) {
+			if w.ID == "usb-unchecked" {
+				return &w
+			}
+		}
+		return nil
+	}
+	w := usb()
+	if w == nil || w.Href != "/system/storage#usb" || w.Variant != "sda1:unchecked:1795700000" || w.Params["fsck"] != false {
+		t.Fatalf("warning: %+v", w)
+	}
+
+	// the switch: validated, written for the fork, the answer is the new list
+	if st, _, _ := do(t, srv, "PUT", "/api/system/v1/storage/usb/settings", `{}`, nil); st != 422 {
+		t.Errorf("no value: %d", st)
+	}
+	st, out, _ = do(t, srv, "PUT", "/api/system/v1/storage/usb/settings", `{"fsck_at_dirty_mount":true}`, nil)
+	if st != 200 || out["fsck_at_dirty_mount"] != true {
+		t.Fatalf("on: %d %v", st, out)
+	}
+	if b, _ := os.ReadFile(filepath.Join(string(r), "usr/local/etc/config/usbstorage")); !strings.Contains(string(b), "\nFSCK_AT_DIRTY_MOUNT=1\n") {
+		t.Errorf("the file: %q", b)
+	}
+	// the stick mounted now stays unchecked until its next mount: the warning stays, and says the switch is on
+	if w := usb(); w == nil || w.Params["fsck"] != true {
+		t.Errorf("after the switch: %+v", w)
+	}
+	// a repair is no warning; a failed check is
+	_ = os.WriteFile(filepath.Join(check, "sda1"), []byte("STATE=repaired\nFSTYPE=vfat\nEXIT=1\nAT=1795700100\n"), 0o644)
+	if w := usb(); w != nil {
+		t.Errorf("a repair warned: %+v", w)
+	}
+	_ = os.WriteFile(filepath.Join(check, "sda1"), []byte("STATE=failed\nFSTYPE=vfat\nEXIT=4\nAT=1795700200\n"), 0o644)
+	if w := usb(); w == nil || w.Variant != "sda1:failed:1795700200" {
+		t.Errorf("a failed check: %+v", w)
+	}
+	// the stick removed: no record, no warning
+	_ = os.Remove(filepath.Join(check, "sda1"))
+	if w := usb(); w != nil {
+		t.Errorf("no record: %+v", w)
+	}
 }

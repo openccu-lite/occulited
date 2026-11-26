@@ -248,6 +248,8 @@ func (a *SystemAPI) warningSources() []warnings.Source {
 		{IDs: []string{"store-target"}, Eval: a.storeWarnings},
 		{IDs: []string{"certificate"}, Eval: a.certificateWarning},
 		{IDs: []string{"storage"}, Eval: a.storageWarning},
+		// occulited task 35: a USB stick not unmounted cleanly and not checked, or its check failed
+		{IDs: []string{"usb-unchecked"}, Eval: a.usbCheckWarning},
 		// occulited task 148, after storage: its report has the disks' temperatures; task 173: the throttle state
 		{IDs: []string{"soc-hot", "disk-hot", PowerThrottleID}, Eval: a.thermalWarnings},
 		{IDs: []string{"addon-ownership"}, Lists: true, Eval: a.ownershipWarning},

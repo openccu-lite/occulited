@@ -25,6 +25,8 @@ type USBPartition struct {
 	Size     int64  `json:"size_bytes"`
 	Total    int64  `json:"total_bytes,omitempty"`
 	Free     int64  `json:"free_bytes,omitempty"`
+	// Check is what the mount found when the partition was not unmounted cleanly (task 35)
+	Check *USBCheck `json:"check,omitempty"`
 }
 
 // USBDisk is one USB mass-storage disk.
@@ -58,6 +60,7 @@ func (r Root) USBDisks() []USBDisk {
 	}
 	_, markerErr := os.Stat(r.join(USBLoopTestMarker))
 	mounts := r.mountTable()
+	checks := r.USBChecks()
 	for _, e := range ents {
 		name := e.Name()
 		loop := loopDiskNameRe.MatchString(name)
@@ -121,6 +124,9 @@ func (r Root) USBDisks() []USBDisk {
 				if st, ok := r.statfs(m.point); ok {
 					p.Total, p.Free = st[0], st[1]
 				}
+			}
+			if c, ok := checks[pn]; ok {
+				p.Check = &c
 			}
 			if pn == name && p.FSType == "" && p.Mount == "" {
 				continue // a whole disk without a filesystem: no partition to show

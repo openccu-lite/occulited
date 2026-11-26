@@ -84,10 +84,18 @@ export interface Warning {
     id: string;
     variant: string;
     severity: Severity;
-    params?: {addon?: string; title?: Record<string, string>; text?: Record<string, string>; posted?: string; expires?: string; addons?: WarnAddon[]; updates?: WarnUpdate[]; account?: string; at?: string; path?: string; days?: number; verdict?: string; reasons?: StorageReason[]; devices?: WarnDevice[]; mode?: string; reason?: string; adapter?: string; cause?: string; line?: string; families?: string[]; unreachable?: number; total?: number; port?: number; addresses?: string; sgtin?: string; address?: string; name?: string; detail?: string; label?: string; dir?: string; target?: string; share?: string; reconnecting?: boolean; interface?: string; kind?: string; since?: string; checked?: boolean; listeners?: StallListener[]; folder?: string; device?: string; running?: string; latest?: string; staged?: boolean; newest?: string; node?: string; drops_off?: boolean; hosts?: string[]; issuer?: string; store?: string; candidate?: boolean; from?: string; module?: string; version?: string; channel?: string; url?: string; minimum?: string; count?: number; bytes?: number; units?: WarnLoopUnit[]; fails?: number; failures?: number; restarts?: number; result?: string; first?: string; last?: string; written?: number; calc?: number; current?: number; offset?: number; wraps_at?: string; clock_state?: string; behind?: boolean; source?: string; duty_cycle?: number; carrier_sense?: number; transfer?: boolean; purpose?: string; host?: string; subject?: string; fingerprint?: string; spki?: string; accounts?: {user: string; at: string}[]; way?: string; by?: string; targets?: string; first_boot_journal?: string; first_boot_journal_size?: number; parents?: WarnParent[]; celsius?: number; warn_c?: number; max_c?: number; disks?: WarnHotDisk[]; http_status?: number; client?: string; burst?: boolean; average?: boolean; peak_minute?: number; peak_average?: number; average_minutes?: number; dc_from?: number; dc_to?: number; writes?: number; share_percent?: number; minutes?: number; supply?: string};
+    params?: {addon?: string; title?: Record<string, string>; text?: Record<string, string>; posted?: string; expires?: string; addons?: WarnAddon[]; updates?: WarnUpdate[]; account?: string; at?: string; path?: string; days?: number; verdict?: string; reasons?: StorageReason[]; devices?: WarnDevice[]; mode?: string; reason?: string; adapter?: string; cause?: string; line?: string; families?: string[]; unreachable?: number; total?: number; port?: number; addresses?: string; sgtin?: string; address?: string; name?: string; detail?: string; label?: string; dir?: string; target?: string; share?: string; reconnecting?: boolean; interface?: string; kind?: string; since?: string; checked?: boolean; listeners?: StallListener[]; folder?: string; device?: string; running?: string; latest?: string; staged?: boolean; newest?: string; node?: string; drops_off?: boolean; hosts?: string[]; issuer?: string; store?: string; candidate?: boolean; from?: string; module?: string; version?: string; channel?: string; url?: string; minimum?: string; count?: number; bytes?: number; units?: WarnLoopUnit[]; fails?: number; failures?: number; restarts?: number; result?: string; first?: string; last?: string; written?: number; calc?: number; current?: number; offset?: number; wraps_at?: string; clock_state?: string; behind?: boolean; source?: string; duty_cycle?: number; carrier_sense?: number; transfer?: boolean; purpose?: string; host?: string; subject?: string; fingerprint?: string; spki?: string; accounts?: {user: string; at: string}[]; way?: string; by?: string; targets?: string; first_boot_journal?: string; first_boot_journal_size?: number; parents?: WarnParent[]; celsius?: number; warn_c?: number; max_c?: number; disks?: WarnHotDisk[]; http_status?: number; client?: string; burst?: boolean; average?: boolean; peak_minute?: number; peak_average?: number; average_minutes?: number; dc_from?: number; dc_to?: number; writes?: number; share_percent?: number; minutes?: number; supply?: string; sticks?: WarnUSBStick[]; fsck?: boolean};
     href?: string;
     /** this administrator's own silence (D-64) */
     silenced?: Silence;
+}
+
+/** occulited task 35: a USB stick the mount found not unmounted cleanly, unchecked or with a failed check */
+export interface WarnUSBStick {
+    name: string;
+    label?: string;
+    state: 'unchecked' | 'failed';
+    exit?: number;
 }
 
 export interface WarningsView {
@@ -238,6 +246,22 @@ export function warningText(w: Warning, words: Words): string {
             return t('The certificate expires in {n} days.', {n: p.days ?? 0});
         case 'storage':
             return words.storage(w);
+        case 'usb-unchecked': {
+            // occulited task 35: the mount found a stick not unmounted cleanly; the check is off, or it failed
+            const sticks = p.sticks ?? [];
+            const name = (s: WarnUSBStick) => (s.label ? `${s.label} (${s.name})` : s.name);
+            const unchecked = sticks.filter((s) => s.state === 'unchecked').map(name);
+            const failed = sticks.filter((s) => s.state === 'failed');
+            const parts: string[] = [];
+            if (unchecked.length)
+                parts.push(
+                    p.fsck
+                        ? t('USB stick not unmounted properly and not checked: {list}. The automatic check is on now and runs at its next mount; until then, check it on a PC.', {list: unchecked.join(', ')})
+                        : t('USB stick not unmounted properly and not checked: {list}. Check it on a PC, or switch on the automatic check on the Storage page.', {list: unchecked.join(', ')}),
+                );
+            for (const s of failed) parts.push(t('The check of the USB stick {name} ended with an error (exit {exit}); the stick is mounted anyway. Check it on a PC.', {name: name(s), exit: s.exit ?? '?'}));
+            return parts.join(' ');
+        }
         case 'soc-hot': {
             // occulited task 148: the processor at its warning level (a Pi's firmware throttles from 80 °C), red from its maximum
             const lang = words.lang ?? 'en';
@@ -537,6 +561,7 @@ const LINK_LABELS: Record<string, string> = {
     'trust-ca': 'Trust stores',
     'trust-pin': 'Trust stores',
     unclean: 'Log',
+    'usb-unchecked': 'Storage', // occulited task 35
     'backup-target': 'Backup',
     'backup-userfs': 'Backup',
     'backup-unencrypted': 'Set up encryption',

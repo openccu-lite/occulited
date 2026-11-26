@@ -1578,6 +1578,16 @@ const CATALOGUE: Record<string, {de: string; en?: string}> = {
     'The USB stick of the backup target {name} is not plugged in; the other targets got their copy.': {de: 'Der USB-Stick des Sicherungsziels {name} steckt nicht; die anderen Ziele haben ihre Kopie bekommen.'},
     'USB stick {name}': {de: 'USB-Stick {name}'},
     '{free} free': {de: '{free} frei'},
+    // occulited task 35: the check of a USB stick that was not unmounted cleanly
+    "Check and repair a USB stick's file system when it was not unmounted properly": {de: 'Dateisystem eines USB-Sticks prüfen und reparieren, wenn er nicht sauber ausgehängt wurde'},
+    'At the mount, before anything uses the stick: FAT and exFAT sticks whose file system says it was not unmounted cleanly are checked and repaired (fsck). Off, such a stick is mounted as it is and Status says so. A check of a large stick can take minutes, and the services that use it wait for it.': {de: 'Beim Einhängen, bevor etwas den Stick benutzt: FAT- und exFAT-Sticks, deren Dateisystem meldet, dass sie nicht sauber ausgehängt wurden, werden geprüft und repariert (fsck). Ausgeschaltet wird ein solcher Stick so eingehängt, wie er ist, und die Statusseite meldet es. Die Prüfung eines großen Sticks kann Minuten dauern, und die Dienste, die ihn benutzen, warten so lange.'},
+    'not unmounted properly - not checked at this mount': {de: 'nicht sauber ausgehängt - beim Einhängen nicht geprüft'},
+    'not unmounted properly - checked at the mount, nothing to repair': {de: 'nicht sauber ausgehängt - beim Einhängen geprüft, nichts zu reparieren'},
+    'not unmounted properly - checked and repaired at the mount': {de: 'nicht sauber ausgehängt - beim Einhängen geprüft und repariert'},
+    'not unmounted properly - the check at the mount ended with an error (exit {exit}); mounted anyway': {de: 'nicht sauber ausgehängt - die Prüfung beim Einhängen endete mit einem Fehler (Exit {exit}); trotzdem eingehängt'},
+    'USB stick not unmounted properly and not checked: {list}. Check it on a PC, or switch on the automatic check on the Storage page.': {de: 'USB-Stick nicht sauber ausgehängt und nicht geprüft: {list}. Prüfen Sie ihn an einem PC, oder schalten Sie auf der Seite Speicher die automatische Prüfung ein.'},
+    'USB stick not unmounted properly and not checked: {list}. The automatic check is on now and runs at its next mount; until then, check it on a PC.': {de: 'USB-Stick nicht sauber ausgehängt und nicht geprüft: {list}. Die automatische Prüfung ist jetzt eingeschaltet und läuft beim nächsten Einhängen; prüfen Sie ihn bis dahin an einem PC.'},
+    'The check of the USB stick {name} ended with an error (exit {exit}); the stick is mounted anyway. Check it on a PC.': {de: 'Die Prüfung des USB-Sticks {name} endete mit einem Fehler (Exit {exit}); der Stick ist trotzdem eingehängt. Prüfen Sie ihn an einem PC.'},
     'No USB stick is plugged in.': {de: 'Es steckt kein USB-Stick.'},
     'read-only': {de: 'schreibgeschützt'},
     // task 94: the radio stack while the box boots - an interface process whose unit systemd is still

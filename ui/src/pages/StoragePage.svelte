@@ -27,10 +27,12 @@
     import StorageWrites from '../lib/StorageWrites.svelte';
     import StorageWriteBehaviour from '../lib/StorageWriteBehaviour.svelte';
 
-    interface Partition { name: string; fstype?: string; label?: string; label_id?: string; mount?: string; read_only?: boolean; size_bytes: number; total_bytes?: number; free_bytes?: number }
+    // occulited task 35: what the mount found on a partition that was not unmounted cleanly
+    interface Check { state: 'unchecked' | 'clean' | 'repaired' | 'failed'; fstype?: string; exit?: number; at?: string }
+    interface Partition { name: string; fstype?: string; label?: string; label_id?: string; mount?: string; read_only?: boolean; size_bytes: number; total_bytes?: number; free_bytes?: number; check?: Check }
     interface Use { kind: 'journal' | 'backup' | 'store'; name?: string; id?: string }
     interface Disk { name: string; vendor?: string; model?: string; serial?: string; size_bytes: number; removable: boolean; partitions: Partition[]; loop?: boolean; uses: Use[] }
-    interface View { disks: Disk[]; filesystems: FS[] }
+    interface View { disks: Disk[]; filesystems: FS[]; fsck_at_dirty_mount?: boolean }
 
     const life = pageLife();
     const admin = $derived(auth.role === 'admin');
@@ -64,6 +66,24 @@
     }
     function useWord(u: Use): string {
         return u.kind === 'journal' ? t('the journal\'s copies') : u.kind === 'store' ? t('the database\'s copy') : t('the backup target {name}', {name: u.name ?? u.id ?? ''});
+    }
+    function checkText(c: Check): string {
+        if (c.state === 'unchecked') return t('not unmounted properly - not checked at this mount');
+        if (c.state === 'clean') return t('not unmounted properly - checked at the mount, nothing to repair');
+        if (c.state === 'repaired') return t('not unmounted properly - checked and repaired at the mount');
+        return t('not unmounted properly - the check at the mount ended with an error (exit {exit}); mounted anyway', {exit: c.exit ?? '?'});
+    }
+    // task 35: the switch of the check at a dirty mount; the fork's mount reads it at the next mount
+    async function setFsck(on: boolean) {
+        busy = 'fsck';
+        try {
+            view = await api.put<View>('/api/system/v1/storage/usb/settings', {fsck_at_dirty_mount: on});
+            error = '';
+        } catch (e) {
+            error = (e as Error).message;
+        } finally {
+            busy = '';
+        }
     }
     const fsWord = (fs?: string) => (fs === 'exfat' ? 'exFAT' : fs === 'vfat' ? 'FAT32' : fs === 'ntfs' ? 'NTFS' : fs ?? '');
 
@@ -196,6 +216,9 @@
                                     {:else}
                                         <div class="ol-muted">{t('not mounted')}</div>
                                     {/if}
+                                    {#if p.check}
+                                        <div class={p.check.state === 'unchecked' || p.check.state === 'failed' ? 'ol-warn' : 'ol-muted'} data-part-check={p.check.state}>{checkText(p.check)}</div>
+                                    {/if}
                                 </dd>
                             {/each}
                         </dl>
@@ -225,6 +248,14 @@
             {/each}
         </div>
     {/if}
+    <!-- occulited task 35 (openccu-lite B-316): fsck of a FAT or exFAT stick that was not unmounted cleanly, at its mount -->
+    <div class="st-check" id="usb-check" data-usb-check>
+        <label class="st-check-row">
+            <input type="checkbox" checked={view.fsck_at_dirty_mount ?? false} disabled={!admin || busy !== ''} onchange={(e) => void setFsck((e.currentTarget as HTMLInputElement).checked)} data-action="usb-fsck" />
+            <span>{t('Check and repair a USB stick\'s file system when it was not unmounted properly')}</span>
+        </label>
+        <p class="ol-muted st-check-note">{t('At the mount, before anything uses the stick: FAT and exFAT sticks whose file system says it was not unmounted cleanly are checked and repaired (fsck). Off, such a stick is mounted as it is and Status says so. A check of a large stick can take minutes, and the services that use it wait for it.')}</p>
+    </div>
     <StorageShares active={() => life.active} />
     <!-- occulited task 159: what is written to the disks, and by which service -->
     <StorageWrites active={() => life.active} />
@@ -239,6 +270,10 @@
     .st-disk { display: flex; flex-direction: column; min-width: 0; }
     .st-parts { margin: 4px 0 0; }
     .st-uses { margin-top: 8px; }
+    .st-check { margin: 0 0 14px; }
+    .st-check-row { display: flex; gap: 8px; align-items: baseline; }
+    .st-check-row input { flex: none; }
+    .st-check-note { margin: 4px 0 0; }
     .st-actions { margin-top: auto; padding-top: 10px; display: flex; gap: 8px; flex-wrap: wrap; }
     .st-fmt { display: flex; flex-direction: column; gap: 12px; }
     .st-erase { border-left: 3px solid var(--hmm-warn); margin: 0; }

@@ -9,6 +9,7 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
+	"strconv"
 	"strings"
 	"sync"
 
@@ -17,6 +18,7 @@ import (
 	"github.com/hobbyquaker/occulited/internal/priv"
 	"github.com/hobbyquaker/occulited/internal/store"
 	"github.com/hobbyquaker/occulited/internal/system"
+	"github.com/hobbyquaker/occulited/internal/warnings"
 )
 
 // usbDiskHelper is what the routes need of the privilege boundary.
@@ -38,6 +40,7 @@ func (a *SystemAPI) registerStorageUSB(mux *http.ServeMux, p string) {
 	route(mux, auth.ScopeSystemRead, "GET "+p+"/storage/usb", a.storageUSB)
 	route(mux, auth.ScopeSystemWrite, "POST "+p+"/storage/usb/{disk}/format", a.storageUSBFormat)
 	route(mux, auth.ScopeSystemWrite, "POST "+p+"/storage/usb/{disk}/eject", a.storageUSBEject)
+	route(mux, auth.ScopeSystemWrite, "PUT "+p+"/storage/usb/settings", a.storageUSBSettings)
 }
 
 // usbUse is what uses a stick: the journal's target, a backup target.
@@ -103,7 +106,66 @@ func (a *SystemAPI) usbView(ctx context.Context) map[string]any {
 	for _, d := range a.Root.USBDisks() {
 		disks = append(disks, usbDiskView{USBDisk: d, Uses: a.usbUses(ctx, d)})
 	}
-	return map[string]any{"disks": disks, "filesystems": a.Root.MkfsAvailable()}
+	// task 35: the check of a stick that was not unmounted cleanly, at its next mount
+	return map[string]any{"disks": disks, "filesystems": a.Root.MkfsAvailable(), "fsck_at_dirty_mount": a.Root.USBFsckAtDirtyMount()}
+}
+
+// storageUSBSettings is task 35's switch: PUT {fsck_at_dirty_mount}. The fork's mount reads it at the
+// next mount; a stick mounted now is not checked again.
+func (a *SystemAPI) storageUSBSettings(w http.ResponseWriter, r *http.Request) {
+	var body struct {
+		Fsck *bool `json:"fsck_at_dirty_mount"`
+	}
+	if err := readJSON(r, &body); err != nil {
+		badBody(w, err)
+		return
+	}
+	if body.Fsck == nil {
+		writeJSON(w, http.StatusUnprocessableEntity, apiError{Error: "invalid-body", Message: "fsck_at_dirty_mount is required"})
+		return
+	}
+	if err := a.Root.SetUSBFsckAtDirtyMount(*body.Fsck); err != nil {
+		writeJSON(w, http.StatusInternalServerError, apiError{Error: "internal", Message: err.Error()})
+		return
+	}
+	slog.Info("storage: the check of a USB stick that was not unmounted cleanly", "on", *body.Fsck)
+	a.reevaluateWarnings()
+	writeJSON(w, 200, a.usbView(r.Context()))
+}
+
+// usbCheckWarning (task 35): a stick the mount found not unmounted cleanly and did not check (the
+// switch is off), or whose check failed. The variant is the partitions with their state and time,
+// so the next dirty mount is a new warning; it goes away when the stick is removed or mounted
+// cleanly. A repair is no warning: the Storage page says it.
+func (a *SystemAPI) usbCheckWarning(context.Context) ([]warnings.Warning, bool) {
+	type stick struct {
+		Name  string `json:"name"`
+		Label string `json:"label,omitempty"`
+		State string `json:"state"`
+		Exit  *int   `json:"exit,omitempty"`
+	}
+	labels := map[string]string{}
+	for _, d := range a.Root.USBDisks() {
+		for _, p := range d.Partitions {
+			labels[p.Name] = p.Label
+		}
+	}
+	checks := a.Root.USBChecks()
+	var list []stick
+	var variant []string
+	for _, n := range system.USBCheckNames(checks) {
+		c := checks[n]
+		if c.State != system.USBCheckUnchecked && c.State != system.USBCheckFailed {
+			continue
+		}
+		list = append(list, stick{Name: n, Label: labels[n], State: c.State, Exit: c.Exit})
+		variant = append(variant, n+":"+c.State+":"+strconv.FormatInt(c.At.Unix(), 10))
+	}
+	if len(list) == 0 {
+		return nil, true
+	}
+	return []warnings.Warning{{ID: "usb-unchecked", Variant: strings.Join(variant, ","), Severity: warnings.SeverityWarning,
+		Href: "/system/storage#usb", Params: map[string]any{"sticks": list, "fsck": a.Root.USBFsckAtDirtyMount()}}}, true
 }
 
 func (a *SystemAPI) storageUSB(w http.ResponseWriter, r *http.Request) {

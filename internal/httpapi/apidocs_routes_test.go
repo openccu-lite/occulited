@@ -368,6 +368,7 @@ var routeDocs = map[string]apidoc.Doc{
 	"PUT /api/system/v1/storage/mount-options":                           {Summary: "Sets the system storage's mount options and remounts it"},
 	"GET /api/system/v1/storage/usb":                                     {Summary: "The USB disks and their partitions"},
 	"POST /api/system/v1/storage/usb/{disk}/eject":                       {Summary: "Ejects a USB disk"},
+	"PUT /api/system/v1/storage/usb/settings":                            {Summary: "Switches the check of a USB stick that was not unmounted cleanly"},
 	"POST /api/system/v1/storage/usb/{disk}/format":                      {Summary: "Formats a USB disk"},
 	"DELETE /api/system/v1/system-update":                                {Summary: "Removes a staged system update"},
 	"GET /api/system/v1/system-update":                                   {Summary: "The running version, the staged update and the release feed"},

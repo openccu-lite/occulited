@@ -2643,6 +2643,7 @@ function serviceMessagesView(jar) {
 // openccu-lite task 228: two sticks - a SanDisk with an exFAT partition that carries the journal's
 // copies, and a blank one without a filesystem
 const USB_DISKS = new Map();
+const USB_FSCK = new Map();
 function storageUSBRoute(req, u, res, jar) {
     const id = jar['stub-usb'] ?? '';
     if (!USB_DISKS.has(id)) USB_DISKS.set(id, id === 'none' ? [] : [
@@ -2650,12 +2651,18 @@ function storageUSBRoute(req, u, res, jar) {
         {name: 'sdb', vendor: 'Generic', model: 'Flash Disk', size_bytes: 8053063680, removable: true, partitions: [], uses: []},
     ]);
     const disks = USB_DISKS.get(id);
-    const view = () => ({disks, filesystems: ['exfat', 'ext4']});
+    // occulited task 35: the switch of the check at a dirty mount, per browser; off by default
+    const view = () => ({disks, filesystems: ['exfat', 'ext4'], fsck_at_dirty_mount: USB_FSCK.get(id) ?? false});
     let body = '';
     req.on('data', (c) => (body += c));
     req.on('end', () => {
         const b = body ? JSON.parse(body) : {};
         if (req.method === 'GET') return sendJSON(res, view());
+        if (req.method === 'PUT' && u.pathname === '/api/system/v1/storage/usb/settings') {
+            if (typeof b.fsck_at_dirty_mount !== 'boolean') return sendJSON(res, {error: 'invalid-body', message: 'fsck_at_dirty_mount is required'}, 422);
+            USB_FSCK.set(id, b.fsck_at_dirty_mount);
+            return sendJSON(res, view());
+        }
         const m = /^\/api\/system\/v1\/storage\/usb\/([^/]+)\/(format|eject)$/.exec(u.pathname);
         const d = m && disks.find((x) => x.name === m[1]);
         if (!d) return sendJSON(res, {error: 'not_found', message: 'no USB stick'}, 404);
