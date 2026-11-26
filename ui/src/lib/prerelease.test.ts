@@ -1,5 +1,5 @@
 import {describe, expect, it} from 'vitest';
-import {prereleaseKind, prereleaseLabel} from './prerelease';
+import {compareVersions, prereleaseKind, prereleaseLabel} from './prerelease';
 
 describe('prereleaseKind (occulited task 171)', () => {
     it.each([
@@ -49,5 +49,33 @@ describe('prereleaseLabel', () => {
         expect(prereleaseLabel('rc', 'Vorabversion')).toBe('RC');
         expect(prereleaseLabel('other', 'Vorabversion')).toBe('Vorabversion');
         expect(prereleaseLabel('', 'Vorabversion')).toBe('');
+    });
+});
+
+describe('compareVersions (occulited B-181)', () => {
+    it.each([
+        ['10.0.0-beta.0', '9.20.0', 1],
+        ['9.20.0', '10.0.0-beta.0', -1],
+        ['3.6.0-beta', '3.6.0', -1],
+        ['3.6.0', '3.6.0-beta', 1],
+        ['3.0.0-dev.30', '3.0.0-beta.9', -1],
+        ['3.0.0-beta.16', '3.0.0-beta.9', 1],
+        ['3.0.0-rc.1', '3.0.0-beta.16', 1],
+        ['1.10', '1.9', 1],
+        ['v1.2', '1.2.0', 0],
+        ['2.1.2+3', '2.1.2+2', 1],
+        ['2.1.2', '2.1.2+2', -1],
+        ['9.20.0', '9.20.0', 0],
+    ] as const)('%s vs %s → %d', (a, b, want) => {
+        expect(compareVersions(a, b)).toBe(want);
+    });
+    it.each([
+        ['', '1.0'],
+        ['1.0', undefined],
+        ['nightly', '1.0'],
+        ['abc123', 'def456'],
+        ['2.1.2+a', '2.1.2+b'],
+    ] as const)('%s vs %s cannot be ordered', (a, b) => {
+        expect(compareVersions(a, b)).toBeNull();
     });
 });

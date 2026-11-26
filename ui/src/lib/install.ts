@@ -9,9 +9,12 @@ import {api, ApiError} from './api';
 import {ask} from './dialog.svelte';
 import {t} from './i18n.svelte';
 import {prereleaseKind} from './prerelease';
+import {reinstallPlan} from './reinstall';
+import type {Phrase} from './installrefusal';
 import {rebootAsked} from './installprogress';
 
 export {rebootAsked};
+export {reinstallKind, type ReinstallKind} from './reinstall';
 
 /**
  * occulited B-113: the message for a refused start. The system's one install slot answers 409
@@ -133,6 +136,35 @@ export async function installFromCatalog(e: Installable, installed?: string): Pr
     const pre = prereleaseKind(e.latest?.version, e.latest?.prerelease) ? '\n\n' + t('{version} is a pre-release: not all functions have been tested yet.', {version: e.latest?.version ?? ''}) : '';
     const note = (!installed && e.note ? '\n\n' + e.note : '') + (!installed && e.technical ? '\n\n' + e.technical : '');
     if (!(await ask({message: warn + note + pre, confirm: installed ? t('Update') : t('Install')}))) return null;
+    try {
+        await api.post(`/api/system/v1/catalog/${encodeURIComponent(e.id)}/install`);
+        return '';
+    } catch (err) {
+        return installError(err);
+    }
+}
+
+/**
+ * occulited B-181: the question before a reinstall from the catalogue, in the reader's language -
+ * the plan is reinstall.ts's (both versions, a downgrade warned of, Keep as the default then).
+ * `lead` replaces the first sentence (the restore section's own, as a phrase).
+ */
+export function reinstallQuestion(e: Pick<Installable, 'name' | 'latest'>, installed: string | undefined, lead?: Phrase): {message: string; confirm: string; cancel?: string; danger?: boolean; focusCancel?: boolean} {
+    const p = reinstallPlan(e, installed, lead);
+    const tr = ([key, params]: Phrase) => t(key, params);
+    const out: {message: string; confirm: string; cancel?: string; danger?: boolean; focusCancel?: boolean} = {message: p.paragraphs.map((para) => para.map(tr).join('\n')).join('\n\n'), confirm: tr(p.confirm)};
+    if (p.cancel) out.cancel = tr(p.cancel);
+    if (p.danger) out.danger = out.focusCancel = true;
+    return out;
+}
+
+/**
+ * occulited B-181: the card's *Reinstall from the catalogue*: asks (reinstallQuestion), then starts
+ * the install. Resolves as installFromCatalog does. The addon's run state is the system's: one that
+ * ran before runs afterwards, and one the system had held back (disabled as incompatible) starts.
+ */
+export async function reinstallFromCatalog(e: Installable, installed?: string): Promise<string | null> {
+    if (!(await ask({title: t('Reinstall {name}', {name: e.name}), ...reinstallQuestion(e, installed)}))) return null;
     try {
         await api.post(`/api/system/v1/catalog/${encodeURIComponent(e.id)}/install`);
         return '';

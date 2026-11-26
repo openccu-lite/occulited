@@ -2090,6 +2090,15 @@ const CATALOGUE: Record<string, {de: string; en?: string}> = {
     'disabled, incompatible': {de: 'deaktiviert, inkompatibel'},
     'disabled, needs update': {de: 'deaktiviert, braucht ein Update'},
     'Reinstall from the catalogue': {de: 'Aus dem Katalog neu installieren'},
+    // occulited B-181: the reinstall question names both versions and warns of a downgrade
+    'Reinstall {name} from the catalogue? The addon replaces its own installation; its configuration is kept.': {de: '{name} aus dem Katalog neu installieren? Das Addon ersetzt seine eigene Installation; seine Konfiguration bleibt erhalten.'},
+    'Installed: {version}': {de: 'Installiert: {version}'},
+    'Installed: unknown version': {de: 'Installiert: Version unbekannt'},
+    'From the catalogue: {version}': {de: 'Aus dem Katalog: {version}'},
+    "{version} is older than the installed {installed}: this reinstall is a downgrade, and an older version may not read what the newer one stored. The catalogue offers no newer version; a newer one comes through the addon's own update or an upload of its package.": {de: '{version} ist älter als die installierte {installed}: Diese Neuinstallation ist ein Downgrade, und eine ältere Version kann womöglich nicht lesen, was die neuere gespeichert hat. Der Katalog bietet keine neuere Version an; eine neuere kommt über das eigene Update des Addons oder das Hochladen seines Pakets.'},
+    'The installed version is not known; if it is newer than {version}, this reinstall is a downgrade.': {de: 'Die installierte Version ist nicht bekannt; ist sie neuer als {version}, ist diese Neuinstallation ein Downgrade.'},
+    'Downgrade to {version}': {de: 'Auf {version} zurückgehen'},
+    'Keep {version}': {de: '{version} behalten'},
     '{path} is on the system itself ({real}), so a nightly backup there is lost with the system — and {n} of them fill the storage the system runs on. Plug in a USB stick or mount a share.': {
         de: '{path} liegt auf dem System selbst ({real}); eine nächtliche Sicherung dort geht mit dem System verloren — und {n} davon füllen den Speicher, auf dem es läuft. USB-Stick anstecken oder eine Freigabe einhängen.',
     },

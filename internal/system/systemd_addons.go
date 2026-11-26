@@ -253,7 +253,7 @@ func (a *SystemdAddons) Install(ctx context.Context, archive io.Reader) (*Instal
 	before := a.rcdSnapshot()
 	// B-98: what ran before the installer did. An update script stops its addon, and when its own
 	// start fails afterwards the addon would stay stopped although it was running.
-	ranBefore := a.runningAddons(ctx, before)
+	ranBefore, heldBack := a.runningAddons(ctx, before)
 	// task 107: a unit that left the inactive state after this was started during the install
 	installBegan := a.monotonic()
 	// task 110: an update script may start its addon's unit before the installer ends - RedMatic's
@@ -370,6 +370,12 @@ func (a *SystemdAddons) Install(ctx context.Context, archive io.Reader) (*Instal
 	// its files its user's, is left running (startedByTheInstall) - B-106's stop and start would only
 	// start it a second time.
 	running, restart, leave := map[string]bool{}, map[string]bool{}, map[string]bool{}
+	// occulited B-181: an addon the system held back before the install - its rc.d script not
+	// executable (disabled as incompatible on a switch from a CCU), or its unit skipped by its own
+	// condition (the program files missing after a restore) - that the install made runnable again
+	// and that starts at the next boot is started now, as a new addon is (startFresh): the reinstall
+	// was what it waited for. One the user stopped stays stopped (B-98's rule above).
+	revive := map[string]bool{}
 	// occulited B-128: an addon switched off on the Services page stays off through its update, whatever its
 	// update script started, and whatever the installer's exit: a script may run its daemon outside the unit,
 	// and on an image before B-131 systemctl start went through the mask.
@@ -383,18 +389,25 @@ func (a *SystemdAddons) Install(ctx context.Context, archive io.Reader) (*Instal
 			}
 		}
 	}
-	if start && len(touched) > 0 {
+	if startFresh {
+		for _, id := range touched {
+			if heldBack[id] && !disabled[id] && a.Scripts.Root.AddonEnabled(id) && !a.safeMode() {
+				revive[id] = true
+			}
+		}
+	}
+	if (start || len(revive) > 0) && len(touched) > 0 {
 		units := make([]string, len(touched))
 		for i, id := range touched {
 			units[i] = "addon-" + id + ".service"
 		}
 		states := a.Systemd.showAll(ctx, units, "ActiveState", "InactiveExitTimestampMonotonic")
 		for _, id := range touched {
-			if disabled[id] {
+			if disabled[id] || (!start && !revive[id]) {
 				continue
 			}
 			running[id] = a.addonRunning(states, id)
-			restart[id] = running[id] || ranBefore[id]
+			restart[id] = running[id] || ranBefore[id] || revive[id]
 			leave[id] = running[id] && a.startedByTheInstall(states["addon-"+id+".service"], installBegan, id)
 		}
 	}
@@ -451,8 +464,11 @@ func (a *SystemdAddons) Install(ctx context.Context, archive io.Reader) (*Instal
 			res.Meaning = "installed and started (the installer asked for a reboot)"
 		}
 	}
-	if start {
+	if start || len(revive) > 0 {
 		for _, id := range touched {
+			if !start && !revive[id] {
+				continue
+			}
 			if disabled[id] {
 				res.Output += fmt.Sprintf("\n[systemd] %s is switched off and stays stopped: the new version runs when it is switched on", id)
 				continue
@@ -479,6 +495,16 @@ func (a *SystemdAddons) Install(ctx context.Context, archive io.Reader) (*Instal
 				res.Started = append(res.Started, id)
 			}
 			switch {
+			case revive[id] && !running[id] && err != nil:
+				res.Output += fmt.Sprintf("\n[systemd] %s was not running before the install (disabled or without its program files); starting it in its unit failed: %v", id, err)
+				slog.Warn("addons: an addon the install made runnable again could not be started", "id", id, "err", err)
+			case revive[id] && !running[id]:
+				res.Output += fmt.Sprintf("\n[systemd] %s was not running before the install (disabled or without its program files) and starts at boot: started in its unit", id)
+				slog.Info("addons: an addon the install made runnable again was started", "id", id)
+				if res.RebootRequired {
+					// B-178's meaning, as for a new addon: the reboot is not what made it run
+					res.Meaning = "installed and started (the installer asked for a reboot)"
+				}
 			case !running[id] && err != nil:
 				res.Output += fmt.Sprintf("\n[systemd] %s ran before the update and is stopped now; starting it in its unit failed: %v", id, err)
 				slog.Warn("addons: an addon that ran before its update could not be started again", "id", id, "err", err)
@@ -601,22 +627,33 @@ func (a *SystemdAddons) confinedPolicy(id string) *AddonPolicy {
 	return p
 }
 
-// runningAddons is the set of the given rc.d ids that run right now (B-98), with one systemctl show
-// for all of their units.
-func (a *SystemdAddons) runningAddons(ctx context.Context, entries map[string]rcdEntry) map[string]bool {
+// runningAddons is the set of the given rc.d ids that run right now (B-98), and of those the system
+// holds back (occulited B-181): not running because their rc.d script is not executable, or because
+// their unit's own condition skipped them (the program files missing). One systemctl show for all of
+// their units.
+func (a *SystemdAddons) runningAddons(ctx context.Context, entries map[string]rcdEntry) (running, heldBack map[string]bool) {
 	units := make([]string, 0, len(entries))
 	for id := range entries {
 		units = append(units, "addon-"+id+".service")
 	}
 	sort.Strings(units)
-	states := a.Systemd.showAll(ctx, units, "ActiveState")
-	out := map[string]bool{}
+	states := a.Systemd.showAll(ctx, units, "ActiveState", "Result", "ConditionResult", "ConditionTimestampMonotonic")
+	running, heldBack = map[string]bool{}, map[string]bool{}
 	for id := range entries {
-		if a.addonRunning(states, id) {
-			out[id] = true
+		switch st := states["addon-"+id+".service"]; {
+		case a.addonRunning(states, id):
+			running[id] = true
+		case !a.Scripts.Root.AddonEnabled(id), st != nil && conditionSkipped(st["ActiveState"], st):
+			heldBack[id] = true
 		}
 	}
-	return out
+	return running, heldBack
+}
+
+// safeMode: the system booted in safe mode, where no addon is started (the generator writes no units).
+func (a *SystemdAddons) safeMode() bool {
+	_, err := os.Stat(a.Scripts.Root.join("/usr/local/etc/config/safemode"))
+	return err == nil
 }
 
 // stoppedAddons lists the addons that ran before the installer and do not run now (B-98, D-67), with

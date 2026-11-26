@@ -45,7 +45,7 @@
     import {declarationMark} from '../lib/addonbadges';
     import {prereleaseKind, prereleaseLabel} from '../lib/prerelease';
     import {buildCards, readAddons, readEntries, repoName, textIn, type Broken, type BrokenWhy, type Card, type Entry, type Text} from '../lib/addoncards';
-    import {askStartStopped, installError, installFromCatalog, liteRefusal, rebootAsked, startedWithoutReboot, type StoppedAddon} from '../lib/install';
+    import {askStartStopped, installError, installFromCatalog, liteRefusal, rebootAsked, reinstallFromCatalog, reinstallKind, reinstallQuestion, startedWithoutReboot, type StoppedAddon} from '../lib/install';
     import ReleasesProblem from '../lib/ReleasesProblem.svelte';
     import {statusDot, statusKind} from '../lib/units';
     import {scrollToAnchor} from '../lib/anchor';
@@ -333,7 +333,9 @@
         const e = reinstallEntry(a);
         if (!e?.id) return;
         notice = '';
-        if (!(await ask({title: t('Reinstall {name}', {name: a.name || a.id}), message: t('Reinstall {name} {version} from the catalogue? The program files come back; the settings and data the restore brought stay.', {name: a.name || a.id, version: e.latest?.version ?? ''}), confirm: t('Reinstall')}))) return;
+        // occulited B-181: the versions named, a downgrade warned of
+        const lead: [string, Record<string, string>] = ['Reinstall {name} {version} from the catalogue? The program files come back; the settings and data the restore brought stay.', {name: a.name || a.id, version: e.latest?.version ?? ''}];
+        if (!(await ask({title: t('Reinstall {name}', {name: a.name || a.id}), ...reinstallQuestion({name: a.name || a.id, latest: e.latest}, a.version, lead)}))) return;
         try {
             await api.post(`/api/system/v1/catalog/${encodeURIComponent(e.id)}/install`);
         } catch (err) {
@@ -344,8 +346,11 @@
     }
     // every reinstallable one, one after another, after one question that lists them (as Update all)
     async function reinstallAll() {
-        const list = reinstallable.map((a) => `${a.name || a.id}: ${reinstallEntry(a)?.latest?.version ?? ''}`).join('\n');
-        if (!(await ask({title: t('Reinstall all'), message: t('Reinstall these addons from the catalogue, one after another? The program files come back; the settings and data the restore brought stay.') + '\n\n' + list, confirm: t('Reinstall all')}))) return;
+        // occulited B-181: a downgrade in the list is named, and Enter does not confirm it
+        const down = (a: Addon) => reinstallKind(reinstallEntry(a)?.latest?.version, a.version) === 'downgrade';
+        const list = reinstallable.map((a) => `${a.name || a.id}: ${down(a) ? `${a.version} → ` : ''}${reinstallEntry(a)?.latest?.version ?? ''}${down(a) ? ` (${t('downgrade')})` : ''}`).join('\n');
+        const anyDown = reinstallable.some(down);
+        if (!(await ask({title: t('Reinstall all'), message: t('Reinstall these addons from the catalogue, one after another? The program files come back; the settings and data the restore brought stay.') + '\n\n' + list, confirm: t('Reinstall all'), danger: anyDown, focusCancel: anyDown}))) return;
         notice = '';
         for (const a of reinstallable) {
             const e = reinstallEntry(a);
@@ -390,6 +395,19 @@
         notice = '';
         cardNotice = null;
         const r = await installFromCatalog({id: c.entry.id, name: c.name, latest: c.entry.latest, install_mode: c.entry.install_mode, note: tx(c.entry.runtime?.note) || undefined, technical: technicalText(tx(c.entry.runtime?.technical), derivedFacts(c.entry.runtime, undefined), lang, t) || undefined}, c.addon?.version ?? installedVersions[c.id]);
+        if (r === null) return;
+        if (r) {
+            notice = r;
+            cardNotice = {id: c.id, text: r};
+        } else await progressView?.poll();
+    }
+    // occulited B-181: the ⋯ menu's Reinstall from the catalogue - its own question, with both
+    // versions and a downgrade warning; never the update question ("from 9.20.0 to 9.20.0")
+    async function reinstallCard(c: Card) {
+        if (!c.entry?.id) return;
+        notice = '';
+        cardNotice = null;
+        const r = await reinstallFromCatalog({id: c.entry.id, name: c.name, latest: c.entry.latest}, c.addon?.version || installedVersions[c.id]);
         if (r === null) return;
         if (r) {
             notice = r;
@@ -1029,7 +1047,7 @@
                                             <button type="button" role="menuitem" class="ol-menuitem" disabled={busy !== ''} onclick={() => { openMenu = ''; void setEnabled(a, true); }}>{t('Enable at boot')}</button>
                                         {/if}
                                         {#if e?.id && e.release}
-                                            <button type="button" role="menuitem" class="ol-menuitem" disabled={installRunning} onclick={() => { openMenu = ''; void install(c); }}>{t('Reinstall from the catalogue')}</button>
+                                            <button type="button" role="menuitem" class="ol-menuitem" disabled={installRunning} onclick={() => { openMenu = ''; void reinstallCard(c); }} data-addon-reinstall-catalogue>{t('Reinstall from the catalogue')}</button>
                                         {/if}
                                         {#if legacy && legacyCandidate(a)}
                                             <button type="button" role="menuitemcheckbox" class="ol-menuitem ad-legacy-item" aria-checked={!legacyOffFor(a)} disabled={busy !== '' || !legacy.enabled} onclick={() => { openMenu = ''; void setLegacy(a, legacyOffFor(a)); }}>

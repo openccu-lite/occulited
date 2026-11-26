@@ -101,7 +101,9 @@ type settleRig struct {
 	dirty bool
 	// since is InactiveExitTimestampMonotonic per unit for `systemctl show`
 	since map[string]string
-	a     *SystemdAddons
+	// result is the unit's Result for `systemctl show` (occulited B-181: exec-condition, a skipped unit)
+	result map[string]string
+	a      *SystemdAddons
 }
 
 func newSettleRig(t *testing.T, installer string) *settleRig {
@@ -148,6 +150,9 @@ func newSettleRig(t *testing.T, installer string) *settleRig {
 				}
 				if s, ok := rig.since[unit]; ok {
 					b += "InactiveExitTimestampMonotonic=" + s + "\n"
+				}
+				if s, ok := rig.result[unit]; ok {
+					b += "Result=" + s + "\n"
 				}
 				blocks = append(blocks, b)
 			}

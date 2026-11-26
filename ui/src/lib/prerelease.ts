@@ -46,3 +46,77 @@ export function prereleaseLabel(kind: PrereleaseKind, generic: string): string {
     }
     return '';
 }
+
+const rank: Record<string, number> = {dev: 1, alpha: 2, beta: 3, rc: 4};
+const digitsRe = /^\d+$/;
+const dottedRe = /^\d+(\.\d+)*$/;
+
+function compareIdent(x: string, y: string): number {
+    const xd = digitsRe.test(x);
+    const yd = digitsRe.test(y);
+    if (xd && yd) {
+        const a = x.replace(/^0+/, '');
+        const b = y.replace(/^0+/, '');
+        return a.length !== b.length ? Math.sign(a.length - b.length) : a < b ? -1 : a > b ? 1 : 0;
+    }
+    if (xd) return -1;
+    if (yd) return 1;
+    const r = (rank[x] ?? 0) - (rank[y] ?? 0);
+    if (r) return Math.sign(r);
+    return x < y ? -1 : x > y ? 1 : 0;
+}
+
+function comparePre(a: string, b: string): number {
+    const as = a.split('.');
+    const bs = b.split('.');
+    for (let i = 0; i < as.length && i < bs.length; i++) {
+        const c = compareIdent(as[i] ?? '', bs[i] ?? '');
+        if (c) return c;
+    }
+    return Math.sign(as.length - bs.length);
+}
+
+function compareDotted(a: string, b: string): number {
+    const as = a.split('.');
+    const bs = b.split('.');
+    for (let i = 0; i < as.length || i < bs.length; i++) {
+        const x = Number(as[i] ?? 0);
+        const y = Number(bs[i] ?? 0);
+        if (x !== y) return x > y ? 1 : -1;
+    }
+    return 0;
+}
+
+/**
+ * occulited B-181: orders two versions as the system's catalog.compareVersions does - a leading
+ * "v" ignored, the dotted core numerically, a prerelease older than the release it precedes, two
+ * prereleases of one core by their identifiers (numbers as numbers, dev < alpha < beta < rc), a
+ * "+build" only between otherwise equal versions. `null` when the two cannot be ordered (empty, a
+ * date, a git hash, two builds that are no numbers).
+ */
+export function compareVersions(a: string | undefined, b: string | undefined): number | null {
+    const norm = (v: string | undefined) => (v ?? '').trim().replace(/^v/, '');
+    const [av, abuild = ''] = norm(a).split(/\+(.*)/s);
+    const [bv, bbuild = ''] = norm(b).split(/\+(.*)/s);
+    if (!av || !bv) return null;
+    const cut = (v: string): [string, string] => {
+        const i = v.indexOf('-');
+        return i < 0 ? [v, ''] : [v.slice(0, i), v.slice(i + 1)];
+    };
+    const [ac, apre] = cut(av);
+    const [bc, bpre] = cut(bv);
+    if (!dottedRe.test(ac) || !dottedRe.test(bc)) return null;
+    const c = compareDotted(ac, bc);
+    if (c) return c;
+    if (apre !== bpre) {
+        if (!apre) return 1;
+        if (!bpre) return -1;
+        const p = comparePre(apre, bpre);
+        if (p) return p;
+    }
+    if (abuild === bbuild) return 0;
+    if (!bbuild) return 1;
+    if (!abuild) return -1;
+    if (dottedRe.test(abuild) && dottedRe.test(bbuild)) return compareDotted(abuild, bbuild);
+    return null;
+}

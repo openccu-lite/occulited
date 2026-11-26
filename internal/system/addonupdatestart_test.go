@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"slices"
 	"strings"
 	"testing"
 )
@@ -252,5 +253,100 @@ func TestUpdateKeepsASwitchedOffAddonStopped(t *testing.T) {
 	}
 	if stops == 0 || starts != 0 {
 		t.Fatalf("stops %d, starts %d: %v", stops, starts, rig.calls)
+	}
+}
+
+// occulited B-181: "Reinstall from the catalogue" on RedMatic, which the switch from a CCU3 had
+// disabled as incompatible (its rc.d script not executable), installed the new version and left it
+// stopped although it starts at the next boot. An addon the system held back - disabled, or its unit
+// skipped by its own condition (no program files after a restore) - that the install made runnable is
+// started now, also after an installer that asks for a reboot (as a new addon, B-186). One the user
+// stopped, one switched off on the Services page, one still not runnable and a failed installer start
+// nothing.
+func TestInstallStartsAnAddonItHeldBack(t *testing.T) {
+	exit := func(code string) string { return strings.Replace(failedStartUpdate, "exit 0", "exit "+code, 1) }
+	cases := []struct {
+		name          string
+		installer     string
+		wrapperExec   bool   // rc.d/hmm executable before the install: enabled at boot
+		newExec       bool   // the installed rc.d script executable: enabled afterwards
+		result        string // the unit's Result before the install
+		masked        bool
+		safemode      bool
+		wantStart     bool
+		want, notWant string
+		meaning       string
+	}{
+		{name: "disabled before, enabled by the reinstall", installer: failedStartUpdate, newExec: true, wantStart: true,
+			want: "[systemd] hmm was not running before the install (disabled or without its program files) and starts at boot: started in its unit"},
+		{name: "disabled before, the installer asks for a reboot", installer: exit("10"), newExec: true, wantStart: true,
+			want: "and starts at boot: started in its unit", meaning: "installed and started (the installer asked for a reboot)"},
+		{name: "skipped before, no program files, reinstalled", installer: failedStartUpdate, wrapperExec: true, newExec: true, result: "exec-condition", wantStart: true,
+			want: "and starts at boot: started in its unit"},
+		{name: "disabled before and after", installer: failedStartUpdate,
+			want: "[systemd] hmm is not running and was not started", notWant: "starts at boot"},
+		{name: "stopped by the user before", installer: failedStartUpdate, wrapperExec: true, newExec: true,
+			want: "[systemd] hmm is not running and was not started", notWant: "starts at boot"},
+		{name: "disabled before, the installer failed", installer: exit("1"), newExec: true, notWant: "starts at boot"},
+		{name: "disabled before, switched off on the Services page", installer: failedStartUpdate, newExec: true, masked: true,
+			want: "hmm is switched off and stays stopped", notWant: "starts at boot"},
+		{name: "disabled before, safe mode", installer: failedStartUpdate, newExec: true, safemode: true, notWant: "starts at boot"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			rig := newSettleRig(t, tc.installer)
+			old := Priv
+			Priv = settlePriv{rig: rig}
+			t.Cleanup(func() { Priv = old })
+			mode := func(path string, exec bool) {
+				m := os.FileMode(0o644)
+				if exec {
+					m = 0o755
+				}
+				if err := os.Chmod(rig.root.join(path), m); err != nil {
+					t.Fatal(err)
+				}
+			}
+			mode("/usr/local/etc/config/rc.d/hmm", tc.wrapperExec)
+			mode("/usr/local/addons/hmm/rc.d/hmm", tc.newExec)
+			if tc.result != "" {
+				rig.result = map[string]string{"addon-hmm.service": tc.result}
+			}
+			if tc.masked {
+				rig.a.Systemd.SwitchFile = rig.root.join("/unit-switch.json")
+				if err := os.WriteFile(rig.a.Systemd.SwitchFile, []byte(`{"masked":["addon-hmm.service"]}`), 0o644); err != nil {
+					t.Fatal(err)
+				}
+			}
+			if tc.safemode {
+				if err := os.WriteFile(rig.root.join("/usr/local/etc/config/safemode"), nil, 0o644); err != nil {
+					t.Fatal(err)
+				}
+			}
+			withStates(rig, "inactive", "inactive", false)
+			res, err := rig.a.Install(context.Background(), strings.NewReader(strings.Repeat("x", 100)))
+			if err != nil {
+				t.Fatal(err)
+			}
+			start := rig.index(t, "systemctl start --no-pager -- addon-hmm.service")
+			if (start >= 0) != tc.wantStart {
+				t.Fatalf("started: %v, want %v\noutput:\n%s\ncalls:\n%s", start >= 0, tc.wantStart, res.Output, strings.Join(rig.calls, "\n"))
+			}
+			if tc.want != "" && !strings.Contains(res.Output, tc.want) {
+				t.Errorf("output lacks %q:\n%s", tc.want, res.Output)
+			}
+			if tc.notWant != "" && strings.Contains(res.Output, tc.notWant) {
+				t.Errorf("output has %q:\n%s", tc.notWant, res.Output)
+			}
+			if tc.meaning != "" && res.Meaning != tc.meaning {
+				t.Errorf("meaning %q, want %q", res.Meaning, tc.meaning)
+			}
+			if tc.wantStart && !slices.Contains(res.Started, "hmm") {
+				t.Errorf("Started %v lacks hmm", res.Started)
+			}
+			if len(res.StoppedAddons) != 0 {
+				t.Errorf("stopped addons %+v: it did not run before", res.StoppedAddons)
+			}
+		})
 	}
 }
