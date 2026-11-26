@@ -34,8 +34,9 @@ export function removeEntry(): void {
 }
 
 /**
- * Tells the shell that the recovery system answered (openccu-lite task 505): lib/inrecovery.svelte.ts
- * listens for `ol:recovery` and takes over from there. A plain window event, so this file still
+ * Tells the shell what the health route answered (openccu-lite task 505): lib/inrecovery.svelte.ts
+ * listens for `ol:recovery`, takes a recovery's answer as the start and any other answer as the end
+ * of the recovery state (occulited B-187). A plain window event, so this file still
  * imports nothing of the shell (the waiting page has no listener, and loses nothing).
  */
 export function announceRecovery(status: number | null, body: unknown): void {
@@ -113,7 +114,9 @@ export function watchBoot(o: WatchOptions): () => void {
         const {status, body} = await probeHealth();
         if (stopped) return;
         const cls = classifyHealth(status, body);
-        if (cls === 'recovery') announceRecovery(status, body);
+        // every answer, not only the recovery's: the shell ends its recovery state on the first answer
+        // of the system itself, before this watch reloads the page (occulited B-187)
+        if (status !== null) announceRecovery(status, body);
         const current = readEntry() ?? local;
         const {entry, back} = observe(current, cls, uptimeOf(body), o.before, Date.now());
         if (entry !== current) {

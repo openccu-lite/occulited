@@ -137,6 +137,58 @@ test('a direct URL while the recovery answers opens the recovery view, and the p
     await expect(page.locator('[data-recovery-bar]')).toHaveCount(0);
 });
 
+// occulited B-187: the update's boot watch reloads the page once the system answers; on an OVA the
+// reload came before the shell had left the recovery view, and the way back was gone with the page
+test('a reload on the recovery view keeps the way back: in the recovery it stays, after it the page returns', async ({page}) => {
+    const m = await recoveryMock(page);
+    m.on = true;
+    m.update = {running: true, phase: 'prepare', step: 2, steps: 7};
+    await page.goto('/system/log');
+    await expect(page).toHaveURL(/\/recovery$/);
+    // reloaded while the recovery still answers: the view stays, the page it interrupted does not flash
+    const seen: string[] = [];
+    await page.exposeFunction('seenPath', (p: string) => seen.push(p));
+    await page.addInitScript(() => {
+        for (const k of ['pushState', 'replaceState'] as const) {
+            const orig = history[k].bind(history);
+            history[k] = (...a: Parameters<History['pushState']>) => {
+                orig(...a);
+                (window as unknown as {seenPath: (p: string) => void}).seenPath(location.pathname);
+            };
+        }
+    });
+    await page.reload();
+    await expect(page.locator('[data-recovery-bar]')).toBeVisible();
+    await expect(page).toHaveURL(/\/recovery$/);
+    await page.waitForTimeout(500);
+    expect(seen).not.toContain('/system/log');
+    // the system back, and the boot watch's reload comes first: the page it interrupted
+    m.on = false;
+    m.back = true;
+    await page.reload();
+    await expect(page).toHaveURL(/\/system\/log$/, {timeout: 8000});
+    await expect(page.locator('[data-recovery-bar]')).toHaveCount(0);
+    // the way back is used up: the view opened by hand afterwards stays
+    await page.goto('/recovery');
+    await expect(page.locator('[data-recovery-view]')).toContainText('The system is not in its recovery system.');
+    await expect(page).toHaveURL(/\/recovery$/);
+});
+
+// B-187: the boot watch's answers end the recovery state at once, not only the shell's own slower poll
+test('the update boot watch\'s first answer of the system ends the recovery state', async ({page}) => {
+    const m = await recoveryMock(page);
+    await page.goto('/system/updates');
+    await expect(page.locator('h2').first()).toBeVisible();
+    m.on = true;
+    await page.evaluate(() => window.dispatchEvent(new CustomEvent('ol:recovery', {detail: {status: 503, body: {error: 'updating', recovery: true}}})));
+    await expect(page).toHaveURL(/\/recovery$/);
+    m.on = false;
+    m.back = true;
+    // what lib/bootwatch.ts now announces for any answer: the system's own health
+    await page.evaluate(() => window.dispatchEvent(new CustomEvent('ol:recovery', {detail: {status: 200, body: {ok: true, uptime_s: 4}}})));
+    await expect(page).toHaveURL(/\/system\/updates$/, {timeout: 1500});
+});
+
 test('a recovery entered for anything else: the bar and the view without an install', async ({page}) => {
     const m = await recoveryMock(page);
     await page.goto('/system/updates');

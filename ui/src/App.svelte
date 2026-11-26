@@ -65,7 +65,8 @@
     import RecoveryBar from './lib/RecoveryBar.svelte';
     import RecoveryView from './lib/RecoveryView.svelte';
     import {inRecovery, listenForRecovery} from './lib/inrecovery.svelte';
-    import {RECOVERY_PATH, recoveryRoute, returnPath} from './lib/recoveryroute';
+    import {RECOVERY_PATH, loadReturn, recoveryRoute, returnPath, saveReturn} from './lib/recoveryroute';
+    import {probeHealth} from './lib/bootwatch';
 
     let extra = $state<NavEntry[]>([]);
     // Task 55: the addon dropdown lists every installed addon, not only the ones with a frontend,
@@ -87,14 +88,28 @@
     // reach it either - and a bar under it says so. When the system answers again the shell goes back
     // to the page the recovery interrupted.
     onMount(() => listenForRecovery());
-    let recoveryReturn = '';
+    // B-187: the way back is kept across a reload (the update's boot watch reloads the page when the
+    // system answers again, and on an OVA that came before the shell had left this view). A page
+    // loaded on the view with a way back asks the system once before it goes there, so a reload in
+    // the middle of the recovery does not flash the page it interrupted.
+    let recoveryReturn = loadReturn();
+    let recoveryChecked = $state(!(router.path === RECOVERY_PATH && recoveryReturn));
+    onMount(() => {
+        if (recoveryChecked) return;
+        void probeHealth().then(({status, body}) => {
+            inRecovery.note(status, body);
+            recoveryChecked = true;
+        });
+    });
     $effect(() => {
         const active = inRecovery.active;
         const path = router.path;
+        if (!recoveryChecked) return;
         const to = recoveryRoute(path, active, untrack(() => recoveryReturn));
         if (to === null) return;
         if (active) recoveryReturn = returnPath(path, untrack(() => router.search));
         else recoveryReturn = '';
+        saveReturn(recoveryReturn);
         replace(to);
     });
     // ---- the kept pages (task 177) --------------------------------------------------------------

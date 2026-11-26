@@ -62,6 +62,20 @@ describe('waiting for the box to come back', () => {
         expect(back).toHaveBeenCalledOnce();
     });
 
+    // occulited B-187: every answer is announced to the shell, so it leaves its recovery state on the
+    // system's first answer - before onBack reloads the page
+    it('announces every answer, and the one that brings the box back before onBack', async () => {
+        vi.useFakeTimers();
+        const target = new EventTarget();
+        vi.stubGlobal('window', target);
+        const order: string[] = [];
+        target.addEventListener('ol:recovery', (ev) => order.push(`announce ${(ev as CustomEvent<{status: number}>).detail.status}`));
+        healthAnswers([1001, null, 503, 12]);
+        watchBoot({entry: newEntry('reboot', Date.now(), EXPECT), before: 1000, pollMs: 1000, onBack: () => order.push('back')});
+        await vi.advanceTimersByTimeAsync(4000);
+        expect(order).toEqual(['announce 200', 'announce 503', 'announce 200', 'back']);
+    });
+
     it('a halt stops at the first poll without an answer', async () => {
         vi.useFakeTimers();
         const fetch = healthAnswers([1001, 503, null, 7]);
