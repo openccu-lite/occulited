@@ -23,6 +23,9 @@ const (
 	NeoServerID = priv.NeoServerRCEntry
 	// NeoServerDir is the addon's directory; the vendor's uninstall removes it.
 	NeoServerDir = priv.NeoServerHome
+	// NeoServerDisabledMarker is the first start's record that it switched the NEO Server off
+	// (in the state directory; occulited's firstBootNeoServer writes it)
+	NeoServerDisabledMarker = "neoserver-disabled.json"
 	// NeoServerVendorMarker is the addon's own switch: present, its rc.d script starts nothing.
 	NeoServerVendorMarker = priv.NeoServerDisabledMarker
 	// NeoServerUninstalledMarker is what the vendor's uninstall touches so that OpenCCU's

@@ -909,6 +909,10 @@ func run(opts daemonOptions) error {
 	}
 	// task 250: the CCU's leftovers go once, after the first start has imported the names
 	firstBootLeftovers(root, services, manager, store, cfg.StateDir, area("addons"))
+	// occulited task 185: the Welcome page names the addons removed because they need the ReGaHSS
+	if firstBoot != nil {
+		firstBoot.RemovedAddons = system.RemovedRegaAddons(cfg.StateDir)
+	}
 	// task 35: the ACME certificate service - its state under <state>/acme, the flow through
 	// lego, the live file through the helper's enumerated operation (system.CertInstaller)
 	certSvc, err := acme.New(filepath.Join(cfg.StateDir, "acme"), area("acme"))
@@ -2248,7 +2252,7 @@ func settleFirstBootDisabled(sa *system.SystemdAddons, before map[string]bool, l
 // The Status page lists it with the other ReGa-dependent addons; the Backup page offers it as a
 // leftover with its size.
 func firstBootNeoServer(root system.Root, services httpapi.ServiceManager, stateDir string, log *slog.Logger) {
-	marker := filepath.Join(stateDir, "neoserver-disabled.json")
+	marker := filepath.Join(stateDir, system.NeoServerDisabledMarker)
 	if _, err := os.Stat(marker); err == nil {
 		return
 	}
@@ -2367,6 +2371,16 @@ func firstBootLeftovers(root system.Root, services httpapi.ServiceManager, manag
 	default:
 		log.Warn("ccu leftovers removed after the first start on openccu-lite; the way back is a backup made on the CCU before the switch",
 			"items", strings.Join(run.Removed, ","), "paths", strings.Join(run.Paths, " "), "freed_bytes", run.Freed)
+		// occulited task 185: the addons among them, by the names the Welcome page shows
+		var addons []string
+		for _, id := range run.Removed {
+			if n, ok := system.RegaAddonNames[id]; ok {
+				addons = append(addons, n)
+			}
+		}
+		if len(addons) > 0 {
+			log.Warn("addons removed because they need the ReGaHSS", "addons", strings.Join(addons, ", "))
+		}
 	}
 }
 

@@ -408,3 +408,34 @@ func (r Root) RemoveLeftoversOnce(stateDir string, importSettled bool, now time.
 	}
 	return run, true, nil
 }
+
+// RegaAddonNames are the display names of the addons the leftovers pass removes because they need
+// the ReGa (occulited task 185): the Welcome page names them, as the journal does.
+var RegaAddonNames = map[string]string{"neoserver": "NEO SERVER"}
+
+// RemovedRegaAddons (occulited task 185) answers the names of the addons removed because they need
+// the ReGa, as the leftovers marker records them - or, while the pass waits for the name import,
+// the NEO Server the first start switched off (its marker), which the pass removes next.
+func RemovedRegaAddons(stateDir string) []string {
+	var out []string
+	seen := map[string]bool{}
+	add := func(id string) {
+		if n, ok := RegaAddonNames[id]; ok && !seen[id] {
+			seen[id] = true
+			out = append(out, n)
+		}
+	}
+	if b, err := os.ReadFile(filepath.Join(stateDir, LeftoversMarker)); err == nil {
+		var run LeftoverRun
+		if json.Unmarshal(b, &run) == nil {
+			for _, id := range run.Removed {
+				add(id)
+			}
+			return out
+		}
+	}
+	if _, err := os.Stat(filepath.Join(stateDir, NeoServerDisabledMarker)); err == nil {
+		add("neoserver")
+	}
+	return out
+}

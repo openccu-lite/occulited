@@ -213,3 +213,30 @@ test('B-173: German', async ({page}) => {
     await expect(page.locator('[data-welcome-first-boot]')).toContainText('Die Programme und Systemvariablen bleiben in dieser Datenbank, die das System aufbewahrt: Das Addon Logic übernimmt sie.');
     await expect(page.locator('[data-welcome-switched]')).toContainText('Die Geräte sind mit ihren Schlüsseln und Namen beim Update mitgekommen');
 });
+
+// occulited task 185: the addons the first start removed because they need the ReGaHSS - one line
+// with the way to the docs, only when something was removed
+for (const lang of [
+    {code: 'en', line: 'Removed because they need the ReGaHSS: NEO SERVER.', link: 'What changes on the first start', href: 'https://github.com/openccu-lite/openccu-lite/blob/main/docs/switching.md#what-changes-on-the-first-start'},
+    {code: 'de', line: 'Entfernt, weil sie die ReGaHSS brauchen: NEO SERVER.', link: 'Was sich beim ersten Start ändert', href: 'https://github.com/openccu-lite/openccu-lite/blob/main/docs/switching.de.md#was-sich-beim-ersten-start-%C3%A4ndert'},
+]) {
+    test(`task 185: the removed ReGa addons are named, with the docs (${lang.code})`, async ({page}) => {
+        await paired(page, {'BidCos-RF': 1});
+        await switched(page, {objects: 5, devices: 1, channels: 4, rooms: 1, functions: 0, unnamed: 0, removed_addons: ['NEO SERVER']});
+        if (lang.code === 'de') await page.addInitScript(() => localStorage.setItem('ol.language', 'de'));
+        await page.goto('/welcome');
+        const line = page.locator('[data-welcome-removed]');
+        await expect(line).toContainText(lang.line);
+        const a = line.getByRole('link', {name: lang.link});
+        await expect(a).toHaveAttribute('href', lang.href);
+        await expect(a).toHaveAttribute('target', '_blank');
+    });
+}
+
+test('task 185: nothing removed, no line', async ({page}) => {
+    await paired(page, {'BidCos-RF': 1});
+    await switched(page, {objects: 5, devices: 1, channels: 4, rooms: 1, functions: 0, unnamed: 0});
+    await page.goto('/welcome');
+    await expect(page.locator('[data-welcome-first-boot]')).toBeVisible();
+    await expect(page.locator('[data-welcome-removed]')).toHaveCount(0);
+});

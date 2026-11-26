@@ -2,7 +2,7 @@
     import {onMount} from 'svelte';
     import {api} from '../lib/api';
     import {ask} from '../lib/dialog.svelte';
-    import {t} from '../lib/i18n.svelte';
+    import {i18n, t} from '../lib/i18n.svelte';
     import {link, navigate} from '../lib/router.svelte';
     import {openedAs, validHostname} from '../lib/hostname';
     import {certificateText, renameText, type AcmeNames, type CertNames, type Rename} from '../lib/rename';
@@ -14,7 +14,12 @@
     interface FwState { enabled: boolean }
     interface FeedState { feed?: {enabled: boolean; channel?: string} | null }
     interface CatalogState { daily?: boolean }
-    interface FirstBoot { objects: number; devices: number; channels: number; rooms: number; functions: number; unnamed: number; error?: string }
+    interface FirstBoot { objects: number; devices: number; channels: number; rooms: number; functions: number; unnamed: number; error?: string; removed_addons?: string[] }
+    // occulited task 185: where the switch's first start is told in full - the docs' section in the page's language
+    const SWITCH_DOCS: Record<string, string> = {
+        de: 'https://github.com/openccu-lite/openccu-lite/blob/main/docs/switching.de.md#was-sich-beim-ersten-start-%C3%A4ndert',
+        en: 'https://github.com/openccu-lite/openccu-lite/blob/main/docs/switching.md#what-changes-on-the-first-start',
+    };
     let firstBoot = $state<FirstBoot | null>(null);
     // occulited B-173: the system came by an update from a CCU or OpenCCU (its first boot found the ReGa database)
     const switched = $derived(!!firstBoot);
@@ -284,6 +289,10 @@
     <div class="ol-notice" data-welcome-first-boot>{t('This system was updated from a CCU: its names, rooms and functions were read from the ReGa database on this first boot — {o} named devices and channels, {r} rooms, {f} functions ({u} still carried the default name and were left out). The programs and system variables stay in that database, which the system keeps: the addon Logic imports them.', {o: firstBoot.objects, r: firstBoot.rooms, f: firstBoot.functions, u: firstBoot.unnamed})}</div>
 {:else if firstBoot?.error}
     <div class="ol-notice">{t('A ReGa database was found but could not be read: {e}', {e: firstBoot.error})}</div>
+{/if}
+{#if firstBoot?.removed_addons?.length}
+    <!-- occulited task 185: the addons the first start removed because they need the ReGaHSS (NEO SERVER) -->
+    <p data-welcome-removed>{t('Removed because they need the ReGaHSS: {list}.', {list: firstBoot.removed_addons.join(', ')})} <a href={SWITCH_DOCS[i18n.language] ?? SWITCH_DOCS.en} target="_blank" rel="noopener noreferrer" data-welcome-removed-docs>{t('What changes on the first start')}</a></p>
 {/if}
 <!-- occulited task 142 (D-125): the two ways by their names - a CCU's backup is imported, an
      openccu-lite backup restored; both happen on the Backup page, this page does neither itself.

@@ -437,6 +437,10 @@ type FirstBootImport struct {
 	// that came along from a stock CCU3 or another architecture (task 25). Disabled on this
 	// first boot too, and shown as "disabled, needs update".
 	DisabledBinaryAddons []string `json:"disabled_binary_addons,omitempty"`
+	// RemovedAddons (occulited task 185): the names of the addons the first start removed because
+	// they need the ReGaHSS (NEO SERVER); the Welcome page names them. Filled at each start from the
+	// leftovers marker, never stored in the import's marker.
+	RemovedAddons []string `json:"removed_addons,omitempty"`
 }
 
 // Register mounts the routes on mux.
