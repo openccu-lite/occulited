@@ -246,7 +246,7 @@ func backupMain(args []string) int {
 		Crypt:    &backupcrypt.Store{Dir: stateDir},
 		Staging:  backuptarget.StagingDir,
 		Hostname: host,
-		Version:  system.Root("/").ReadVersion().Version,
+		Version:  system.Root("/").ReadVersion().Full(), // B-185: openccu-lite's version, not the base's
 		UID:      uid, GID: gid,
 		Log: log,
 		Create: func(ctx context.Context, path string) error {

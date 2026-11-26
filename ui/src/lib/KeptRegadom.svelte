@@ -56,12 +56,12 @@
 </script>
 
 {#if view?.present || removed}
-    <h2 id="regadom">{t('ReGa database of the CCU')}<Help>{t('The database of the CCU this system was switched from (homematic.regadom). openccu-lite took the names, rooms and functions from it at its first start; the addon "Programs and system variables" (lite-addon-logic) imports the programs and system variables from it. It is kept until you remove it here, and every backup carries it.')}</Help></h2>
+    <h2 id="regadom">{t('ReGa database of the CCU')}<Help>{t('The database of the CCU this system was switched from (homematic.regadom). openccu-lite took the names, rooms and functions from it at its first start; the addon Logic imports the programs and system variables from it. It is kept until you remove it here, and every backup carries it.')}</Help></h2>
     <div class="ol-panel" data-section="regadom">
         {#if error}<div class="ol-notice err">{error}</div>{/if}
         {#if view?.present}
             <p data-regadom="present">{t('Kept from the switch: {size}, last saved on the CCU on {date}.', {size: formatBytes(view.bytes ?? 0), date: view.modified ? dateOnly(view.modified) : '?'})}</p>
-            <p class="ol-muted">{t('The addon "Programs and system variables" can import the CCU\'s programs and system variables from it. Remove it when you no longer need it.')}</p>
+            <p class="ol-muted">{t('The addon Logic can import the CCU\'s programs and system variables from it. Remove it when you no longer need it.')}</p>
             <div class="ol-actions">
                 {#if importURL}<a class="hmm-button" href={importURL} target="_blank" rel="noopener" data-action="regadom-import">{t('Import programs and system variables')}</a>{/if}
                 <button type="button" class="hmm-button danger" onclick={remove} disabled={busy} data-action="regadom-remove">{busy ? t('Removing…') : t('Remove the ReGa database…')}</button>

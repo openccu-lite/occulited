@@ -23,7 +23,8 @@ test('the kept database, and its removal after the question', async ({page}) => 
     await page.goto('/system/backup');
     const panel = page.locator('[data-section="regadom"]');
     await expect(panel.locator('[data-regadom="present"]')).toContainText('Kept from the switch');
-    await expect(panel).toContainText('Programs and system variables');
+    // B-185: the addon by its name, as the catalogue and the Addons page call it
+    await expect(panel).toContainText('The addon Logic can import');
     // cancelled: nothing sent
     await panel.locator('[data-action="regadom-remove"]').click();
     await expect(page.getByRole('dialog')).toContainText('no longer be imported');
@@ -42,6 +43,7 @@ test('German', async ({page}) => {
     const panel = page.locator('[data-section="regadom"]');
     await expect(page.locator('#regadom')).toContainText('ReGa-Datenbank der CCU');
     await expect(panel).toContainText('Vom Umstieg erhalten');
+    await expect(panel).toContainText('Die Zusatzsoftware Logic kann');
     await expect(panel.locator('[data-action="regadom-remove"]')).toHaveText('ReGa-Datenbank entfernen…');
 });
 

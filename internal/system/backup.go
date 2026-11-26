@@ -36,7 +36,8 @@ func (r Root) CreateBackup(ctx context.Context, run Runner) (string, error) {
 	if run == nil {
 		run = ExecRunner
 	}
-	ver := r.ReadVersion().Version
+	// B-185: the system's own version - openccu-lite's, not the OpenCCU base's it is built on
+	ver := r.ReadVersion().Full()
 	if ver == "" {
 		ver = "unknown"
 	}

@@ -9,7 +9,7 @@ import (
 )
 
 func TestBackupCreateCheckRestore(t *testing.T) {
-	r := rootWith(t, map[string]string{"VERSION": "VERSION=3.89.8\n", "proc/sys/kernel/hostname": "lite\n", "usr/local/tmp/.keep": ""})
+	r := rootWith(t, map[string]string{"VERSION": "VERSION=3.89.8\nLITE=2.0.0-rc.5\n", "proc/sys/kernel/hostname": "lite\n", "usr/local/tmp/.keep": ""})
 	rec := &recorder{}
 	// the recorder does not create the file: CreateBackup must notice
 	if _, err := r.CreateBackup(context.Background(), rec.run); err == nil {
@@ -20,7 +20,7 @@ func TestBackupCreateCheckRestore(t *testing.T) {
 		return rec.run(ctx, name, args...)
 	}
 	path, err := r.CreateBackup(context.Background(), creating)
-	if err != nil || !strings.HasSuffix(path, ".sbk") || !strings.Contains(path, "/usr/local/tmp/lite-3.89.8-") {
+	if err != nil || !strings.HasSuffix(path, ".sbk") || !strings.Contains(path, "/usr/local/tmp/lite-2.0.0-rc.5-") { // B-185: openccu-lite's version, not the base's
 		t.Fatalf("%v %s", err, path)
 	}
 	if !strings.HasSuffix(rec.calls[len(rec.calls)-1], "/bin/createBackup.sh "+path) {
