@@ -627,3 +627,94 @@ func TestTagsInView(t *testing.T) {
 		t.Fatal(string(b))
 	}
 }
+
+// occulited task 189: the published file wins per repository, but a copy of it from before task
+// 188 carries no tags field; such an entry takes its tags from the next file that has it (the
+// bundled copy), while a file that carries the field - even empty - keeps its own.
+func TestTagsFromALaterFile(t *testing.T) {
+	dir := t.TempDir()
+	first := writeFile(t, dir, "published.json", `{"format": 1, "addons": [
+		{"git": "https://github.com/o/a", "manifest": "m.json"},
+		{"git": "https://github.com/o/b", "manifest": "m.json", "tags": []},
+		{"git": "https://github.com/o/c", "manifest": "m.json", "tags": ["remote", "future"]},
+		{"git": "https://github.com/o/d", "manifest": "m.json"}]}`)
+	sub := filepath.Join(dir, "b")
+	if err := os.Mkdir(sub, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	bundled := writeFile(t, sub, "catalog.json", `{"format": 1, "addons": [
+		{"git": "https://github.com/o/a.git", "manifest": "other.json", "tags": ["tools", "future", "mqtt"]},
+		{"git": "https://github.com/o/b", "manifest": "m.json", "tags": ["tools"]},
+		{"git": "https://github.com/o/c", "manifest": "m.json", "tags": ["tools"]},
+		{"git": "https://github.com/o/e", "manifest": "m.json", "tags": ["alarm"]}]}`)
+	v, err := New([]string{first, bundled}, "x86_64", nil).Fetch(t.Context(), false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := map[string]string{}
+	for _, a := range v.Addons {
+		got[RepoName(a.Git)] = a.ManifestPath + ":" + strings.Join(a.Tags, ",")
+	}
+	want := map[string]string{"o/a": "m.json:tools,mqtt", "o/b": "m.json:", "o/c": "m.json:remote", "o/d": "m.json:", "o/e": "m.json:alarm"}
+	if len(got) != len(want) {
+		t.Fatalf("%v", got)
+	}
+	for k, w := range want {
+		if got[k] != w {
+			t.Errorf("%s: %q, want %q", k, got[k], w)
+		}
+	}
+}
+
+// occulited task 189: the case the rc.5 lab ran into - the kept copy of the published file (in the
+// cache, from before tags existed) stands in for it on a page load, and the bundled file's tags
+// still reach the view.
+func TestTagsWithAKeptCopyWithoutThem(t *testing.T) {
+	dir := t.TempDir()
+	bundled := writeFile(t, dir, "catalog.json", `{"format": 1, "addons": [
+		{"git": "https://github.com/o/a", "manifest": "m.json", "tags": ["mqtt", "integration"]}]}`)
+	pub := "https://raw.example.invalid/catalog.json"
+	cache := filepath.Join(dir, "cache.json")
+	if err := os.WriteFile(cache, []byte(`{"entries": {}, "catalogs": {"`+pub+`": {"format": 1, "addons": [
+		{"git": "https://github.com/o/a", "manifest": "m.json"}]}}}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	s := New([]string{pub, bundled}, "x86_64", nil)
+	s.CacheFile = cache
+	v, err := s.Fetch(t.Context(), false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(v.Addons) != 1 || strings.Join(v.Addons[0].Tags, ",") != "mqtt,integration" {
+		t.Fatalf("%+v", v.Addons)
+	}
+	if v.Source != "published" {
+		t.Errorf("source %q", v.Source)
+	}
+}
+
+// occulited task 189: every tag of the fixed list has its face in the UI - an icon in
+// ui/src/lib/tagstyle.ts and a colour token --ol-tag-<id> in the light and both dark blocks of
+// ui/src/app.css - so a tag added here cannot reach the page as a grey default.
+func TestTagStylesMirrorTheList(t *testing.T) {
+	style, err := os.ReadFile(filepath.Join("..", "..", "ui", "src", "lib", "tagstyle.ts"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	css, err := os.ReadFile(filepath.Join("..", "..", "ui", "src", "app.css"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, tag := range Tags {
+		key := tag.ID + ":"
+		if strings.Contains(tag.ID, "-") {
+			key = "'" + tag.ID + "':"
+		}
+		if !strings.Contains(string(style), "    "+key+" '") {
+			t.Errorf("tag %q: no icon in tagstyle.ts", tag.ID)
+		}
+		if n := strings.Count(string(css), "--ol-tag-"+tag.ID+":"); n != 3 {
+			t.Errorf("tag %q: its colour token is defined %d times in app.css, want 3 (light, prefers dark, manual dark)", tag.ID, n)
+		}
+	}
+}

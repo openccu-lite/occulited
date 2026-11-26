@@ -553,6 +553,11 @@ func (s *Service) loadCatalog(ctx context.Context, network bool) (*Catalog, map[
 	merged := &Catalog{Format: Format}
 	sources := map[string]string{}
 	seen := map[string]bool{}
+	// occulited task 189: the merged entry's index by key, and whether its file carried a tags
+	// field at all; an entry whose winning file has none (a kept copy of the published file from
+	// before task 188) takes its tags from the next file that has the entry - the bundled copy
+	at := map[string]int{}
+	tagged := map[string]bool{}
 	var firstErr, pubErr error
 	loaded := 0
 	for _, u := range s.URLs {
@@ -588,10 +593,16 @@ func (s *Service) loadCatalog(ctx context.Context, network bool) (*Catalog, map[
 				continue
 			}
 			if seen[key] {
+				if !tagged[key] && e.Tags != nil {
+					merged.Addons[at[key]].Tags = knownTags(e.Tags)
+					tagged[key] = true
+				}
 				continue
 			}
 			seen[key] = true
+			tagged[key] = e.Tags != nil
 			e.Tags = knownTags(e.Tags)
+			at[key] = len(merged.Addons)
 			merged.Addons = append(merged.Addons, e)
 			sources[key] = u
 		}

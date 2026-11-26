@@ -34,25 +34,25 @@ the repository for the Addons page. To list an addon, open a pull request that a
 
 | `tags` | Required for an entry of this repository (CI), one or more out of the fixed list below, each once; set by the catalogue maintainers, not by the addon (occulited task 188; openccu-lite from 2.0.0-rc.5). The Addons page filters by them. A system ignores a tag it does not know, so a catalogue with a newer tag still loads on an older system. |
 
-**The tags** (`catalog.Tags` in `internal/catalog/tags.go`; a new tag goes there, here and into the tests in one commit). The page shows a chip for each tag at least one entry carries, the most used first (counted over the whole catalogue, so the chips stay put while the user filters; this table's order breaks ties), the first eight and *n more* for the rest; a chosen tag is always shown.
+**The tags** (`catalog.Tags` in `internal/catalog/tags.go`; a new tag goes there, here, into the tests and into the UI's `ui/src/lib/tagstyle.ts` and `ui/src/app.css` in one commit). Each card shows its tags as small icons in the tag's colour, the name in the tooltip, nine at most and *+n* for the rest. A button beside the search, *Tags: all*, opens a checkbox per tag at least one entry carries, the most used first (counted over the whole catalogue, so the rows stay put while the user filters; this table's order breaks ties), with *All* and *None*; the checked tags show as chips under the search with *Reset filter*. A card is shown when it carries any checked tag; a card without tags only while all are checked (occulited task 189).
 
-| Tag | de | en |
-| --- | --- | --- |
-| `control` | Bedienung | Control |
-| `automation` | Automation | Automation |
-| `integration` | Anbindung | Integration |
-| `devices` | Geräte | Devices |
-| `device-management` | Geräteverwaltung | Device management |
-| `monitoring` | Monitoring | Monitoring |
-| `history` | Historie | History |
-| `remote` | Fernzugriff | Remote access |
-| `tools` | Werkzeuge | Tools |
-| `mqtt` | MQTT | MQTT |
-| `matter` | Matter | Matter |
-| `home-assistant` | Home Assistant | Home Assistant |
-| `homekit` | HomeKit | HomeKit |
-| `mcp` | MCP | MCP |
-| `alarm` | Alarmsystem | Alarm system |
+| Tag | de | en | Icon | Colour |
+| --- | --- | --- | --- | --- |
+| `control` | Bedienung | Control | toggle | blue |
+| `automation` | Automation | Automation | lightning bolt | orange |
+| `integration` | Anbindung | Integration | chain link | violet |
+| `devices` | Geräte | Devices | light bulb | gold |
+| `device-management` | Geräteverwaltung | Device management | gear | teal |
+| `monitoring` | Monitoring | Monitoring | pulse line | green |
+| `history` | Historie | History | clock turned back | brown |
+| `remote` | Fernzugriff | Remote access | globe | indigo |
+| `tools` | Werkzeuge | Tools | wrench | slate |
+| `mqtt` | MQTT | MQTT | antenna | pink |
+| `matter` | Matter | Matter | three arrows meeting | lime |
+| `home-assistant` | Home Assistant | Home Assistant | house with a branch | cyan |
+| `homekit` | HomeKit | HomeKit | rounded house with a dot | amber |
+| `mcp` | MCP | MCP | robot head | magenta |
+| `alarm` | Alarmsystem | Alarm system | shield | red |
 
 That is the whole format. Not in the catalogue, because the manifest has it: names, summaries, descriptions, icons, the
 homepage, the release source, compatibility, the `runtime` block. Not anywhere: status notes, tiers, star counts
@@ -67,7 +67,8 @@ homepage, the release source, compatibility, the `runtime` block. Not anywhere: 
   GitHub with a *Load the catalogue now* button.
 - **The user's update check** (*Check for updates* on the Addons page) fetches this file from the configured URLs
   (`catalog.urls` in `occulited.json`; the published copy first, the bundled one as the fallback; the first entry
-  per repository wins), then every entry's manifest at its latest release tag, the star counts and the latest
+  per repository wins, except that an entry whose file has no `tags` field at all - a kept copy from before the tags -
+  takes its tags from the next file that has the entry, occulited task 189), then every entry's manifest at its latest release tag, the star counts and the latest
   releases. Everything is cached in occulited's state directory and shown from the cache; no fetch happens on a
   page load or in the background (D-90). A check that cannot fetch the published file, or reads no addon's
   manifest, is a failed check: the page says *check failed* with the host and the reason and offers a retry, the

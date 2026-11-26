@@ -77,9 +77,25 @@
         | 'thermometer'
         // occulited task 156: the Log page's jumps to the log's two ends - an arrow against a bar
         | 'to-top'
-        | 'to-bottom';
+        | 'to-bottom'
+        // occulited task 189: the catalogue tags' icons (lib/tagstyle.ts) that had none above - a
+        // chain link, a wrench, three arrows meeting in the middle (Matter, stylised, not its logo),
+        // a house with a branch inside (Home Assistant), a rounded house with a dot (HomeKit, not
+        // Apple's artwork), a robot's head
+        | 'link'
+        | 'wrench'
+        | 'matter'
+        | 'home'
+        | 'homekit'
+        | 'bot';
 
     const PATHS: Record<IconName, string> = {
+        link: '<path d="M10 14a4.5 4.5 0 0 0 6.4 0l3-3a4.5 4.5 0 0 0-6.4-6.4l-1.2 1.2"/><path d="M14 10a4.5 4.5 0 0 0-6.4 0l-3 3a4.5 4.5 0 0 0 6.4 6.4l1.2-1.2"/>',
+        wrench: '<path d="M4.5 19.5l8.2-8.2"/><path d="M12.7 11.3a4.5 4.5 0 0 1 5.6-6.6l-3 3 .5 2 2 .5 3-3a4.5 4.5 0 0 1-6.6 5.6"/>',
+        matter: '<path d="M12 3v7.5"/><path d="M9 7.5l3 3.75 3-3.75"/><path d="M3.75 21L9 15"/><path d="M9.3 19.2L9 15l-4.2.3"/><path d="M20.25 21L15 15"/><path d="M14.7 19.2L15 15l4.2.3"/>',
+        home: '<path d="M3 11l9-7 9 7"/><path d="M5 9.5V20h14V9.5"/><path d="M12 20v-7.5M12 16.5l-3-2.5M12 14.5l3-2.5"/>',
+        homekit: '<path d="M4 10.5L12 4l8 6.5V19a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 19z"/><circle cx="12" cy="14" r="2.5"/>',
+        bot: '<rect x="4" y="8" width="16" height="12" rx="3"/><path d="M12 4v4"/><circle cx="12" cy="3.5" r="1"/><path d="M9 13.5h.01M15 13.5h.01"/><path d="M9.5 17h5"/>',
         // the head is one closed shape so `fill: currentColor` on the svg fills it; the needle is a line
         pin: '<path d="M9.5 3h5l-.6 6 3.1 2.6V14H7v-2.4l3.1-2.6-.6-6z"/><path d="M12 14v7"/>',
         'bell-off': '<path d="M13.73 21a2 2 0 0 1-3.46 0"/><path d="M18.63 13A17.9 17.9 0 0 1 18 8"/><path d="M6.26 6.26A5.9 5.9 0 0 0 6 8c0 7-3 9-3 9h14"/><path d="M18 8a6 6 0 0 0-9.33-5"/><path d="M2 2l20 20"/>',

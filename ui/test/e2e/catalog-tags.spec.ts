@@ -3,10 +3,10 @@ import {expect, test} from './fixtures';
 
 // occulited task 188 (the maintainer, 2026-11-25): the catalogue's cards show the manifest's
 // one-line summary, else the description cut to two lines, and the whole text in a details
-// dialog; the catalogue's tags filter the cards (chips with counts, several at a time, remembered
-// per browser); one, two or three cards side by side by the window's width.
+// dialog; the catalogue's tags filter the cards (task 189: a list of checkboxes, the checked ones
+// as chips, remembered per browser), and each card shows its tags as icons; one, two or three cards
+// side by side by the window's width.
 const card = (page: Page, id: string) => page.locator(`#addon-row-${id}`);
-const chip = (page: Page, id: string) => page.locator(`[data-tag-filter] [data-tag="${id}"]`);
 const names = (page: Page) => page.locator('.ad-card .ad-name');
 
 test('a card: the summary when there is one, else the description; the note behind Details', async ({page}) => {
@@ -102,89 +102,189 @@ test("an installed addon's long Info: line is behind Details, a short one stays"
     await expect(card(page, 'jp-hb-devices-addon').locator('.ad-info')).toContainText('JP HB Devices Support Addon');
 });
 
-test('the tag filter: chips with counts by use, the most used first, several at a time, combined, remembered', async ({page}) => {
+// occulited task 189 (variant B, the maintainer 2026-11-26): the tags as a list of checkboxes behind
+// a button beside the search, the checked ones as chips with × under it, the card's tags as icons
+const button = (page: Page) => page.locator('[data-tag-filter] .tf-button');
+const panel = (page: Page) => page.locator('[data-tag-filter-panel]');
+const row = (page: Page, id: string) => panel(page).locator(`[data-tag="${id}"]`);
+const chips = (page: Page) => page.locator('[data-tag-chip]');
+// a row of the list as its name and its count, e.g. "MQTT3"
+const rowTexts = (page: Page) => panel(page).locator('[data-tag]').evaluateAll((els) => els.map((el) => `${el.querySelector('.tf-name')?.textContent}${el.querySelector('.tf-count')?.textContent}`));
+const rowText = async (page: Page, id: string) => row(page, id).evaluate((el) => `${el.querySelector('.tf-name')?.textContent}${el.querySelector('.tf-count')?.textContent}`);
+const chipNames = (page: Page) => chips(page).evaluateAll((els) => els.map((el) => el.querySelector('.ad-chip-name')?.textContent));
+const cardsTop = async (page: Page) => Math.round((await page.locator('.ad-cards').boundingBox())!.y);
+const ROWS = ['Integration4', 'MQTT3', 'Control2', 'Device management2', 'Matter2', 'Home Assistant2', 'Automation1', 'Devices1', 'HomeKit1', 'MCP1', 'Alarm system1'];
+
+test('the tag filter: the list, All and None, OR, the chips, the reset, remembered, and nothing moves', async ({page}) => {
     await page.goto('/addons');
-    const group = page.getByRole('group', {name: 'Filter by tag'});
-    // the tags some entry carries, the most used first (the whole catalogue's counts, the list
-    // breaking ties); eight of eleven, and a button for the other three
-    await expect(group.locator('[data-tag]')).toHaveText(['All', 'Integration4', 'MQTT3', 'Control2', 'Device management2', 'Matter2', 'Home Assistant2', 'Automation1', 'Devices1']);
-    await expect(chip(page, '')).toHaveAttribute('aria-pressed', 'true');
-    await expect(chip(page, 'device-management')).toHaveAttribute('aria-label', 'Device management: 2');
-    const widths = async () => Promise.all(['integration', 'mqtt', 'control', 'device-management'].map(async (id) => (await chip(page, id).boundingBox())!.width));
-    const before = await widths();
-    // one tag: the cards that carry it (an installed addon without a catalogue entry carries none)
-    await chip(page, 'device-management').click();
-    await expect(chip(page, 'device-management')).toHaveAttribute('aria-pressed', 'true');
-    await expect(chip(page, '')).toHaveAttribute('aria-pressed', 'false');
-    await expect(names(page)).toHaveText(['Homematic-Manager', 'SukramJ/openccu-loom']);
-    // a second: the cards with either
-    await chip(page, 'devices').click();
+    await expect(names(page)).toHaveCount(8);
+    const btn = page.getByRole('button', {name: 'Tags: all'});
+    await expect(btn).toHaveAttribute('aria-expanded', 'false');
+    const width = async () => Math.round((await button(page).boundingBox())!.width);
+    const w0 = await width();
+    const top0 = await cardsTop(page);
+    // all checked: no chips, the line is there all the same
+    await expect(page.locator('[data-tag-chips]')).toHaveAttribute('data-tag-chips', 'all');
+    await expect(page.getByText('Filtered:')).toHaveCount(0);
+    // the list: the tags some entry carries, the most used first, each with its count, its icon in its colour
+    await btn.click();
+    await expect(btn).toHaveAttribute('aria-expanded', 'true');
+    await expect.poll(() => rowTexts(page)).toEqual(ROWS);
+    // the list stays inside the window, on a phone too
+    await expect.poll(async () => Math.round((await panel(page).boundingBox())!.x + (await panel(page).boundingBox())!.width) <= page.viewportSize()!.width).toBe(true);
+    await expect(panel(page).getByRole('checkbox').first()).toBeFocused();
+    for (const box of await panel(page).getByRole('checkbox').all()) await expect(box).toBeChecked();
+    await expect(row(page, 'mqtt').locator('.tf-icon')).toHaveCSS('color', /rgb/);
+    expect(await row(page, 'mqtt').locator('.tf-icon').evaluate((el) => getComputedStyle(el).color)).toBe(await page.evaluate(() => {
+        const d = document.createElement('span');
+        d.style.color = 'var(--ol-tag-mqtt)';
+        document.body.append(d);
+        const c = getComputedStyle(d).color;
+        d.remove();
+        return c;
+    }));
+    await expect(panel(page).getByRole('button', {name: 'All'})).toBeDisabled();
+    // one unchecked from all: the cards with any of the others (OR); XML-API carries only
+    // Integration, and the two installed addons the catalogue does not know carry none
+    await row(page, 'integration').getByRole('checkbox').uncheck();
+    await expect(names(page)).toHaveText(['RedMatic', 'Homematic-Manager', 'Mosquitto', 'SukramJ/openccu-loom', 'TM Devices']);
+    await expect(page.locator('[data-tag-filter-value]')).toHaveText('10');
+    await expect(chips(page)).toHaveCount(10);
+    expect(await width()).toBe(w0); // the button keeps its width
+    // None: nothing, and the line says so
+    await panel(page).getByRole('button', {name: 'None'}).click();
+    await expect(names(page)).toHaveCount(0);
+    await expect(page.getByText('Nothing matches the filter.')).toBeVisible();
+    await expect(page.locator('[data-tag-chip-none]')).toHaveText('no tag checked');
+    await expect(page.locator('[data-tag-filter-value]')).toHaveText('0');
+    // two checked: the cards with either
+    await row(page, 'devices').getByRole('checkbox').check();
+    await row(page, 'device-management').getByRole('checkbox').check();
     await expect(names(page)).toHaveText(['Homematic-Manager', 'SukramJ/openccu-loom', 'TM Devices']);
-    // a pressed chip keeps its box
-    expect(await widths()).toEqual(before);
+    await expect(page.locator('[data-tag-filter-value]')).toHaveText('2');
+    expect(await width()).toBe(w0);
+    // Escape closes the list and gives the focus back to the button
+    await page.keyboard.press('Escape');
+    await expect(panel(page)).toHaveCount(0);
+    await expect(button(page)).toBeFocused();
+    // the chips, in the list's order, each with its icon
+    await expect(page.getByText('Filtered:', {exact: true})).toBeVisible();
+    await expect.poll(() => chipNames(page)).toEqual(['Device management', 'Devices']);
+    await expect(chips(page).first().locator('svg')).toHaveCount(1);
+    // the cards begin where they began without a filter
+    expect(await cardsTop(page)).toBe(top0);
     // remembered across a reload
     await page.reload();
-    await expect(chip(page, 'device-management')).toHaveAttribute('aria-pressed', 'true');
-    await expect(chip(page, 'devices')).toHaveAttribute('aria-pressed', 'true');
+    await expect.poll(() => chipNames(page)).toEqual(['Device management', 'Devices']);
     await expect(names(page)).toHaveText(['Homematic-Manager', 'SukramJ/openccu-loom', 'TM Devices']);
-    // with the text filter: the counts follow it, the chips keep their place and size
+    // a chip's × takes its tag out of the filter
+    await page.getByRole('button', {name: 'Remove Devices from the filter'}).click();
+    await expect.poll(() => chipNames(page)).toEqual(['Device management']);
+    await expect(names(page)).toHaveText(['Homematic-Manager', 'SukramJ/openccu-loom']);
+    // with the text filter: the counts follow it
     await page.getByPlaceholder('Filter').fill('manager');
     await expect(names(page)).toHaveText(['Homematic-Manager']);
-    await expect(group.locator('[data-tag]')).toHaveText(['All', 'Integration0', 'MQTT0', 'Control0', 'Device management1', 'Matter0', 'Home Assistant0', 'Automation0', 'Devices0']);
-    expect(await widths()).toEqual(before);
-    // with Installed only
+    await button(page).click();
+    await expect.poll(() => rowText(page, 'device-management')).toBe('Device management1');
+    expect(await rowText(page, 'integration')).toBe('Integration0');
+    // a click outside closes the list
+    await page.locator('h1, .ad-meta').first().click();
+    await expect(panel(page)).toHaveCount(0);
     await page.getByPlaceholder('Filter').fill('');
-    await page.getByRole('checkbox', {name: 'Installed only'}).check();
-    await expect(names(page)).toHaveText(['Homematic-Manager']);
-    await page.getByRole('checkbox', {name: 'Installed only'}).uncheck();
-    // nothing left: the notice says the filter
-    await page.getByPlaceholder('Filter').fill('mosq');
-    await expect(page.getByText('Nothing matches the filter.')).toBeVisible();
-    // All clears the choice
-    await page.getByPlaceholder('Filter').fill('');
-    await chip(page, '').click();
+    // Reset filter: all again, the chips gone, the line still there
+    await page.getByRole('button', {name: 'Reset filter'}).click();
     await expect(names(page)).toHaveCount(8);
-    // the chips are buttons: the keyboard reaches and presses them
-    await chip(page, '').focus();
-    await page.keyboard.press('Tab');
-    await expect(chip(page, 'integration')).toBeFocused();
+    await expect(page.getByRole('button', {name: 'Tags: all'})).toBeVisible();
+    await expect(chips(page)).toHaveCount(0);
+    expect(await cardsTop(page)).toBe(top0);
+    expect(await width()).toBe(w0);
+    // the keyboard: Enter opens, Space checks, Tab leaves and closes
+    await button(page).focus();
     await page.keyboard.press('Enter');
-    await expect(chip(page, 'integration')).toHaveAttribute('aria-pressed', 'true');
-    await expect(names(page)).toHaveText(['RedMatic', 'Mosquitto', 'XML-API', 'SukramJ/openccu-loom']);
+    await expect(panel(page).getByRole('checkbox').first()).toBeFocused();
+    await page.keyboard.press('Space');
+    await expect(page.locator('[data-tag-filter-value]')).toHaveText('10');
+    // checking it again is all again
+    await page.keyboard.press('Space');
+    await expect(page.locator('[data-tag-filter-value]')).toHaveText('all');
 });
 
-test('many tags: the rest behind "3 more", a chosen one always shown, the choice of the row remembered', async ({page}) => {
+test('many checked tags stay on one line: the chips scroll sideways, the cards do not move', async ({page}) => {
     await page.goto('/addons');
-    const group = page.getByRole('group', {name: 'Filter by tag'});
-    const more = group.locator('[data-tag-more]');
-    await expect(more).toHaveText('3 more');
-    await expect(more).toHaveAttribute('aria-expanded', 'false');
-    await expect(chip(page, 'homekit')).toHaveCount(0);
-    await more.click();
-    await expect(more).toHaveText('Fewer');
-    await expect(more).toHaveAttribute('aria-expanded', 'true');
-    await expect(group.locator('[data-tag]')).toHaveText(['All', 'Integration4', 'MQTT3', 'Control2', 'Device management2', 'Matter2', 'Home Assistant2', 'Automation1', 'Devices1', 'HomeKit1', 'MCP1', 'Alarm system1']);
-    // a chip of the rest, chosen, stays when the row collapses
-    await chip(page, 'mcp').click();
-    await expect(names(page)).toHaveText(['SukramJ/openccu-loom']);
-    await more.click();
-    await expect(chip(page, 'mcp')).toHaveAttribute('aria-pressed', 'true');
-    await expect(chip(page, 'homekit')).toHaveCount(0);
-    await expect(more).toHaveText('2 more');
-    // the open row is remembered
-    await more.click();
-    await page.reload();
-    await expect(group.locator('[data-tag-more]')).toHaveText('Fewer');
-    await expect(chip(page, 'homekit')).toBeVisible();
+    await expect(names(page)).toHaveCount(8);
+    const top0 = await cardsTop(page);
+    await button(page).click();
+    await row(page, 'alarm').getByRole('checkbox').uncheck();
+    await expect(chips(page)).toHaveCount(10);
+    const line = page.locator('[data-tag-chips]');
+    const h = (await line.boundingBox())!.height;
+    expect(h).toBeLessThan(40);
+    expect(await cardsTop(page)).toBe(top0);
+    // nothing wider than the page
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 });
 
-test('German: the tags, the summary and the details', async ({page}) => {
+test('the card pills: the tags as icons in their colours, the name on hover and on focus, "+n" for many', async ({page}) => {
+    // the catalogue's loom carries every tag here, so its card needs "+n"
+    await page.route('**/api/system/v1/catalog', async (r) => {
+        const res = await r.fetch();
+        const body = await res.json();
+        body.catalog.addons = body.catalog.addons.map((e: {git: string}) => (e.git.endsWith('openccu-loom') ? {...e, tags: body.catalog.tags.map((t: {id: string}) => t.id)} : e));
+        await r.fulfill({response: res, json: body});
+    });
+    await page.goto('/addons');
+    const mq = card(page, 'mosquitto').locator('[data-addon-pills]');
+    await expect(mq.locator('[data-pill]')).toHaveCount(2);
+    expect(await mq.locator('[data-pill]').evaluateAll((els) => els.map((el) => el.getAttribute('data-pill')))).toEqual(['integration', 'mqtt']);
+    const pill = mq.locator('[data-pill="mqtt"]');
+    await expect(pill).toHaveAttribute('aria-label', 'MQTT');
+    await expect(pill.locator('svg')).toHaveCount(1);
+    await expect(pill).not.toHaveText(/MQTT/); // an icon, the name only in its tooltip
+    const tip = (l: typeof pill) => l.evaluate((el) => (getComputedStyle(el, '::after').display === 'none' ? '0' : '1'));
+    expect(await tip(pill)).toBe('0');
+    await pill.hover();
+    await expect.poll(() => tip(pill)).toBe('1');
+    expect(await pill.evaluate((el) => getComputedStyle(el, '::after').content)).toBe('"MQTT"');
+    await page.mouse.move(0, 0);
+    await expect.poll(() => tip(pill)).toBe('0');
+    // the keyboard reaches it and shows the same
+    await mq.locator('[data-pill="integration"]').focus();
+    await page.keyboard.press('Tab');
+    await expect(pill).toBeFocused();
+    await expect.poll(() => tip(pill)).toBe('1');
+    // not a button: a click filters nothing
+    await pill.click();
+    await expect(names(page)).toHaveCount(8);
+    // fifteen tags: nine icons and "+6", the rest named in its tooltip
+    const loom = card(page, 'repo-SukramJ-openccu-loom').locator('[data-addon-pills]');
+    await expect(loom.locator('[data-pill]')).toHaveCount(9);
+    const more = loom.locator('[data-pill-more]');
+    await expect(more).toHaveText('+6');
+    await expect(more).toHaveAttribute('aria-label', /^6 more: /);
+    // every card's row has the same height: none, two or fifteen tags; no row is wider than its card
+    const rows = await page.locator('[data-addon-pills]').evaluateAll((els) => els.map((el) => ({h: Math.round(el.getBoundingClientRect().height), over: el.scrollWidth > (el.parentElement as HTMLElement).clientWidth})));
+    expect(new Set(rows.map((r) => r.h))).toEqual(new Set([22]));
+    expect(rows.some((r) => r.over)).toBe(false);
+    await expect(card(page, 'hm2mqtt').locator('[data-addon-pills] [data-pill]')).toHaveCount(0);
+});
+
+test('German: the tag filter, the chips, the pills, the summary and the details', async ({page}) => {
     await page.addInitScript(() => localStorage.setItem('ol.language', 'de'));
     await page.goto('/addons');
-    const group = page.getByRole('group', {name: 'Nach Schlagwort filtern'});
-    await expect(group.locator('[data-tag]').first()).toHaveText('Alle');
-    await expect(chip(page, 'device-management')).toHaveText('Geräteverwaltung2');
-    await expect(group.locator('[data-tag-more]')).toHaveText('3 weitere');
+    await page.getByRole('button', {name: 'Tags: alle'}).click();
+    await expect(panel(page)).toHaveAttribute('aria-label', 'Nach Tags filtern');
+    expect(await rowText(page, 'device-management')).toBe('Geräteverwaltung2');
+    await expect(panel(page).getByRole('button', {name: 'Alle'})).toBeDisabled();
+    await panel(page).getByRole('button', {name: 'Keine'}).click();
+    await expect(page.locator('[data-tag-chip-none]')).toHaveText('kein Tag angehakt');
+    await row(page, 'mqtt').getByRole('checkbox').check();
+    await expect(page.getByRole('button', {name: 'Tags: 1'})).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(page.getByText('Gefiltert:', {exact: true})).toBeVisible();
+    await expect(page.getByRole('button', {name: 'MQTT aus dem Filter entfernen'})).toBeVisible();
+    await page.getByRole('button', {name: 'Filter zurücksetzen'}).click();
+    await expect(page.getByRole('button', {name: 'Tags: alle'})).toBeVisible();
+    await expect(card(page, 'mosquitto').locator('[data-pill="integration"]')).toHaveAttribute('aria-label', 'Anbindung');
     await expect(card(page, 'mosquitto').locator('[data-addon-summary]')).toHaveText('Stub-Zusammenfassung von Mosquitto');
     await card(page, 'mosquitto').getByRole('button', {name: 'Details zu Mosquitto'}).click();
     await expect(page.getByRole('dialog', {name: 'Mosquitto'}).locator('[data-detail-tags] .ol-badge')).toHaveText(['Anbindung', 'MQTT']);
@@ -195,10 +295,10 @@ test('German: the tags, the summary and the details', async ({page}) => {
     await expect(tech.locator('[data-detail-facts] li')).toHaveText(['Läuft als eigener Benutzer (eingesperrt)', 'Port 8099/tcp · Stub-Port: geschlossen, bis es geöffnet wird', 'API-Token: meta:read']);
 });
 
-test('a remembered tag the list no longer has is no choice', async ({page}) => {
-    await page.addInitScript(() => localStorage.setItem('ol.addons.tags', '["gone"]'));
+test('a remembered filter whose tags the list no longer has is no filter', async ({page}) => {
+    await page.addInitScript(() => localStorage.setItem('ol.addons.tagFilter', '["gone"]'));
     await page.goto('/addons');
-    await expect(chip(page, '')).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.getByRole('button', {name: 'Tags: all'})).toBeVisible();
     await expect(names(page)).toHaveCount(8);
 });
 

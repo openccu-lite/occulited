@@ -12,9 +12,10 @@
      * (the maintainer, 2026-09-22); a card with a frontend says so in one quiet line.
      *
      * Above the list: the filter, *Installed only* (remembered per browser), *Check for updates*
-     * (the catalogue refresh) and *Update all* when more than one update waits; below them the
-     * catalogue's tags as chips with counts (occulited task 188), several at a time, remembered per
-     * browser. A card shows the manifest's one-line summary, else the description; the runtime
+     * (the catalogue refresh) and *Update all* when more than one update waits; beside the filter
+     * the catalogue's tags as a list of checkboxes, the checked ones as chips under the toolbar
+     * (occulited tasks 188, 189), remembered per browser; each card shows its tags as coloured
+     * icons. A card shows the manifest's one-line summary, else the description; the runtime
      * note and a long Info: line are behind *Details*, a dialog (the note is in the install
      * question as well). One, two or three
      * columns by the window's width. Below: the
@@ -53,7 +54,9 @@
     import Icon from '../lib/Icon.svelte';
     import ModalDialog from '../lib/ModalDialog.svelte';
     import {derivedFacts, factText, technicalText, type Fact} from '../lib/addontech';
-    import {knownChosen, matchesTags, orderTags, parseChosen, readTags, shownTags, tagCounts, TAGS_KEY, TAGS_MORE_KEY, toggleTag, visibleTags, type CatalogTag} from '../lib/catalogtags';
+    import {cardPills, FILTER_KEY, matchesFilter, normalizeFilter, orderTags, parseFilter, readTags, serializeFilter, tagCounts, toggleFilter, usedTags, type CatalogTag, type TagFilter as Filter} from '../lib/catalogtags';
+    import TagFilter from '../lib/TagFilter.svelte';
+    import {tagColor, tagIcon} from '../lib/tagstyle';
 
     interface InstallResult { exit: number; meaning: string; reboot_required: boolean; output?: string; seconds: number; stopped_addons?: StoppedAddon[]; started?: string[] }
     interface UpdateInfo { installed: string; available: string; update_available: boolean; url: string; error?: string }
@@ -123,32 +126,17 @@
             /* no storage */
         }
     });
-    // occulited task 188: the tags chosen in the filter, remembered per browser like Installed only
-    let chosenTags = $state<string[]>([]);
+    // occulited task 189: the tag filter - null is all tags checked - remembered per browser like Installed only
+    let tagFilter = $state<Filter>(null);
     try {
-        chosenTags = parseChosen(localStorage.getItem(TAGS_KEY));
+        tagFilter = parseFilter(localStorage.getItem(FILTER_KEY));
     } catch {
         /* no storage */
     }
     $effect(() => {
-        const v = JSON.stringify(chosenTags);
+        const v = serializeFilter(activeFilter);
         try {
-            localStorage.setItem(TAGS_KEY, v);
-        } catch {
-            /* no storage */
-        }
-    });
-    // the collapsed chip row shows the most used tags; *More* shows all (remembered per browser)
-    let tagsExpanded = $state(false);
-    try {
-        tagsExpanded = localStorage.getItem(TAGS_MORE_KEY) === '1';
-    } catch {
-        /* no storage */
-    }
-    $effect(() => {
-        const v = tagsExpanded ? '1' : '0';
-        try {
-            localStorage.setItem(TAGS_MORE_KEY, v);
+            localStorage.setItem(FILTER_KEY, v);
         } catch {
             /* no storage */
         }
@@ -251,15 +239,15 @@
         const hay = `${c.id} ${c.name} ${tx(c.entry?.summary)} ${tx(c.entry?.description)} ${c.entry && !c.entry.id ? repoName(c.entry) : ''}`.toLowerCase();
         return hay.includes(filter.toLowerCase());
     }));
-    // occulited task 188: a tag the list no longer has is no choice (kept while the list is unknown)
-    const activeTags = $derived(knownChosen(chosenTags, tagList));
-    const shown = $derived(filtered.filter((c) => matchesTags(c.entry?.tags, activeTags)));
-    // the chips: the tags some card carries, ordered by the whole catalogue's counts (stable while
-    // filtering), collapsed to the most used ones until *More*
+    // occulited task 189: the filter's rows are the tags some card carries, ordered by the whole
+    // catalogue's counts (stable while filtering); a tag no card carries is no choice, every row
+    // checked is no filter (kept as remembered while the catalogue is unknown)
     const allTagged = $derived(cards.map((c) => ({tags: c.entry?.tags})));
-    const orderedChips = $derived(orderTags(visibleTags(tagList, allTagged, activeTags), allTagged));
-    const chipRow = $derived(shownTags(orderedChips, activeTags, tagsExpanded));
-    const tagChips = $derived(chipRow.tags);
+    const filterTags = $derived(orderTags(usedTags(tagList, allTagged), allTagged));
+    const filterIds = $derived(filterTags.map((x) => x.id));
+    const activeFilter = $derived(normalizeFilter(tagFilter, filterIds));
+    const shown = $derived(filtered.filter((c) => matchesFilter(c.entry?.tags, activeFilter)));
+    const chipTags = $derived(activeFilter === null ? [] : filterTags.filter((x) => activeFilter.includes(x.id)));
     const counts = $derived(tagCounts(filtered.map((c) => ({tags: c.entry?.tags})), tagList));
     const pending = $derived(cards.filter((c) => c.update));
     // B-52: a first visit - no check has reached GitHub yet - and what failed, in the user's words
@@ -756,6 +744,9 @@
     {/if}
     <div class="ol-toolbar ad-toolbar" data-addons-toolbar>
         <input class="hmm-input ad-filter" placeholder={t('Filter')} bind:value={filter} aria-label={t('Filter')} />
+        {#if filterTags.length}
+            <TagFilter tags={filterTags} filter={activeFilter} {counts} label={(x) => tx(x.label)} onchange={(f) => (tagFilter = f)} />
+        {/if}
         <label class="ad-switch"><input type="checkbox" bind:checked={installedOnly} /> {t('Installed only')}</label>
         {#if daily !== null}
             <CheckDaily label={t('Check for updates')} busyLabel={t('Checking…')} busy={refreshing} disabled={installRunning} onCheck={checkUpdates} daily={daily} onDaily={setDaily} dailyDisabled={!admin} host={t('GitHub (the catalogue and the addons\' releases) and each addon\'s own update check')} name="catalog" />
@@ -778,20 +769,25 @@
             {/if}
         </span>
     </div>
-    {#if tagChips.length}
-        <!-- occulited task 188: the catalogue's tags; several at a time, a card with any of them shows.
-             The count is of the cards the text filter and Installed only let through; its width is
-             reserved, so a chip keeps its size while the counts change -->
-        <div class="ad-tags" role="group" aria-label={t('Filter by tag')} data-tag-filter>
-            <button type="button" class="ad-tag" aria-pressed={activeTags.length === 0} onclick={() => (chosenTags = [])} data-tag="">{t('All')}</button>
-            {#each tagChips as tg (tg.id)}
-                {@const on = activeTags.includes(tg.id)}
-                <button type="button" class="ad-tag" aria-pressed={on} aria-label={t('{tag}: {n}', {tag: tx(tg.label), n: counts[tg.id] ?? 0})} title={tx(tg.label)} onclick={() => (chosenTags = toggleTag(activeTags, tg.id, tagList))} data-tag={tg.id}>
-                    <span class="ad-tag-label">{tx(tg.label)}</span><span class="ad-tag-count" data-tag-count>{counts[tg.id] ?? 0}</span>
-                </button>
-            {/each}
-            {#if shownTags(orderedChips, [], false).more > 0}
-                <button type="button" class="ad-tag ad-tag-more" aria-expanded={tagsExpanded} onclick={() => (tagsExpanded = !tagsExpanded)} data-tag-more>{tagsExpanded ? t('Fewer') : t('{n} more', {n: chipRow.more})}</button>
+    {#if filterTags.length}
+        <!-- occulited task 189: the checked tags as chips, each with its × and the filter's reset; the
+             line is always there and one row high (the chips scroll sideways on a narrow screen), so
+             checking or unchecking a tag never moves the cards below it -->
+        <div class="ad-filtered" data-tag-chips={activeFilter === null ? 'all' : chipTags.length}>
+            {#if activeFilter !== null}
+                <span class="ol-muted ad-filtered-label">{t('Filtered:')}</span>
+                <ul class="ad-chips" aria-label={t('Filtered:')}>
+                    {#each chipTags as tg (tg.id)}
+                        <li class="ad-chip" data-tag-chip={tg.id}>
+                            <span class="ad-chip-icon" style:color={tagColor(tg.id)}><Icon name={tagIcon(tg.id)} size={13} /></span>
+                            <span class="ad-chip-name">{tx(tg.label)}</span>
+                            <button type="button" class="ad-chip-x" aria-label={t('Remove {tag} from the filter', {tag: tx(tg.label)})} onclick={() => (tagFilter = toggleFilter(activeFilter, tg.id, filterIds))}>×</button>
+                        </li>
+                    {:else}
+                        <li class="ol-muted ad-chip-none" data-tag-chip-none>{t('no tag checked')}</li>
+                    {/each}
+                </ul>
+                <button type="button" class="ad-reset" onclick={() => (tagFilter = null)} data-tag-reset>{t('Reset filter')}</button>
             {/if}
         </div>
     {/if}
@@ -830,7 +826,7 @@
     <!-- B-52: one card that cannot render must not blank the whole list without a word -->
     <svelte:boundary onerror={(e) => console.error('addons: the list could not be rendered', e)}>
     {#if shown.length === 0}
-        <div class="ol-notice">{installedOnly && !filter && activeTags.length === 0 ? t('No addons installed. Install a frontend such as homematic-manager to pair devices.') : t('Nothing matches the filter.')}</div>
+        <div class="ol-notice">{installedOnly && !filter && activeFilter === null ? t('No addons installed. Install a frontend such as homematic-manager to pair devices.') : t('Nothing matches the filter.')}</div>
     {/if}
     <div class="ol-cards ad-cards" data-addon-cards={shown.length}>
         {#each shown as c (c.id)}
@@ -854,6 +850,7 @@
             {@const sum = e?.id ? tx(e.summary) : ''}
             {@const desc = e?.id ? tx(e.description) : ''}
             {@const longInfo = infoBehindDetails(a)}
+            {@const pills = cardPills(e?.tags, tagList)}
             <div class="ol-card ad-card {edge}" class:dim={!!e && !e.id && !a} id={`addon-row-${c.id}`} data-addon-card={c.id} data-installed={a ? '1' : '0'} data-warn-for={a ? ADDON_WARNINGS.join(' ') : undefined} data-warn-edge={edge || undefined}>
                 <div class="ad-head">
                     <span class="ad-logo">
@@ -966,6 +963,19 @@
                 {:else if e}
                     <p class="ol-muted ad-desc">{t('Its description arrives with the next check for updates, which reads the addon\'s manifest from its repository.')}</p>
                 {/if}
+                <!-- occulited task 189: the card's tags as icons in their colours, the name in the tooltip
+                     (hover and keyboard focus); one row of a fixed height on every card, the rest behind "+n" -->
+                <div class="ad-pills" role="list" aria-label={t('Tags')} data-addon-pills={pills.shown.length + pills.rest.length}>
+                    {#each pills.shown as tg (tg.id)}
+                        <!-- svelte-ignore a11y_no_noninteractive_tabindex -- focusable so the keyboard shows the name too, as hover does -->
+                        <span class="ad-pill" role="listitem" tabindex="0" aria-label={tx(tg.label)} data-tip={tx(tg.label)} style:--tag-c={tagColor(tg.id)} data-pill={tg.id}><Icon name={tagIcon(tg.id)} size={13} /></span>
+                    {/each}
+                    {#if pills.rest.length}
+                        {@const rest = pills.rest.map((x) => tx(x.label)).join(', ')}
+                        <!-- svelte-ignore a11y_no_noninteractive_tabindex -- the rest's names, for the keyboard as for the mouse -->
+                        <span class="ad-pill ad-pill-more" role="listitem" tabindex="0" aria-label={t('{n} more: {tags}', {n: pills.rest.length, tags: rest})} data-tip={rest} data-pill-more>+{pills.rest.length}</span>
+                    {/if}
+                </div>
                 {#if e?.error}<p class="ol-muted ad-check ol-warn">{t('The last check could not read its manifest: {error}', {error: e.error})}</p>{/if}
                 {#if a?.from_ccu && (a.failed || !a.enabled)}
                     <p class="ol-notice ad-from-ccu" data-from-ccu>
@@ -1118,7 +1128,7 @@
                 {/if}
                 {#if de.tags?.length}
                     <p class="ad-detail-tags" data-detail-tags>
-                        {#each de.tags as id (id)}{@const tg = tagList.find((x) => x.id === id)}{#if tg}<span class="ol-badge">{tx(tg.label)}</span>{/if}{/each}
+                        {#each de.tags as id (id)}{@const tg = tagList.find((x) => x.id === id)}{#if tg}<span class="ol-badge ad-detail-tag"><span class="ad-chip-icon" style:color={tagColor(tg.id)}><Icon name={tagIcon(tg.id)} size={12} /></span>{tx(tg.label)}</span>{/if}{/each}
                     </p>
                 {/if}
                 <p class="ol-muted ad-meta-line">
@@ -1176,20 +1186,45 @@
     .ad-cards { grid-template-columns: minmax(0, 1fr); gap: 14px; }
     @media (min-width: 1101px) { .ad-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
     @media (min-width: 1400px) { .ad-cards { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
-    /* the tag chips: a pressed chip changes its colours only, never its box; the count's width is
-       reserved for two digits, so nothing moves while the counts change */
-    .ad-tags { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 14px; }
-    .ad-tag {
-        display: inline-flex; align-items: center; gap: 6px; min-height: 28px; padding: 2px 10px;
-        border: 1px solid var(--hmm-border); border-radius: 14px; background: var(--hmm-control-bg, transparent);
-        color: var(--hmm-fg); font: inherit; font-size: var(--hmm-font-size-small); cursor: pointer; white-space: nowrap;
+    /* occulited task 189: the line of checked tags, one row high whether it holds chips or not */
+    .ad-filtered { display: flex; align-items: center; gap: 8px; min-height: 30px; margin: 2px 0 10px; min-width: 0; }
+    .ad-filtered-label { flex: 0 0 auto; font-size: var(--hmm-font-size-small); }
+    .ad-chips { display: flex; gap: 6px; flex: 0 1 auto; min-width: 0; margin: 0; padding: 2px 0; list-style: none; overflow-x: auto; scrollbar-width: thin; }
+    .ad-chip {
+        display: inline-flex; align-items: center; gap: 5px; flex: 0 0 auto; height: 24px; padding: 0 2px 0 8px;
+        border: 1px solid var(--hmm-border); border-radius: 12px; background: var(--hmm-control-bg, transparent);
+        font-size: var(--hmm-font-size-small); white-space: nowrap;
     }
-    .ad-tag:hover { background: var(--hmm-control-bg-hover); }
-    .ad-tag:focus-visible { outline: 2px solid var(--hmm-accent); outline-offset: 2px; }
-    .ad-tag[aria-pressed='true'] { background: var(--hmm-accent-bg); border-color: var(--hmm-accent); color: var(--hmm-accent); }
-    .ad-tag-count { min-width: 2ch; text-align: right; font-variant-numeric: tabular-nums; color: var(--hmm-fg-muted); }
-    .ad-tag[aria-pressed='true'] .ad-tag-count { color: inherit; }
-    .ad-tag-more { border-style: dashed; color: var(--hmm-link, var(--hmm-accent)); }
+    .ad-chip-none { align-self: center; font-size: var(--hmm-font-size-small); white-space: nowrap; }
+    .ad-chip-icon { display: inline-flex; }
+    .ad-chip-x {
+        display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px; padding: 0;
+        border: 0; border-radius: 50%; background: none; color: var(--hmm-fg-muted); font: inherit; font-size: 15px; line-height: 1; cursor: pointer;
+    }
+    .ad-chip-x:hover { background: var(--hmm-control-bg-hover); color: var(--hmm-fg); }
+    .ad-chip-x:focus-visible, .ad-reset:focus-visible { outline: 2px solid var(--hmm-accent); outline-offset: 1px; }
+    .ad-reset { flex: 0 0 auto; padding: 0; border: 0; background: none; font: inherit; font-size: var(--hmm-font-size-small); color: var(--hmm-link, var(--hmm-accent)); cursor: pointer; white-space: nowrap; }
+    .ad-reset:hover { text-decoration: underline; }
+    /* the card's tag icons: a row of a fixed height (empty on a card without tags), each icon on a
+       tint of its colour; the tooltip is the pill's own, so hover and focus show the name alike */
+    .ad-pills { display: flex; flex-wrap: nowrap; align-items: center; gap: 4px; height: 22px; margin: 2px 0 6px; }
+    .ad-pill {
+        position: relative; display: inline-flex; align-items: center; justify-content: center; flex: 0 0 auto;
+        width: 22px; height: 22px; border-radius: 6px; color: var(--tag-c);
+        background: color-mix(in srgb, var(--tag-c) 14%, transparent); cursor: default;
+    }
+    .ad-pill-more { width: auto; min-width: 22px; padding: 0 5px; --tag-c: var(--hmm-fg-muted); font-size: 11px; font-weight: 600; font-variant-numeric: tabular-nums; }
+    .ad-pill:focus-visible { outline: 2px solid var(--hmm-accent); outline-offset: 1px; }
+    .ad-pill::after {
+        content: attr(data-tip); position: absolute; z-index: 30; bottom: calc(100% + 6px); left: 50%; transform: translateX(-50%);
+        padding: 3px 8px; border-radius: 5px; background: var(--hmm-fg); color: var(--hmm-bg);
+        font-size: 12px; font-weight: 400; line-height: 1.4; white-space: nowrap; pointer-events: none; display: none;
+    }
+    /* not there until shown: a hidden tooltip would still widen the card's scroll area */
+    .ad-pill:first-child::after { left: 0; transform: none; }
+    .ad-pill-more::after { left: auto; right: 0; transform: none; width: max-content; max-width: 220px; white-space: normal; }
+    .ad-pill:hover::after, .ad-pill:focus-visible::after { display: block; }
+    .ad-detail-tag { display: inline-flex; align-items: center; gap: 4px; }
     /* the summary on one line, cut with an ellipsis and whole in its tooltip */
     .ad-summary { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .ad-details-btn {

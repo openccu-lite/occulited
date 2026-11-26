@@ -446,6 +446,64 @@ body { background: var(--hmm-page-bg); }
     --ol-recoverybar-fg: #1b1f26;
     --ol-recoverybar-edge: #f0cc33;
 }
+/*
+ * occulited task 189: the catalogue tags' colours (lib/tagstyle.ts names the icon of each). Fifteen
+ * hues told apart by colour and by the icon; every one keeps 4.5:1 or more on the card and the
+ * popup in its theme (light on #ffffff, dark on #232830 and #1b1f26), so an icon alone reads too.
+ */
+:root {
+    --ol-tag-control: #1d4ed8;
+    --ol-tag-automation: #c2410c;
+    --ol-tag-integration: #6d28d9;
+    --ol-tag-devices: #8a6d00;
+    --ol-tag-device-management: #0f766e;
+    --ol-tag-monitoring: #2e7d32;
+    --ol-tag-history: #7c5446;
+    --ol-tag-remote: #3730a3;
+    --ol-tag-tools: #52616b;
+    --ol-tag-mqtt: #be185d;
+    --ol-tag-matter: #4d7c0f;
+    --ol-tag-home-assistant: #0e7490;
+    --ol-tag-homekit: #b45309;
+    --ol-tag-mcp: #a21caf;
+    --ol-tag-alarm: #b91c1c;
+}
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme='light']) {
+        --ol-tag-control: #7aa2ff;
+        --ol-tag-automation: #ff9f5a;
+        --ol-tag-integration: #b69cff;
+        --ol-tag-devices: #e6c34a;
+        --ol-tag-device-management: #4fd6c3;
+        --ol-tag-monitoring: #7cd67f;
+        --ol-tag-history: #d0aa98;
+        --ol-tag-remote: #9d9cff;
+        --ol-tag-tools: #aab9c2;
+        --ol-tag-mqtt: #f78fbb;
+        --ol-tag-matter: #a8d84f;
+        --ol-tag-home-assistant: #4cd3e6;
+        --ol-tag-homekit: #f8b84e;
+        --ol-tag-mcp: #ef8cff;
+        --ol-tag-alarm: #ff7b7b;
+    }
+}
+:root[data-theme='dark'] {
+    --ol-tag-control: #7aa2ff;
+    --ol-tag-automation: #ff9f5a;
+    --ol-tag-integration: #b69cff;
+    --ol-tag-devices: #e6c34a;
+    --ol-tag-device-management: #4fd6c3;
+    --ol-tag-monitoring: #7cd67f;
+    --ol-tag-history: #d0aa98;
+    --ol-tag-remote: #9d9cff;
+    --ol-tag-tools: #aab9c2;
+    --ol-tag-mqtt: #f78fbb;
+    --ol-tag-matter: #a8d84f;
+    --ol-tag-home-assistant: #4cd3e6;
+    --ol-tag-homekit: #f8b84e;
+    --ol-tag-mcp: #ef8cff;
+    --ol-tag-alarm: #ff7b7b;
+}
 .ol-header {
     position: relative; z-index: 45; flex: 0 0 auto;
     display: flex; align-items: center; gap: 12px; min-height: var(--hmm-header-height);
