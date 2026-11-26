@@ -1,0 +1,23 @@
+{
+  "format": 1,
+  "id": "ccu-jack",
+  "name": "CCU-Jack",
+  "description": {
+    "de": "REST (VEAP) und MQTT für das System, mit TLS und Zugriffsrechten. Läuft auf openccu-lite noch nicht: CCU-Jack wartet beim Start auf die ReGa und startet seine Schnittstellen erst, wenn sie antwortet; openccu-lite hat keine ReGa. Das ändert sich, sobald CCU-Jack einen Start ohne sie anbietet.",
+    "en": "REST (VEAP) and MQTT for the system, with TLS and access control. Does not run on openccu-lite yet: at its start CCU-Jack waits for the ReGa and starts its interfaces only once it answers; openccu-lite has no ReGa. That changes once CCU-Jack offers a start without it."
+  },
+  "homepage": "https://github.com/mdzio/ccu-jack",
+  "licence": "GPL-3.0",
+  "release": {
+    "github": "mdzio/ccu-jack",
+    "assets": {
+      "armv7l": "ccu-jack-ccu3-rm-rp2+3-{version}.tar.gz",
+      "aarch64": "ccu-jack-rm-rp4-{version}.tar.gz",
+      "x86_64": "ccu-jack-vccu-x86_64-{version}.tar.gz"
+    }
+  },
+  "requires": {
+    "architectures": ["armv7l", "aarch64", "x86_64"],
+    "rega": true
+  }
+}

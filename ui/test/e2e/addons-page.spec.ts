@@ -105,8 +105,8 @@ test('the ⋯ menu holds Stop, Restart, Disable at boot, Reinstall and Uninstall
     await expect.poll(() => posted).toEqual(['/api/system/v1/services/addon-redmatic/stop']);
 });
 
-// occulited task 188: JP-HB-Devices, CCU-Jack and HomeKit-CCU left the catalogue. An installed one
-// (the stub's JP-HB-Devices: installed, no catalogue entry) is still a whole card - its state, its
+// occulited task 188: HomeKit-CCU left the catalogue (JP-HB-Devices and CCU-Jack with it for rc.5).
+// An installed one (the stub's JP-HB-Devices: installed, no entry in the stub's catalogue) is still a whole card - its state, its
 // version, Uninstall in the ⋯ menu - and offers neither an install nor a catalogue reinstall.
 test('an installed addon the catalogue no longer lists: a whole card, manageable, no catalogue actions', async ({page}) => {
     await page.goto('/addons');

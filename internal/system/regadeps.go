@@ -59,8 +59,9 @@ var regaScanCache sync.Map // id -> regaVerdict
 // says it itself - with the manifest it ships (D-119), or the older marker file below.
 //
 // JP-HB-Devices is named here since occulited task 188: its adapter manifest was the only one that
-// said "runs without the ReGa", and it left the catalogue with it. An installed one keeps that
-// verdict (its device descriptions work without the ReGa; its WebUI patches run into the void),
+// said "runs without the ReGa", and it left the catalogue with it for 2.0.0-rc.5 (back since rc.6,
+// when main finds its adapter again; the entry stays for an image or catalogue without it). An
+// installed one keeps that verdict (its device descriptions work without the ReGa; its WebUI patches run into the void),
 // so it is neither flagged nor disabled by the scan of its Tcl code.
 var RegaCompatible = map[string]bool{"jp-hb-devices-addon": true}
 
