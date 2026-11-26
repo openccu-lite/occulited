@@ -2,9 +2,13 @@ package system
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"math"
 	"regexp"
+	"slices"
 	"sort"
+	"strings"
 	"time"
 )
 
@@ -62,6 +66,85 @@ var (
 // VoltageQuery is the kernel log read the episodes come from: this boot's kernel lines with the word.
 var VoltageQuery = LogQuery{Kernel: true, Boot: "0", Contains: "voltage", Limit: 1000}
 
+// MergeVoltageLines joins the voltage lines of several kernel log sources (occulited B-186: the
+// ring buffer and the journal), a line found in more than one counted once - the same kernel stamp
+// and the same kind; a line without a stamp is kept from the first source that has it. The journal
+// on the SD-card products is volatile and size-capped: 13 h after the production Pi's boot its
+// kernel lines began at 46673 s, and the boot dip's two lines were left in the ring buffer alone.
+func MergeVoltageLines(sets ...[]LogLine) []LogLine {
+	type key struct {
+		us    int64
+		under bool
+		msg   string
+	}
+	seen := map[key]bool{}
+	var out []LogLine
+	for _, set := range sets {
+		for _, l := range set {
+			under := underVoltageRe.MatchString(l.Message)
+			if !under && !voltageNormalRe.MatchString(l.Message) {
+				continue
+			}
+			k := key{us: l.MonotonicUS, under: under}
+			if l.MonotonicUS <= 0 {
+				k.msg = l.Timestamp + "\x00" + l.Message
+			}
+			if seen[k] {
+				continue
+			}
+			seen[k] = true
+			out = append(out, l)
+		}
+	}
+	return out
+}
+
+// KernelVoltageLines is the panel's kernel read (occulited B-186): the ring buffer's lines and the
+// journal's, merged; an error only when neither could be read. ring and journal are nil where the
+// box has no such source.
+func KernelVoltageLines(ring, journal func() ([]LogLine, error)) ([]LogLine, error) {
+	var sets [][]LogLine
+	var first error
+	for _, read := range []func() ([]LogLine, error){ring, journal} {
+		if read == nil {
+			continue
+		}
+		lines, err := read()
+		if err != nil {
+			if first == nil {
+				first = err
+			}
+			continue
+		}
+		sets = append(sets, lines)
+	}
+	if len(sets) == 0 {
+		if first == nil {
+			first = errors.New("no kernel log to read")
+		}
+		return nil, first
+	}
+	return MergeVoltageLines(sets...), nil
+}
+
+// HelperRing is the ring buffer read through the privilege helper's voltage-log operation, which
+// answers rpi_volt's lines of `dmesg -r` (lite's kernel.dmesg_restrict keeps the daemon out).
+func HelperRing(root Root) Dmesg {
+	return Dmesg{Root: root, Run: func(ctx context.Context, _ string, _ ...string) ([]byte, error) {
+		if Priv == nil {
+			return nil, errors.New("no privilege helper")
+		}
+		r, err := Priv.VoltageLog(ctx)
+		if err != nil {
+			return nil, err
+		}
+		if r.Exit != 0 {
+			return nil, fmt.Errorf("dmesg: exit %d: %s", r.Exit, strings.TrimSpace(string(r.Stderr)))
+		}
+		return r.Stdout, nil
+	}}
+}
+
 func seconds(us int64) float64 { return math.Round(float64(us)/1e5) / 10 }
 
 // VoltageEpisodes pairs the kernel's lines into episodes, oldest first: "detected" opens one
@@ -113,6 +196,44 @@ func VoltageEpisodes(lines []LogLine) []VoltageEpisode {
 	return out
 }
 
+// closeEnded ends the episodes the kernel log leaves open while the supply is fine now (occulited
+// B-186): the maintainer's production Pi showed one episode begun at 19:52 with no "Voltage
+// normalised" after it, and the panel drew it as lasting up to now - the whole 24 h chart red -
+// while the firmware said no undervoltage. An episode is open only while the undervoltage holds
+// now (the firmware's live bit, else rpi_volt's alarm); otherwise it has ended at a moment the log
+// does not tell: duration -1, as for a normalised line without stamps. The cached slice is not
+// touched.
+func closeEnded(eps []VoltageEpisode, now bool) []VoltageEpisode {
+	if now {
+		return eps
+	}
+	var out []VoltageEpisode
+	for i, e := range eps {
+		if e.DurationS != nil {
+			continue
+		}
+		if out == nil {
+			out = slices.Clone(eps)
+		}
+		d := -1.0
+		out[i].DurationS = &d
+	}
+	if out == nil {
+		return eps
+	}
+	return out
+}
+
+// openEpisode is the start of an episode the kernel log leaves open, if any.
+func openEpisode(eps []VoltageEpisode) (VoltageEpisode, bool) {
+	for _, e := range eps {
+		if e.DurationS == nil {
+			return e, true
+		}
+	}
+	return VoltageEpisode{}, false
+}
+
 // isBootDip says whether the episodes are a boot dip: at least one, each begun in the boot phase,
 // normalised within bootDipMax, at most bootDipsMax of them and no longer than bootDipTotal together.
 func isBootDip(eps []VoltageEpisode) bool {
@@ -135,6 +256,7 @@ func isBootDip(eps []VoltageEpisode) bool {
 // uptime closes an open episode for the total.
 func (th *Throttle) assess(eps []VoltageEpisode, read, late bool, uptime time.Duration) {
 	if read {
+		eps = closeEnded(eps, th.Now.UnderVoltage)
 		n := len(eps)
 		th.Events = &n
 		var total float64

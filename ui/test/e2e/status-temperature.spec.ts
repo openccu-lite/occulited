@@ -81,9 +81,9 @@ test('a Pi with a USB SSD: two rings, the disk by its model, undervoltage since 
     await expect(disk).toContainText('Samsung PSSD T7');
     await expect(disk.locator('[data-celsius]')).toHaveText('38.0 °C');
     await expect(disk).toHaveAttribute('title', /USB drive Samsung PSSD T7 \(sda\).*read at/);
-    await expect(p.locator('.tp-pill')).toHaveText('throttled since boot');
-    await expect(p.locator('[data-fact="under_voltage"]')).toHaveText('Undervoltage since the boot');
-    await expect(p.locator('[data-fact="throttled"]')).toHaveText('Throttled since the boot');
+    await expect(p.locator('.tp-pill')).toHaveText('throttled earlier');
+    await expect(p.locator('[data-fact="under_voltage"]')).toHaveText('Supply voltage was too low');
+    await expect(p.locator('[data-fact="throttled"]')).toHaveText('Was throttled');
 });
 
 test('hot: the warning above, its button to the panel, the panel amber; the pill and the figures keep their box', async ({page, baseURL}) => {
@@ -147,10 +147,10 @@ test('undervoltage: a boot dip is an info line, a recurring one a warning, one n
             expect(c).not.toBe(warn.trim());
             await expect(p).not.toHaveClass(/\b(warn|err)\b/);
         } else if (v === 'recurring') {
-            await expect(pill).toHaveText('throttled since boot');
+            await expect(pill).toHaveText('throttled earlier');
             await expect(pill).toHaveClass(/\bwarn\b/);
-            await expect(p.locator('[data-fact="under_voltage"]')).toHaveText(/^Undervoltage since the boot \(3×, last at \d\d:\d\d\)$/);
-            await expect(p.locator('[data-fact="throttled"]')).toHaveText('Throttled since the boot');
+            await expect(p.locator('[data-fact="under_voltage"]')).toHaveText(/^Supply voltage was too low \(3×, last at \d\d:\d\d\)$/);
+            await expect(p.locator('[data-fact="throttled"]')).toHaveText('Was throttled');
             await expect(p.locator('[data-fact="boot_dip"]')).toHaveCount(0);
         } else {
             await expect(pill).toHaveText('undervoltage');
@@ -186,7 +186,7 @@ test('the boot dip in German, in both themes, on a phone', async ({page, baseURL
     }
     await thermal(page, baseURL!, 'recurring');
     await page.goto('/');
-    await expect(panel(page).locator('[data-fact="under_voltage"]')).toHaveText(/^Unterspannung seit dem Start \(3×, zuletzt um \d\d:\d\d\)$/);
+    await expect(panel(page).locator('[data-fact="under_voltage"]')).toHaveText(/^Spannung war zu niedrig \(3×, zuletzt um \d\d:\d\d\)$/);
 });
 
 test('in German, on a phone, in both themes', async ({page, baseURL}) => {
@@ -215,7 +215,7 @@ test('in German, on a phone, in both themes', async ({page, baseURL}) => {
 // occulited B-168 (the maintainer's screenshot, de, a panel ~570 px wide): "Unterspannung seit dem Start (1×,
 // zuletzt um 16:44)" and "Gedrosselt seit dem Start" in one line cut the second chip off mid-word. The box holds two
 // lines now, of the same height whatever it holds (nothing, the boot dip, two, three conditions), and every chip is
-// whole; the pill's word is "seit Start gedrosselt", and its tooltip says what that means
+// whole; the pill's word is "war gedrosselt" (B-186; "seit Start gedrosselt" before), and its tooltip says what that means
 // every chip inside the box; whole unless allowed an ellipsis (a phone's 300 px are a few pixels short of the longest
 // German chip, which then ends in "…" with its text as its tooltip)
 async function chipsWhole(page: Page, ellipsis = false) {
@@ -241,9 +241,9 @@ test('the facts keep two lines in every state, and no chip is cut', async ({page
         await page.goto('/');
         await expect(line).toHaveAttribute('data-throttle-facts', String(n));
         if (v === 'recurring') {
-            await expect(p.locator('[data-fact="under_voltage"]')).toHaveText(/^Unterspannung seit dem Start \(3×, zuletzt um \d\d:\d\d\)$/);
-            await expect(p.locator('[data-fact="throttled"]')).toHaveText('Gedrosselt seit dem Start');
-            await expect(p.locator('.tp-pill')).toHaveText('seit Start gedrosselt');
+            await expect(p.locator('[data-fact="under_voltage"]')).toHaveText(/^Spannung war zu niedrig \(3×, zuletzt um \d\d:\d\d\)$/);
+            await expect(p.locator('[data-fact="throttled"]')).toHaveText('War gedrosselt');
+            await expect(p.locator('.tp-pill')).toHaveText('war gedrosselt');
             await expect(p.locator('.tp-pill')).toHaveAttribute('title', /^Seit dem Start wurde der Prozessor mindestens einmal gedrosselt/);
         }
         await chipsWhole(page);
@@ -357,6 +357,92 @@ test('the undervoltage episodes as red lines in the chart', async ({page, baseUR
     }
 });
 
+// occulited B-186 (the maintainer's production Pi, 2026-11-26): one episode begun the evening before with no end in the
+// kernel log and no undervoltage now painted the whole 24 h chart red. An episode runs up to now only while the
+// undervoltage holds now; otherwise it is a thin mark at its start. A stretch is a light band under the curve, never a
+// saturated block over it, in light and dark.
+test('an episode without an end is a thin mark, a stretch a light band under the curve', async ({page, baseURL}) => {
+    const p = panel(page);
+    const chart = p.locator('.ol-card-foot svg').first();
+    for (const v of ['unended', 'ended'] as const) {
+        await thermal(page, baseURL!, v);
+        await page.goto('/');
+        await expect(chart).toBeVisible();
+        const ev = chart.locator('rect.event');
+        await expect(ev).toHaveCount(1);
+        await expect(ev).toHaveAttribute('data-event-label', /^Undervoltage \d\d:\d\d$/);
+        await expect(ev).not.toHaveClass(/\bband\b/);
+        const b = (await ev.boundingBox())!, c = (await chart.boundingBox())!;
+        expect(b.width).toBeLessThanOrEqual(2);
+        expect(b.width).toBeLessThan(c.width / 20);
+    }
+    // undervoltage now (crit): the open episode is a band up to now - a light tint under the line, edges thin
+    for (const scheme of ['light', 'dark'] as const) {
+        await page.emulateMedia({colorScheme: scheme});
+        await thermal(page, baseURL!, 'crit');
+        await page.goto('/');
+        const band = chart.locator('rect.event.band');
+        await expect(band).toHaveCount(1);
+        await expect(band).toHaveAttribute('data-event-label', /^Undervoltage since \d\d:\d\d$/);
+        const look = await band.evaluate((e) => {
+            const s = document.createElement('span');
+            s.style.color = 'var(--hmm-error)';
+            document.body.append(s);
+            const err = getComputedStyle(s).color;
+            s.remove();
+            const line = e.ownerSVGElement!.querySelector('polyline.line');
+            return {fill: getComputedStyle(e).fill, err, opacity: Number(getComputedStyle(e).opacity), under: !!line && !!(e.compareDocumentPosition(line) & Node.DOCUMENT_POSITION_FOLLOWING)};
+        });
+        expect(look.fill).toBe(look.err);
+        expect(look.opacity).toBeLessThanOrEqual(0.2);
+        expect(look.under).toBe(true);
+        // the moments stay thin lines, muted
+        for (const m of await chart.locator('rect.event:not(.band)').all()) {
+            expect(Number(await m.evaluate((e) => getComputedStyle(e).opacity))).toBeLessThanOrEqual(0.7);
+            expect((await m.boundingBox())!.width).toBeLessThanOrEqual(2);
+        }
+        await expect(chart.locator('line.event-edge')).toHaveCount(1);
+    }
+});
+
+// occulited B-186: "seit Start gedrosselt" beside "1,2 / 1,2 GHz" read as throttled now - the pill says "war
+// gedrosselt", its tooltip that the clock is full now; the pill keeps its box; the warning's advice names the RPI-RF-MOD
+// where the power supply goes into it, and sends nobody to the Pi's socket where that is not known
+test('throttled earlier at full clock, and the power supply through the RPI-RF-MOD', async ({page, baseURL}) => {
+    const p = panel(page);
+    const pill = p.locator('.tp-pill');
+    const notice = page.locator('[data-warnings] [data-notice="power-throttle"]');
+    const widths: number[] = [];
+    for (const lang of ['en', 'de'] as const) {
+        await page.addInitScript((l) => localStorage.setItem('ol.language', l), lang);
+        await thermal(page, baseURL!, 'unended');
+        await page.goto('/');
+        await expect(pill).toHaveText(lang === 'de' ? 'war gedrosselt' : 'throttled earlier');
+        // the facts in the past tense too, each chip's tooltip its text (B-168)
+        await expect(p.locator('[data-fact="under_voltage"]')).toHaveText(lang === 'de' ? /^Spannung war zu niedrig \(1×, zuletzt um \d\d:\d\d\)$/ : /^Supply voltage was too low \(1×, last at \d\d:\d\d\)$/);
+        await expect(p.locator('[data-fact="throttled"]')).toHaveText(lang === 'de' ? 'War gedrosselt' : 'Was throttled');
+        await chipsWhole(page);
+        await expect(pill).toHaveAttribute('title', lang === 'de' ? /\nDer Prozessor läuft jetzt mit vollem Takt \(1,2 \/ 1,2 GHz\)\.\n/ : /\nThe processor runs at its full clock now \(1\.2 \/ 1\.2 GHz\)\.\n/);
+        await expect(notice).toContainText(lang === 'de'
+            ? 'Mit dem RPI-RF-MOD wird das System über das Funkmodul versorgt: Verwenden Sie das dafür vorgesehene Netzteil von ELV und schließen Sie es am RPI-RF-MOD an, nicht am Raspberry Pi.'
+            : 'With the RPI-RF-MOD the system is powered through the radio module: use the ELV power supply meant for it, plugged into the RPI-RF-MOD, not into the Raspberry Pi.');
+        await expect(notice).not.toContainText(lang === 'de' ? 'offizielle Netzteil' : 'official power supply');
+        widths.push((await pill.boundingBox())!.width);
+        // the pill keeps its box: normal is as wide as "throttled earlier" and "undervoltage"
+        await thermal(page, baseURL!, 'pi');
+        await page.goto('/');
+        await expect(pill).toHaveText('normal');
+        expect((await pill.boundingBox())!.width).toBeCloseTo(widths[widths.length - 1]!, 0);
+        await thermal(page, baseURL!, 'crit');
+        await page.goto('/');
+        expect((await pill.boundingBox())!.width).toBeCloseTo(widths[widths.length - 1]!, 0);
+        // the supply not known: generic, and an RPI-RF-MOD's goes into the module
+        await thermal(page, baseURL!, 'ended');
+        await page.goto('/');
+        await expect(notice).toContainText(lang === 'de' ? 'Mit einem RPI-RF-MOD auf dem Raspberry Pi wird das Netzteil am Funkmodul angeschlossen, nicht am Raspberry Pi.' : 'With an RPI-RF-MOD on the Raspberry Pi, the power supply goes into the radio module, not into the Raspberry Pi.');
+    }
+});
+
 test('the chart lines in German', async ({page, baseURL}) => {
     await page.addInitScript(() => localStorage.setItem('ol.language', 'de'));
     await thermal(page, baseURL!, 'bootdip');
@@ -377,7 +463,7 @@ test('the clock, and when and how hot the clock was capped', async ({page, baseU
     await expect(capped).toHaveText(/^Clock capped at (\d+\/\d+ )?\d\d:\d\d at 79\.2 °C$/);
     await expect(capped).toHaveAttribute('title', /Processor clock then: 1\.0 GHz/);
     // set at the first read within the boot phase: since the start-up, no time
-    await expect(p.locator('[data-fact="under_voltage"]')).toHaveText('Undervoltage since the start-up');
+    await expect(p.locator('[data-fact="under_voltage"]')).toHaveText('Supply voltage was too low at start-up');
     // the facts' box keeps its two lines
     const h = await p.locator('.tp-throttle').evaluate((e) => e.getBoundingClientRect().height);
     await thermal(page, baseURL!, 'pi');

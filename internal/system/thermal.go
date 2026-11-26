@@ -100,6 +100,9 @@ type Throttle struct {
 	// tells; Causes when each sticky bit first held this boot and the temperature and clock then
 	Clock  *CPUClock       `json:"clock,omitempty"`
 	Causes []ThrottleCause `json:"causes,omitempty"`
+	// Supply is the power supply's way in (B-186): rpi-rf-mod (through the RPI-RF-MOD on the
+	// header), pi (the Pi's own socket), absent while the radio detection has not answered
+	Supply string `json:"supply,omitempty"`
 }
 
 // ThrottleFlags are the four conditions of the firmware's word.
@@ -397,6 +400,9 @@ type ThermalReader struct {
 	out          string
 	causes       []ThrottleCause
 	causesLoaded bool
+	// B-186: the open episode last logged as ended by the firmware's word
+	unended    float64
+	unendedSet bool
 	// StateFile keeps the causes across a restart of occulited within one boot (task 177); "" =
 	// this process only
 	StateFile string
@@ -444,10 +450,68 @@ func (t *ThermalReader) throttle(ctx context.Context) *Throttle {
 		th.Causes = append([]ThrottleCause(nil), t.causes...)
 	}
 	t.mu.Unlock()
+	if read && !th.Now.UnderVoltage {
+		t.noteUnended(eps, th)
+	}
 	up, _ := t.Root.Uptime()
 	th.assess(eps, read, late, up)
 	th.Clock = t.Root.CPUClock(out) // task 177
+	th.Supply = PowerSupply(t.Root.HMMode())
 	return &th
+}
+
+// noteUnended logs once per episode that the kernel log has no end for it while the supply is
+// fine now (B-186), with what rpi_volt's alarm says, for the next such case: the driver prints
+// "Voltage normalised" once the firmware's sticky bit is clear at its two-second poll.
+func (t *ThermalReader) noteUnended(eps []VoltageEpisode, th Throttle) {
+	e, ok := openEpisode(eps)
+	if !ok {
+		return
+	}
+	t.mu.Lock()
+	seen := t.unended == e.StartS && t.unendedSet
+	t.unended, t.unendedSet = e.StartS, true
+	t.mu.Unlock()
+	if seen {
+		return
+	}
+	log := t.Log
+	if log == nil {
+		log = slog.Default()
+	}
+	alarm, aok := t.Root.UnderVoltageNow()
+	raw := ""
+	if th.Raw != nil {
+		raw = fmt.Sprintf("0x%x", *th.Raw)
+	}
+	log.Info("temperature: the kernel log has no end for an undervoltage episode, but the supply is fine now; drawn as ended", "start", e.Start, "start_s", e.StartS, "word", raw, "rpi_volt_alarm", alarm, "rpi_volt_read", aok)
+}
+
+// The power supply's way into the system on a Raspberry Pi (B-186), for the advice of the warning
+// power-throttle: with an RPI-RF-MOD on the Pi's header (a Charly, a Pi with the module) the
+// system is powered through the radio module - ELV's power supply goes into the RPI-RF-MOD, not
+// into the Pi; with another module (an HmIP-RFUSB, an RPI-RF-MOD on a radio adapter) or none it
+// is the Pi's own socket. "" while the radio detection has not answered.
+const (
+	SupplyRPIRFMOD = "rpi-rf-mod"
+	SupplyPi       = "pi"
+)
+
+// PowerSupply reads it from /var/hm_mode.
+func PowerSupply(kv map[string]string) string {
+	if kv["HM_MODE"] == "" {
+		return ""
+	}
+	for _, role := range []string{"HMIP", "HMRF"} {
+		if kv["HM_"+role+"_DEV"] != "RPI-RF-MOD" {
+			continue
+		}
+		t, _, _ := strings.Cut(strings.ToLower(kv["HM_"+role+"_DEVTYPE"]), "@")
+		if !strings.HasPrefix(t, "hb-rf-") {
+			return SupplyRPIRFMOD
+		}
+	}
+	return SupplyPi
 }
 
 // markLate notes a condition that held after the boot phase.

@@ -127,6 +127,10 @@ func throttleRule(th *system.Throttle, raised []warnings.Warning) *warnings.Warn
 	if th.Last != nil && th.Last.Start != "" {
 		params["last"] = th.Last.Start
 	}
+	// B-186: where the power supply goes in, for the advice (the RPI-RF-MOD's own socket, not the Pi's)
+	if th.Supply != "" {
+		params["supply"] = th.Supply
+	}
 	return &warnings.Warning{ID: PowerThrottleID, Variant: variant, Severity: sev, Href: "#temperature", Params: params}
 }
 

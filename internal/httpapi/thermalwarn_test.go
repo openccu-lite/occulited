@@ -116,6 +116,9 @@ func TestThrottleRule(t *testing.T) {
 		{"earlier, the supply", &system.Throttle{State: system.ThrottleEarlier, SinceBoot: system.ThrottleFlags{UnderVoltage: true, Throttled: true}, Events: n(3), Last: last}, nil, system.ThrottleEarlier, warnings.SeverityWarning, "supply"},
 		{"earlier, the heat", &system.Throttle{State: system.ThrottleEarlier, SinceBoot: system.ThrottleFlags{Throttled: true, SoftTempLimit: true}}, socHot, system.ThrottleEarlier, warnings.SeverityWarning, "heat"},
 		{"earlier, no reason known", &system.Throttle{State: system.ThrottleEarlier, SinceBoot: system.ThrottleFlags{Throttled: true}}, nil, system.ThrottleEarlier, warnings.SeverityWarning, "unknown"},
+		// B-186: where the power supply goes in, for the advice
+		{"earlier, through the RPI-RF-MOD", &system.Throttle{State: system.ThrottleEarlier, SinceBoot: system.ThrottleFlags{UnderVoltage: true}, Events: n(1), Last: last, Supply: system.SupplyRPIRFMOD}, nil, system.ThrottleEarlier, warnings.SeverityWarning, "supply"},
+		{"undervoltage now, the Pi's socket", &system.Throttle{State: system.ThrottleUnderVoltage, Now: system.ThrottleFlags{UnderVoltage: true}, Supply: system.SupplyPi}, nil, system.ThrottleUnderVoltage, warnings.SeverityError, "supply"},
 	}
 	for _, c := range cases {
 		w := throttleRule(c.th, c.raised)
@@ -134,6 +137,9 @@ func TestThrottleRule(t *testing.T) {
 		}
 		if (c.th.Last != nil) != (w.Params["last"] != nil) {
 			t.Errorf("%s: last %v", c.name, w.Params["last"])
+		}
+		if s, ok := w.Params["supply"]; (c.th.Supply != "") != ok || (ok && s != c.th.Supply) {
+			t.Errorf("%s: supply %v", c.name, w.Params["supply"])
 		}
 	}
 }

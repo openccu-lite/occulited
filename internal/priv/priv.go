@@ -226,6 +226,9 @@ type Ops interface {
 	// Throttled reads the Raspberry Pi firmware's throttling word (occulited task 148,
 	// throttled.go): exactly `vcgencmd get_throttled`. A non-zero exit is Result.Exit.
 	Throttled(ctx context.Context) (Result, error)
+	// VoltageLog reads rpi_volt's undervoltage lines of the kernel's ring buffer (occulited B-186,
+	// voltagelog.go): exactly `dmesg -r`, answered as rpi_volt's lines alone.
+	VoltageLog(ctx context.Context) (Result, error)
 	// SetIOAccounting writes or removes systemd's manager drop-in that has every unit's disk
 	// reads and writes counted (occulited task 159, ioaccounting.go): DefaultIOAccounting=yes in
 	// /run/systemd/system.conf.d. The request is the switch; the caller reloads systemd.

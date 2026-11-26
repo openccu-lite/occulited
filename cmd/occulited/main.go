@@ -693,22 +693,20 @@ func run(opts daemonOptions) error {
 		// unit's runtime directory (occulite/state), gone with the boot
 		thermal.StateFile = filepath.Join(filepath.Dir(filepath.Clean(*sessionDir)), "state", "throttle.json")
 	}
-	// B-162: the supply's undervoltage episodes from rpi_volt's kernel lines - the journal (the unit's
-	// systemd-journal group), the ring buffer where the journal holds no kernel line of this boot
+	// B-162: the supply's undervoltage episodes from rpi_volt's kernel lines. B-186: the ring buffer
+	// first - through the helper on a real box (lite's kernel.dmesg_restrict keeps the daemon out),
+	// whose stamps reach back to the boot - merged with the journal, which on the SD-card products
+	// is volatile and size-capped and had lost the production Pi's boot dip 13 h after the boot
+	ring := system.Dmesg{Root: root}
+	if *rootDir == "/" {
+		ring = system.HelperRing(root)
+	}
 	thermal.Kernel = func(context.Context) ([]system.LogLine, error) {
-		if journal == nil {
-			return system.Dmesg{Root: root}.Read(system.VoltageQuery)
+		var fromJournal func() ([]system.LogLine, error)
+		if journal != nil {
+			fromJournal = func() ([]system.LogLine, error) { return journal.Read(system.VoltageQuery) }
 		}
-		lines, err := journal.Read(system.VoltageQuery)
-		if err != nil || len(lines) > 0 {
-			return lines, err
-		}
-		// none in the journal: there was none, or its kernel lines are gone - the ring buffer
-		// where dmesg is allowed, else the journal's answer stands
-		if ring, err := (system.Dmesg{Root: root}).Read(system.VoltageQuery); err == nil {
-			return ring, nil
-		}
-		return lines, nil
+		return system.KernelVoltageLines(func() ([]system.LogLine, error) { return ring.Read(system.VoltageQuery) }, fromJournal)
 	}
 	sysHist := &syshist.Sampler{Read: func() (syshist.Reading, bool) {
 		load, mem, ok := root.ReadUsage()

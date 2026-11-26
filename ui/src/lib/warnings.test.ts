@@ -24,8 +24,8 @@ describe('the Status page warnings (task 81)', () => {
     // occulited task 173: the throttle state - the supply's advice, the heat's, and that the firmware keeps it
     it('says the power-throttle states with their cause', () => {
         const p = (variant: string, params: Warning['params']) => warningText(w('power-throttle', variant, params, '#temperature'), words);
-        expect(p('undervoltage', {cause: 'supply', count: 3})).toBe('The supply voltage is too low now, and the processor is slowed down. The usual cause is the power supply or its cable: use one that delivers enough current (for a Raspberry Pi the official power supply) and a short cable.');
-        expect(p('throttled', {cause: 'supply', count: 2, last: '2026-11-22T16:44:09Z'})).toBe('The processor is slowed down now; since the start the supply voltage was too low (2×, the last on at 2026-11-22T16:44:09Z). The usual cause is the power supply or its cable: use one that delivers enough current (for a Raspberry Pi the official power supply) and a short cable.');
+        expect(p('undervoltage', {cause: 'supply', count: 3, supply: 'pi'})).toBe('The supply voltage is too low now, and the processor is slowed down. The usual cause is the power supply or its cable: use one that delivers enough current (for a Raspberry Pi the official power supply) and a short cable.');
+        expect(p('throttled', {cause: 'supply', count: 2, last: '2026-11-22T16:44:09Z', supply: 'pi'})).toBe('The processor is slowed down now; since the start the supply voltage was too low (2×, the last on at 2026-11-22T16:44:09Z). The usual cause is the power supply or its cable: use one that delivers enough current (for a Raspberry Pi the official power supply) and a short cable.');
         expect(p('throttled', {cause: 'heat'})).toBe('The processor is slowed down now by its temperature limit. Give the system more air, a heat sink or a fan.');
         expect(p('throttled', {cause: 'unknown'})).toBe('The processor is slowed down now.');
         const earlier = p('earlier', {cause: 'supply', count: 3, last: '2026-11-22T10:30:00Z'});
@@ -35,6 +35,20 @@ describe('the Status page warnings (task 81)', () => {
         expect(p('earlier', {cause: 'heat'})).toBe('Not now, but since the start the processor was slowed down by its temperature limit. Give the system more air, a heat sink or a fan. The firmware keeps this until the next start.');
         expect(p('earlier', {cause: 'unknown'})).toBe('Not now, but since the start the processor was slowed down at least once. The firmware keeps this until the next start.');
         expect(warningLink(w('power-throttle', 'earlier', {}, '#temperature'), t)).toEqual({href: '#temperature', label: 'Temperature'});
+    });
+
+    // occulited B-186 (the maintainer): with an RPI-RF-MOD on the Pi the official ELV power supply goes into the radio
+    // module, not into the Pi - the advice follows where the supply goes in; unknown, it sends nobody to the Pi's socket
+    it.each([
+        {supply: 'rpi-rf-mod', want: 'The usual cause is the power supply or its cable. With the RPI-RF-MOD the system is powered through the radio module: use the ELV power supply meant for it, plugged into the RPI-RF-MOD, not into the Raspberry Pi.'},
+        {supply: 'pi', want: 'The usual cause is the power supply or its cable: use one that delivers enough current (for a Raspberry Pi the official power supply) and a short cable.'},
+        {supply: undefined, want: 'The usual cause is the power supply or its cable: use one that delivers enough current and a short cable. With an RPI-RF-MOD on the Raspberry Pi, the power supply goes into the radio module, not into the Raspberry Pi.'},
+    ])('advises on the power supply by where it goes in ($supply)', ({supply, want}) => {
+        for (const variant of ['undervoltage', 'throttled', 'earlier']) {
+            const text = warningText(w('power-throttle', variant, {cause: 'supply', count: 1, supply}, '#temperature'), words);
+            expect(text).toContain(want);
+            if (supply !== 'pi') expect(text).not.toContain('official power supply');
+        }
     });
 
     it('says a newer bootloader is available, or prepared, and links to the Hardware page (openccu-lite task 366)', () => {

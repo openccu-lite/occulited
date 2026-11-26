@@ -2402,6 +2402,7 @@ function activeWarnings(jar, warn, st) {
                 const params = {cause};
                 if (th.events !== undefined) params.count = th.events;
                 if (th.last?.start) params.last = th.last.start;
+                if (th.supply) params.supply = th.supply; // B-186
                 list.push({id: 'power-throttle', variant: state, severity: state === 'undervoltage' ? 'error' : 'warning', href: '#temperature', params});
             }
         }
@@ -3889,6 +3890,14 @@ const THERMAL = {
     // occulited B-168: three conditions since the boot - the facts' box holds them in its two lines
     capped: {readings: [piSoC(58.4)], throttle: {source: 'firmware', raw: 0x70000, now: flags(), since_boot: flags({under_voltage: true, throttled: true, freq_capped: true}), state: 'earlier', events: 2, undervoltage_s: 9, last: {start: ago(30), start_s: 4200, duration_s: 6},
         episodes: [{start: ago(70), start_s: 1800, duration_s: 3}, {start: ago(30), start_s: 4200, duration_s: 6}]}},
+    // occulited B-186: the maintainer's production Pi with an RPI-RF-MOD - one episode begun the evening before with no
+    // end in the kernel log (an older occulited's answer: no duration), no undervoltage now, the full clock; the
+    // chart painted the whole span red, the pill read as "throttled now"
+    unended: {readings: [piSoC(49.4)], throttle: {source: 'firmware', raw: 0x50000, now: flags(), since_boot: flags({under_voltage: true, throttled: true}), state: 'earlier', events: 1, last: {start: ago(170), start_s: 7200},
+        episodes: [{start: ago(170), start_s: 7200}], clock: {cur_mhz: 1200, max_mhz: 1200, source: 'firmware'}, supply: 'rpi-rf-mod'}},
+    // ... as this occulited answers it: ended at a moment the log does not tell; supply unknown
+    ended: {readings: [piSoC(49.4)], throttle: {source: 'firmware', raw: 0x50000, now: flags(), since_boot: flags({under_voltage: true, throttled: true}), state: 'earlier', events: 1, last: {start: ago(170), start_s: 7200, duration_s: -1},
+        episodes: [{start: ago(170), start_s: 7200, duration_s: -1}], clock: {cur_mhz: 1200, max_mhz: 1200, source: 'firmware'}}},
 };
 // occulited task 177: a Pi always has a clock - every variant without its own gets one
 for (const v of Object.values(THERMAL)) if (v.throttle && !v.throttle.clock) v.throttle.clock = {cur_mhz: 1500, max_mhz: 1500, source: 'firmware'};

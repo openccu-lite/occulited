@@ -31,7 +31,7 @@ export interface VoltageEpisode {
     start?: string;
     /** when it began, seconds since the boot; -1 unknown */
     start_s: number;
-    /** how long it lasted; absent while it has not normalised */
+    /** how long it lasted; absent while it has not normalised; -1 ended, its length unknown */
     duration_s?: number;
 }
 export interface Throttle {
@@ -51,6 +51,8 @@ export interface Throttle {
     clock?: CPUClock;
     /** occulited task 177: when each sticky bit first held this boot */
     causes?: ThrottleCause[];
+    /** occulited B-186: the power supply's way in - through the RPI-RF-MOD on the header, or the Pi's own socket; absent while unknown */
+    supply?: 'rpi-rf-mod' | 'pi';
 }
 /** occulited task 177: the processor's clock, MHz; firmware = measured, cpufreq = requested */
 export interface CPUClock {
@@ -155,7 +157,7 @@ export function bootDip(th: Throttle): {n: number; seconds: number} | null {
     return {n: Math.max(1, th.events ?? 1), seconds: th.undervoltage_s ?? 0};
 }
 
-/** occulited task 172: a moment or stretch the chart marks with a vertical line (an undervoltage episode) */
+/** occulited task 172: a moment or stretch the chart marks (an undervoltage episode): a thin line, or a light band with its edges */
 export interface ChartEvent {
     /** start and end in ms since the epoch; equal for a moment */
     start: number;
@@ -166,9 +168,11 @@ export interface ChartEvent {
 
 /**
  * occulited task 172 (the maintainer, 2026-11-23): the kernel's undervoltage episodes as the
- * temperature chart's red lines - each from its start for its duration, one still open up to now,
- * one of unknown length a moment; an episode without a wall-clock start cannot be placed. A boot
- * dip's say so in their tooltip.
+ * temperature chart's marks - each from its start for its duration, one of unknown length a moment;
+ * an episode without a wall-clock start cannot be placed. A boot dip's say so in their tooltip.
+ * B-186: one the log leaves open runs up to now only while the undervoltage holds now - the
+ * production Pi's episode from the evening before, with no end in the log and no undervoltage
+ * now, painted the whole 24 h chart; otherwise it has ended at a moment nobody knows: a moment.
  */
 export function episodeMarks(
     th: Throttle | undefined,
@@ -182,8 +186,8 @@ export function episodeMarks(
         const start = e.start ? Date.parse(e.start) : NaN;
         if (!Number.isFinite(start)) continue;
         const at = words.clock(new Date(start));
-        const open = e.duration_s === undefined;
-        const known = !open && e.duration_s! >= 0;
+        const open = e.duration_s === undefined && th?.now.under_voltage === true;
+        const known = e.duration_s !== undefined && e.duration_s >= 0;
         const end = open ? Math.max(start, now) : known ? start + e.duration_s! * 1000 : start;
         let label = open
             ? t('Undervoltage since {time}', {time: at})
@@ -232,6 +236,15 @@ export function formatGHz(mhz: number, lang: string): string {
 /** occulited task 177: the panel's clock value, "1,2 / 1,5 GHz", or "1,2 GHz" without a maximum */
 export function clockText(c: CPUClock, lang: string): string {
     return c.max_mhz ? `${formatGHz(c.cur_mhz, lang)} / ${formatGHz(c.max_mhz, lang)} GHz` : `${formatGHz(c.cur_mhz, lang)} GHz`;
+}
+
+/**
+ * occulited B-186: the processor runs at its full clock now - the clock's current value within 2 %
+ * of its maximum (the pill "throttled earlier" says so, as the maintainer read "throttled" beside
+ * "1,2 / 1,2 GHz" as now)
+ */
+export function fullClock(c?: CPUClock): boolean {
+    return !!c?.max_mhz && c.cur_mhz >= c.max_mhz * 0.98;
 }
 
 /** occulited task 177: the record of a flag, if any */

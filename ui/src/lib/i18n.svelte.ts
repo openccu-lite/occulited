@@ -3747,6 +3747,9 @@ const CATALOGUE: Record<string, {de: string; en?: string}> = {
     '(at start-up, normalised)': {de: '(beim Start, normalisiert)'},
     // occulited task 173: the warning power-throttle
     'The usual cause is the power supply or its cable: use one that delivers enough current (for a Raspberry Pi the official power supply) and a short cable.': {de: 'Meist liegt es am Netzteil oder am Kabel: Verwenden Sie ein Netzteil, das genug Strom liefert (beim Raspberry Pi das offizielle Netzteil), und ein kurzes Kabel.'},
+    // occulited B-186: with an RPI-RF-MOD on the Pi the ELV power supply goes into the radio module
+    'The usual cause is the power supply or its cable. With the RPI-RF-MOD the system is powered through the radio module: use the ELV power supply meant for it, plugged into the RPI-RF-MOD, not into the Raspberry Pi.': {de: 'Meist liegt es am Netzteil oder am Kabel. Mit dem RPI-RF-MOD wird das System über das Funkmodul versorgt: Verwenden Sie das dafür vorgesehene Netzteil von ELV und schließen Sie es am RPI-RF-MOD an, nicht am Raspberry Pi.'},
+    'The usual cause is the power supply or its cable: use one that delivers enough current and a short cable. With an RPI-RF-MOD on the Raspberry Pi, the power supply goes into the radio module, not into the Raspberry Pi.': {de: 'Meist liegt es am Netzteil oder am Kabel: Verwenden Sie ein Netzteil, das genug Strom liefert, und ein kurzes Kabel. Mit einem RPI-RF-MOD auf dem Raspberry Pi wird das Netzteil am Funkmodul angeschlossen, nicht am Raspberry Pi.'},
     'Give the system more air, a heat sink or a fan.': {de: 'Geben Sie dem System mehr Luft, einen Kühlkörper oder einen Lüfter.'},
     'The firmware keeps this until the next start.': {de: 'Die Firmware merkt sich das bis zum nächsten Start.'},
     'since the start the supply voltage was too low ({n}×, the last on {when})': {de: 'seit dem Start war die Versorgungsspannung zu niedrig ({n}×, zuletzt am {when})'},
@@ -3760,12 +3763,20 @@ const CATALOGUE: Record<string, {de: string; en?: string}> = {
     'Not now, but since the start the processor was slowed down by its temperature limit.': {de: 'Jetzt nicht, aber seit dem Start wurde der Prozessor durch seine Temperaturgrenze gebremst.'},
     'Not now, but since the start the processor was slowed down at least once.': {de: 'Jetzt nicht, aber seit dem Start wurde der Prozessor mindestens einmal gebremst.'},
     // occulited B-168: the state since the boot, beyond a boot dip - what the pill's word means is its tooltip
-    'throttled since boot': {de: 'seit Start gedrosselt'},
+    // occulited B-186: the firmware's sticky bit, not now - "seit Start gedrosselt" read as now beside the full clock
+    'throttled earlier': {de: 'war gedrosselt'},
+    // occulited B-186: the facts since the boot in the past tense (the maintainer: "Gedrosselt seit dem Start" read as now)
+    'Supply voltage was too low': {de: 'Spannung war zu niedrig'},
+    'Was throttled': {de: 'War gedrosselt'},
+    'Clock was capped': {de: 'Takt war begrenzt'},
+    'Soft temperature limit was reached': {de: 'Weiche Temperaturgrenze war erreicht'},
+    '{past} ({n}×, last at {time})': {de: '{past} ({n}×, zuletzt um {time})'},
+    '{past} at start-up': {de: '{past} beim Start'},
+    'The processor runs at its full clock now ({clock}).': {de: 'Der Prozessor läuft jetzt mit vollem Takt ({clock}).'},
     'Since the start the processor was throttled (or its supply too low) at least once, but it is not now; the firmware keeps this until the next start.': {de: 'Seit dem Start wurde der Prozessor mindestens einmal gedrosselt (oder seine Versorgungsspannung war zu niedrig), jetzt aber nicht; die Firmware merkt sich das bis zum nächsten Start.'},
     Throttled: {de: 'Gedrosselt'},
     '{used} in use, {cache} page cache that the kernel frees when memory is needed; {total} together': {de: '{used} in Benutzung, {cache} Seitencache, den der Kernel freigibt, wenn Speicher gebraucht wird; zusammen {total}'},
     'Clock capped': {de: 'Takt begrenzt'},
-    '{what} since the start-up': {de: '{what} seit dem Start'},
     '{what} before {time} ({temp} then)': {de: '{what} vor {time} ({temp} da)'},
     '{what} before {time}': {de: '{what} vor {time}'},
     '{what} at {time} at {temp}': {de: '{what} um {time} bei {temp}'},
@@ -3777,7 +3788,6 @@ const CATALOGUE: Record<string, {de: string; en?: string}> = {
     'The clock the system asked for now; the firmware may run it lower while it caps it.': {de: 'Der Takt, den das System jetzt angefordert hat; die Firmware kann ihn niedriger fahren, solange sie ihn begrenzt.'},
     'Soft temperature limit': {de: 'Weiche Temperaturgrenze'},
     '{what} now': {de: '{what} jetzt'},
-    '{what} since the boot': {de: '{what} seit dem Start'},
     'No undervoltage': {de: 'Keine Unterspannung'},
     'No undervoltage, no throttling since the boot': {de: 'Keine Unterspannung, keine Drosselung seit dem Start'},
     "The Raspberry Pi's firmware slows the processor down when it gets hot and when the supply voltage drops; both are a common cause of radio trouble.": {de: 'Die Firmware des Raspberry Pi bremst den Prozessor, wenn er heiß wird und wenn die Versorgungsspannung absinkt; beides ist eine häufige Ursache für Funkprobleme.'},
@@ -3785,7 +3795,6 @@ const CATALOGUE: Record<string, {de: string; en?: string}> = {
     'processor temperature history': {de: 'Verlauf der Prozessortemperatur'},
     'Throttling from {temp}': {de: 'Drosselung ab {temp}'},
     // occulited B-162: the kernel's undervoltage episodes, and a short dip at the start that is no warning
-    '{what} since the boot ({n}×, last at {time})': {de: '{what} seit dem Start ({n}×, zuletzt um {time})'},
     'Brief undervoltage at start-up ({time}, normalised)': {de: 'Kurze Unterspannung beim Start ({time}, normalisiert)'},
     '{n} brief undervoltages at start-up ({time}, normalised)': {de: '{n} kurze Unterspannungen beim Start ({time}, normalisiert)'},
     'Undervoltage episodes since the boot: {n}, {time} together': {de: 'Unterspannungen seit dem Start: {n}, zusammen {time}'},

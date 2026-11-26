@@ -1776,6 +1776,21 @@ func (s *Server) do(ctx context.Context, req request) response {
 			return response{Error: err.Error(), Stdout: r.Stdout, Stderr: r.Stderr, Exit: r.Exit}
 		}
 		return response{OK: true, Stdout: r.Stdout, Stderr: r.Stderr, Exit: r.Exit}
+	case opVoltageLog:
+		// occulited B-186: the operation and nothing else - the helper builds the command line and
+		// answers rpi_volt's lines alone
+		if !reflect.DeepEqual(req, request{Op: req.Op}) {
+			s.log("helper: refused a voltage log read with more than the operation")
+			return refuse("voltage-log takes nothing")
+		}
+		r, err := ops.VoltageLog(ctx)
+		if errors.Is(err, ErrNotAvailable) {
+			return response{Error: "not-available: " + strings.TrimPrefix(err.Error(), ErrNotAvailable.Error()+": ")}
+		}
+		if err != nil {
+			return response{Error: err.Error(), Stdout: r.Stdout, Stderr: r.Stderr, Exit: r.Exit}
+		}
+		return response{OK: true, Stdout: r.Stdout, Stderr: r.Stderr, Exit: r.Exit}
 	case opHDMI:
 		// openccu-lite task 340: the switch and nothing else - the helper finds the connectors
 		if !reflect.DeepEqual(req, request{Op: req.Op, Enabled: req.Enabled}) {

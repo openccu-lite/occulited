@@ -1,5 +1,5 @@
 import {describe, expect, it} from 'vitest';
-import {bootDip, causeOf, causeWhen, clockText, episodeMarks, formatCelsius, formatLimit, formatSeconds, panelLevel, ringFraction, socSeries, tempColours, tempLevel, throttleFacts, throttleLevel, throttleState, type TempReading, type Throttle} from './thermal';
+import {bootDip, causeOf, causeWhen, clockText, episodeMarks, fullClock, formatCelsius, formatLimit, formatSeconds, panelLevel, ringFraction, socSeries, tempColours, tempLevel, throttleFacts, throttleLevel, throttleState, type TempReading, type Throttle} from './thermal';
 
 // occulited task 148: the temperature panel's figures and words
 const soc = (celsius: number): TempReading => ({id: 'thermal_zone0', kind: 'soc', name: 'cpu-thermal', celsius, warn_c: 80, max_c: 85});
@@ -85,7 +85,8 @@ describe('thermal', () => {
         const words = {t: (k: string, p?: Record<string, string | number>) => Object.entries(p ?? {}).reduce((s, [a, b]) => s.replaceAll(`{${a}}`, String(b)), k), clock: (d: Date) => d.toISOString().slice(11, 16), seconds: (v: number) => `${v} s`};
         const base: Throttle = {source: 'firmware', now: flags(), since_boot: flags({under_voltage: true}), state: 'earlier', events: 4};
         const now = Date.parse('2026-11-22T12:00:00Z');
-        const marks = episodeMarks({...base, episodes: [
+        // the open one runs up to now while the undervoltage holds now (B-186)
+        const marks = episodeMarks({...base, now: flags({under_voltage: true}), episodes: [
             {start: '2026-11-22T08:00:08Z', start_s: 8, duration_s: 2},
             {start: '2026-11-22T10:00:00Z', start_s: 7200, duration_s: -1},
             {start_s: 9000, duration_s: 1},
@@ -100,6 +101,35 @@ describe('thermal', () => {
         expect(dip[0]!.label).toBe('Undervoltage 08:00, 2 s (at start-up, normalised)');
         expect(episodeMarks(undefined, words)).toEqual([]);
         expect(episodeMarks(base, words)).toEqual([]);
+    });
+
+    // occulited B-186: the production Pi's episode from 19:52 the evening before, no end in the log,
+    // no undervoltage now - it painted the whole 24 h chart; open only while the undervoltage holds
+    describe('an episode the log leaves open (B-186)', () => {
+        const words = {t: (k: string, p?: Record<string, string | number>) => Object.entries(p ?? {}).reduce((s, [a, b]) => s.replaceAll(`{${a}}`, String(b)), k), clock: (d: Date) => d.toISOString().slice(11, 16), seconds: (v: number) => `${v} s`};
+        const start = Date.parse('2026-11-25T19:52:00Z');
+        const now = Date.parse('2026-11-26T08:44:00Z');
+        const ep = {start: '2026-11-25T19:52:00Z', start_s: 7200};
+        it.each([
+            {name: 'firmware, undervoltage now: up to now', th: {source: 'firmware', now: flags({under_voltage: true})}, ep, end: now, label: 'Undervoltage since 19:52'},
+            {name: 'firmware, fine now: a moment (the older server)', th: {source: 'firmware', now: flags()}, ep, end: start, label: 'Undervoltage 19:52'},
+            {name: 'firmware, throttled now only: a moment', th: {source: 'firmware', now: flags({throttled: true})}, ep, end: start, label: 'Undervoltage 19:52'},
+            {name: 'hwmon alarm set: up to now', th: {source: 'hwmon', now: flags({under_voltage: true})}, ep, end: now, label: 'Undervoltage since 19:52'},
+            {name: 'hwmon alarm clear: a moment', th: {source: 'hwmon', now: flags()}, ep, end: start, label: 'Undervoltage 19:52'},
+            {name: 'the server closed it (-1): a moment', th: {source: 'firmware', now: flags()}, ep: {...ep, duration_s: -1}, end: start, label: 'Undervoltage 19:52'},
+            {name: 'closed with a length, undervoltage again now: its length', th: {source: 'firmware', now: flags({under_voltage: true})}, ep: {...ep, duration_s: 3}, end: start + 3000, label: 'Undervoltage 19:52, 3 s'},
+        ] as const)('$name', ({th, ep, end, label}) => {
+            const marks = episodeMarks({...th, since_boot: flags({under_voltage: true}), state: 'earlier', events: 1, episodes: [ep]} as Throttle, words, now);
+            expect(marks).toEqual([{start, end, label}]);
+        });
+    });
+
+    it('knows the full clock', () => {
+        expect(fullClock({cur_mhz: 1200, max_mhz: 1200, source: 'firmware'})).toBe(true);
+        expect(fullClock({cur_mhz: 1199, max_mhz: 1200, source: 'firmware'})).toBe(true);
+        expect(fullClock({cur_mhz: 600, max_mhz: 1500, source: 'cpufreq'})).toBe(false);
+        expect(fullClock({cur_mhz: 900, source: 'cpufreq'})).toBe(false);
+        expect(fullClock(undefined)).toBe(false);
     });
 
     it('draws the processor history, breaking the line where a sample has none', () => {

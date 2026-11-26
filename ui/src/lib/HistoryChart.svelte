@@ -19,9 +19,11 @@
      * hundreds among values of two is drawn clipped at the top, with a mark there, and the
      * pointer still reads its value.
      *
-     * Events (occulited task 172: the temperature panel's undervoltage episodes) are red vertical
-     * lines at their time - a band where the stretch is wider than two pixels - each with its
-     * tooltip, which the pointer near it shows like a sample's value.
+     * Events (occulited task 172: the temperature panel's undervoltage episodes) are thin lines in
+     * the error colour at their time - a stretch wider than a few pixels a light translucent band
+     * with a line at each edge - drawn under the curve, each with its tooltip, which the pointer
+     * near it shows like a sample's value. B-186: a saturated block at 85 % over the plot hid the
+     * curve and, with an episode drawn up to now, painted the whole chart.
      *
      * The span is the last 24 h by default (occulited task 81); the selector offers 1 h and 6 h too. The sampler keeps 500
      * samples per interface (task 214, about 8 h), so 24 h shows all that is kept. Used by the Status
@@ -93,15 +95,19 @@
     }));
     // the samples above the band (an outlier the scale left out), marked at its top edge
     const clipped = $derived(shown.filter((s) => s.up !== false && s.v > topShown));
-    // the events within the span, at their pixels: at least 2 wide, so a two-second dip shows on 24 h
+    // the events within the span, at their pixels: a line 1.5 wide, so a two-second dip shows on 24 h;
+    // wider than BAND_MIN a band, its edges marked where they are inside the span
+    const EVENT_W = 1.5, BAND_MIN = 4;
     const xt = (ms: number) => (t1 > t0 ? ((ms - t0) / (t1 - t0)) * width : width / 2);
     const marks = $derived(
         events
             .filter((e) => e.end >= t0 && e.start <= t1)
             .map((e) => {
                 const a = Math.max(0, xt(e.start)), b = Math.min(width, xt(e.end));
-                const w = Math.max(2, b - a);
-                return {...e, x: Math.min(a, width - w), w};
+                const band = b - a >= BAND_MIN;
+                const w = band ? b - a : EVENT_W;
+                const x0 = Math.max(0, Math.min(a, width - w));
+                return {...e, x: x0, w, band, edgeA: band && e.start >= t0, edgeB: band && e.end <= t1};
             }),
     );
     const axis = $derived(shown.length ? timeLabels(new Date(t0), new Date(t1), i18n.language) : null);
@@ -144,6 +150,12 @@
             {#if mark !== undefined}<line class="mark" x1="0" x2={width} y1={y(mark) + 0.5} y2={y(mark) + 0.5} />{/if}
             {#if threshold && thrIn}<line class="thr" data-threshold={threshold.value} x1="0" x2={width} y1={y(threshold.value) + 0.5} y2={y(threshold.value) + 0.5} />{/if}
             <line class="base" x1="0" x2={width} y1={height - 0.5} y2={height - 0.5} />
+            <!-- the events under the curve: a thin line, or a light band with its edges -->
+            {#each marks as m, i (i)}
+                <rect class="event" class:band={m.band} data-event={i} data-event-label={m.label} x={m.x} y={PAD_TOP} width={m.w} height={height - PAD_TOP}><title>{m.label}</title></rect>
+                {#if m.edgeA}<line class="event-edge" x1={m.x + 0.5} x2={m.x + 0.5} y1={PAD_TOP} y2={height} />{/if}
+                {#if m.edgeB}<line class="event-edge" x1={m.x + m.w - 0.5} x2={m.x + m.w - 0.5} y1={PAD_TOP} y2={height} />{/if}
+            {/each}
             {#each runs as run, i (i)}
                 {#if run.lone}
                     <circle class="dot" cx={x(run.lone)} cy={y(run.lone.v)} r="2" />
@@ -151,9 +163,6 @@
                     <polygon class="wash" points={run.area} />
                     <polyline class="line" points={run.pts} />
                 {/if}
-            {/each}
-            {#each marks as m, i (i)}
-                <rect class="event" data-event={i} data-event-label={m.label} x={m.x} y={PAD_TOP} width={m.w} height={height - PAD_TOP}><title>{m.label}</title></rect>
             {/each}
             {#each clipped as c (c.t)}
                 {@const cx = x(c)}
@@ -219,8 +228,11 @@
     .line { fill: none; stroke: var(--hmm-accent); stroke-width: 1.5; stroke-linejoin: round; stroke-linecap: round; }
     .dot { fill: var(--hmm-accent); }
     .clip { fill: var(--hmm-accent); }
-    /* occulited task 172: an event's line, the error colour; its hover text in the same */
-    .event { fill: var(--hmm-error); opacity: 0.85; }
+    /* occulited task 172, B-186: an event in the error colour, muted - a thin line, a stretch a light
+       band (a tint, not a block) with a thin line at each edge; its hover text in the same colour */
+    .event { fill: var(--hmm-error); opacity: 0.6; }
+    .event.band { opacity: 0.12; }
+    .event-edge { stroke: var(--hmm-error); stroke-width: 1; opacity: 0.45; pointer-events: none; }
     .value.eventtext { fill: var(--hmm-error); }
     .cursor { stroke: var(--hmm-border-strong); }
     .marker { fill: var(--hmm-card-bg); stroke: var(--hmm-accent); stroke-width: 2; }

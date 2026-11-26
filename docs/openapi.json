@@ -15051,6 +15051,9 @@
           "state": {
             "type": "string"
           },
+          "supply": {
+            "type": "string"
+          },
           "undervoltage_s": {
             "type": "number"
           }

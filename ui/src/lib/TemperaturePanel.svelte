@@ -9,16 +9,16 @@
      * throttles hard - not the 110 °C trip); the edge goes amber from the warning level (80 °C on a
      * Pi), red from the maximum, and the Status warnings soc-hot and disk-hot say the same above.
      *
-     * On a Raspberry Pi the head carries the firmware's state as a pill - normal, throttled since
-     * boot, throttled, undervoltage - whose box fits the longest word in either language, so a change
+     * On a Raspberry Pi the head carries the firmware's state as a pill - normal, throttled earlier
+     * (B-186: the firmware's sticky bit, not now), throttled, undervoltage - whose box fits the longest word in either language, so a change
      * moves nothing; the box under the rings names the conditions, now and since the boot, in two
      * lines of a fixed height (B-168: one line cut its second chip off). The foot is the processor's temperature over time, the same span as
-     * every chart of the page, with the undervoltage episodes as red lines (task 172).
+     * every chart of the page, with the undervoltage episodes as muted marks (task 172, B-186).
      */
     import Icon from './Icon.svelte';
     import HistoryChart from './HistoryChart.svelte';
     import {i18n, t} from './i18n.svelte';
-    import {MAX_TEMP_RINGS, TEMP_STEPS, bootDip, causeOf, causeWhen, clockText, episodeMarks, formatGHz, formatCelsius, formatSeconds, formatLimit, panelLevel, ringFraction, tempColours, tempLevel, throttleFacts, throttleLevel, throttleState, type Thermal, type ThrottleFlag, type ThrottleState, type TempReading} from './thermal';
+    import {MAX_TEMP_RINGS, TEMP_STEPS, bootDip, causeOf, causeWhen, clockText, episodeMarks, formatGHz, fullClock, formatCelsius, formatSeconds, formatLimit, panelLevel, ringFraction, tempColours, tempLevel, throttleFacts, throttleLevel, throttleState, type Thermal, type ThrottleFlag, type ThrottleState, type TempReading} from './thermal';
     import {clock, spanMax, type Sample} from './history';
     import {panelEdge} from './storage';
 
@@ -67,7 +67,7 @@
         return [`${what}: ${formatCelsius(r.celsius, lang)}`, limits, read].filter(Boolean).join(' · ');
     }
     const stateWord = (s: ThrottleState) =>
-        s === 'undervoltage' ? t('undervoltage') : s === 'throttled' ? t('throttled') : s === 'earlier' ? t('throttled since boot') : t('normal');
+        s === 'undervoltage' ? t('undervoltage') : s === 'throttled' ? t('throttled') : s === 'earlier' ? t('throttled earlier') : t('normal');
     const stateClass = (s: ThrottleState) => (s === 'undervoltage' ? 'bad' : s === 'throttled' || s === 'earlier' ? 'warn' : 'good');
     function flagWord(f: ThrottleFlag): string {
         switch (f) {
@@ -79,20 +79,30 @@
     }
     // B-162: the kernel's episodes name how often and when; the last one on the clock
     const lastAt = $derived(th?.last?.start ? clock(new Date(th.last.start), lang) : '');
+    // B-186 (the maintainer): a condition since the boot in the past tense - "Gedrosselt seit dem
+    // Start" beside the full clock read as throttled now; the firmware's sticky bit says "earlier"
+    function pastWord(f: ThrottleFlag): string {
+        switch (f) {
+            case 'under_voltage': return t('Supply voltage was too low');
+            case 'throttled': return t('Was throttled');
+            case 'freq_capped': return t('Clock was capped');
+            case 'soft_temp_limit': return t('Soft temperature limit was reached');
+        }
+    }
     function factText(f: {flag: ThrottleFlag; now: boolean}): string {
         if (f.now) return t('{what} now', {what: flagWord(f.flag)});
-        if (f.flag === 'under_voltage' && th?.events && lastAt) return t('{what} since the boot ({n}×, last at {time})', {what: flagWord(f.flag), n: th.events, time: lastAt});
+        if (f.flag === 'under_voltage' && th?.events && lastAt) return t('{past} ({n}×, last at {time})', {past: pastWord(f.flag), n: th.events, time: lastAt});
         // task 177: when occulited first saw the bit, and how hot the processor was then
         const c = causeOf(th, f.flag);
         if (c) {
             const w = causeWhen(c, lang);
             const what = flagWord(f.flag);
-            if (w.kind === 'startup') return t('{what} since the start-up', {what});
+            if (w.kind === 'startup') return t('{past} at start-up', {past: pastWord(f.flag)});
             const temp = c.celsius !== undefined ? fmt(c.celsius) : '';
             if (w.kind === 'before') return temp ? t('{what} before {time} ({temp} then)', {what, time: w.time, temp}) : t('{what} before {time}', {what, time: w.time});
             return temp ? t('{what} at {time} at {temp}', {what, time: w.time, temp}) : t('{what} at {time}', {what, time: w.time});
         }
-        return t('{what} since the boot', {what: flagWord(f.flag)});
+        return pastWord(f.flag);
     }
     // task 177: the chip's tooltip adds the clock of that moment and what "before" means
     function factTitle(f: {flag: ThrottleFlag; now: boolean}): string {
@@ -129,14 +139,17 @@
             .join('\n'),
     );
 
+    // B-186: the processor at its full clock now, said beside "throttled earlier" - the maintainer
+    // read "throttled" beside "1,2 / 1,2 GHz" as now
+    const fullNow = $derived(th?.clock && fullClock(th.clock) && !th.now.throttled && !th.now.freq_capped ? t('The processor runs at its full clock now ({clock}).', {clock: clockText(th.clock, lang)}) : '');
     // B-168: the pill's tooltip says first what its word means
     const pillTitle = $derived(
         (state === 'earlier'
-            ? t("Since the start the processor was throttled (or its supply too low) at least once, but it is not now; the firmware keeps this until the next start.") + '\n'
+            ? t("Since the start the processor was throttled (or its supply too low) at least once, but it is not now; the firmware keeps this until the next start.") + '\n' + (fullNow ? fullNow + '\n' : '')
             : '') + throttleTitle,
     );
 
-    // task 172: the undervoltage episodes as red lines in the chart
+    // task 172: the undervoltage episodes as marks in the chart (B-186: open only while the undervoltage holds)
     const marks = $derived(episodeMarks(th, {t, clock: (d) => clock(d, lang), seconds: (v) => formatSeconds(v, lang)}));
 
     // the rings on a 100 × 100 grid: 8 wide with a 2.5 gap, the outermost at r 45 (the storage panel's)
