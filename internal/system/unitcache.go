@@ -31,12 +31,23 @@ import (
 // CPUUsageNSec, MemoryCurrent and TasksCurrent, world-readable, no helper call).
 type UnitCache struct {
 	MaxAge time.Duration // every unit is shown again after this; 0 = five minutes
+	// ListAge (occulited task 181): how long a `list-units` answer serves other callers - the calls
+	// of one page poll; 0 = every listing asks systemd (occulited sets ListUnitsMaxAge)
+	ListAge time.Duration
 
 	refresh sync.Mutex // one refresh at a time; a second caller waits and gets the fresh table
 	// guarded by refresh
 	services unitTable
 	timers   unitTable
 	unified  *bool
+
+	// occulited task 181: the last `list-units` answer, shared by the callers of one moment - a
+	// Status poll asks for the services, the addons and the warnings at once, and each was a
+	// systemctl run through the helper
+	listMu  sync.Mutex
+	listOut []byte
+	listAt  time.Time
+	listGen uint64
 
 	mu      sync.Mutex // guards the generations below
 	counter uint64
@@ -60,6 +71,32 @@ type cachedUnit struct {
 	// live: the last listing could vouch for the figures from the cgroup - cpu.stat was read, or
 	// the cgroup is gone and nothing of the unit runs that could change them
 	live bool
+}
+
+// ListUnitsMaxAge is how long a `list-units` answer serves other callers (occulited task 181): the
+// calls of one page poll, not the next poll; a systemctl command of occulited's ends it at once.
+const ListUnitsMaxAge = 1500 * time.Millisecond
+
+// listUnits answers `systemctl list-units args…` from the last answer while it is younger than
+// ListUnitsMaxAge, the same arguments were asked and no command of occulited's changed a unit since.
+func (c *UnitCache) listUnits(ctx context.Context, s SystemdServices, args ...string) ([]byte, error) {
+	key := strings.Join(args, "\x00")
+	c.listMu.Lock()
+	defer c.listMu.Unlock()
+	c.mu.Lock()
+	gen := c.counter
+	c.mu.Unlock()
+	if c.ListAge > 0 && c.listOut != nil && gen == c.listGen && time.Since(c.listAt) < c.ListAge && len(c.listOut) >= len(key) && string(c.listOut[:len(key)]) == key {
+		return c.listOut[len(key):], nil
+	}
+	out, err := s.run(ctx, args...)
+	if err != nil {
+		c.listOut = nil
+		return out, err
+	}
+	c.listOut = append([]byte(key), out...)
+	c.listAt, c.listGen = time.Now(), gen
+	return out, nil
 }
 
 // readOnlyVerbs are the systemctl commands that change nothing; every other one invalidates.

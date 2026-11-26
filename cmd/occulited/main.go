@@ -485,7 +485,7 @@ func run(opts daemonOptions) error {
 	fwm := &system.FirewallManager{Root: root}
 	if root.HasSystemd() {
 		// the unit cache (B-83): the Services page's poll shows only the units that changed
-		sd := system.SystemdServices{Root: root, SwitchFile: filepath.Join(cfg.StateDir, "unit-switch.json"), Cache: system.NewUnitCache()}
+		sd := system.SystemdServices{Root: root, SwitchFile: filepath.Join(cfg.StateDir, "unit-switch.json"), Cache: &system.UnitCache{ListAge: system.ListUnitsMaxAge}}
 		services, timers = sd, sd
 		// B-26: the Services page's switch is a runtime mask, and /run does not survive a boot -
 		// so what the user switched off is stored on the userfs and applied again here, before

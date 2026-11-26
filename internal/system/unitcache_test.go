@@ -375,3 +375,40 @@ func TestUnitMemoryWithoutPageCache(t *testing.T) {
 		t.Error("a path out of the tree")
 	}
 }
+
+// occulited task 181: with ListAge set, the callers of one moment share one list-units answer; a
+// command of occulited's, other arguments or the age end it.
+func TestListUnitsShared(t *testing.T) {
+	calls := 0
+	s := SystemdServices{Run: func(_ context.Context, name string, args ...string) ([]byte, error) {
+		if args[0] == "list-units" {
+			calls++
+		}
+		return []byte("[]"), nil
+	}}
+	c := &UnitCache{ListAge: time.Hour}
+	s.Cache = c
+	for i := 0; i < 3; i++ {
+		if _, err := c.listUnits(context.Background(), s, "list-units", "--all"); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if calls != 1 {
+		t.Errorf("one moment: %d calls", calls)
+	}
+	_, _ = c.listUnits(context.Background(), s, "list-units", "--type=timer")
+	if calls != 2 {
+		t.Errorf("other arguments: %d calls", calls)
+	}
+	_, _ = s.run(context.Background(), "restart", "--", "rfd.service")
+	_, _ = c.listUnits(context.Background(), s, "list-units", "--type=timer")
+	if calls != 3 {
+		t.Errorf("after a restart: %d calls", calls)
+	}
+	c.ListAge = 0
+	_, _ = c.listUnits(context.Background(), s, "list-units", "--type=timer")
+	_, _ = c.listUnits(context.Background(), s, "list-units", "--type=timer")
+	if calls != 5 {
+		t.Errorf("without ListAge: %d calls", calls)
+	}
+}

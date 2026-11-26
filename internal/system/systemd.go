@@ -118,7 +118,14 @@ func (s SystemdServices) run2(ctx context.Context, name string, args ...string) 
 func (s SystemdServices) List() ([]Service, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	out, err := s.run(ctx, "list-units", "--type=service", "--all", "--no-pager", "--plain", "--output=json")
+	args := []string{"list-units", "--type=service", "--all", "--no-pager", "--plain", "--output=json"}
+	var out []byte
+	var err error
+	if s.Cache != nil {
+		out, err = s.Cache.listUnits(ctx, s, args...) // task 181: one answer for the callers of one moment
+	} else {
+		out, err = s.run(ctx, args...)
+	}
 	if err != nil {
 		return nil, fmt.Errorf("systemctl list-units: %w: %s", err, strings.TrimSpace(string(out)))
 	}

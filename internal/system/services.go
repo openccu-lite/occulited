@@ -4,12 +4,14 @@ import (
 	"bufio"
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"os"
 	"regexp"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/hobbyquaker/occulited/internal/priv"
@@ -406,11 +408,10 @@ func (b AddonScripts) ListAddons(ctx context.Context) ([]Addon, error) {
 		enabled := b.Root.AddonEnabled(id)
 		var raw []byte
 		if enabled {
-			cctx, cancel := context.WithTimeout(ctx, 10*time.Second)
-			// info needs no root; a confined addon's script is its own code and runs as its user (B-119),
-			// any other as root, as rc.d scripts may be root-only
-			raw, _ = b.addonScriptOutput(cctx, id, script, "info")
-			cancel()
+			// occulited task 181: the answer is kept while the script and the addon's directory are
+			// unchanged (and for AddonInfoTTL): every warning evaluation and every page asked each
+			// addon's info again - a process per addon, four times a minute on an idle system
+			raw = b.addonInfo(ctx, id, script)
 		}
 		// running, the pid and the rest are the unit's (SystemdAddons.ListAddons); without systemd
 		// nothing says it
@@ -443,6 +444,68 @@ func (b AddonScripts) ListAddons(ctx context.Context) ([]Addon, error) {
 	}
 	sort.Slice(out, func(i, j int) bool { return out[i].ID < out[j].ID })
 	return out, nil
+}
+
+// AddonInfoTTL is how long an addon's `info` answer is kept at most (occulited task 181).
+const AddonInfoTTL = 10 * time.Minute
+
+type addonInfoEntry struct {
+	stamp string
+	at    time.Time
+	raw   []byte
+}
+
+var (
+	addonInfoMu    sync.Mutex
+	addonInfoCache = map[string]addonInfoEntry{}
+	// addonInfoNow is time.Now; a test moves it
+	addonInfoNow = time.Now
+)
+
+// ForgetAddonInfo drops every kept `info` answer (an addon was installed, updated, removed, enabled
+// or disabled).
+func ForgetAddonInfo() {
+	addonInfoMu.Lock()
+	addonInfoCache = map[string]addonInfoEntry{}
+	addonInfoMu.Unlock()
+}
+
+// addonInfoStamp says what an `info` answer depends on: the rc.d entry, the script behind the
+// addon-rc wrapper and the addon's directory and its VERSION file (size and time of each). An update
+// changes at least one of them.
+func (b AddonScripts) addonInfoStamp(id, script string) string {
+	var sb strings.Builder
+	for _, p := range []string{script, script + ".script", b.Root.join("/usr/local/addons/" + id), b.Root.join("/usr/local/addons/" + id + "/VERSION")} {
+		if st, err := os.Stat(p); err == nil {
+			fmt.Fprintf(&sb, "%d:%d;", st.Size(), st.ModTime().UnixNano())
+		} else {
+			sb.WriteString("-;")
+		}
+	}
+	return sb.String()
+}
+
+// addonInfo is the addon's `info` output, from the cache while its stamp holds and it is younger
+// than AddonInfoTTL; an answer that failed is not kept.
+func (b AddonScripts) addonInfo(ctx context.Context, id, script string) []byte {
+	stamp := b.addonInfoStamp(id, script)
+	addonInfoMu.Lock()
+	e, ok := addonInfoCache[script]
+	addonInfoMu.Unlock()
+	if ok && e.stamp == stamp && addonInfoNow().Sub(e.at) < AddonInfoTTL {
+		return e.raw
+	}
+	cctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	// info needs no root; a confined addon's script is its own code and runs as its user (B-119),
+	// any other as root, as rc.d scripts may be root-only
+	raw, err := b.addonScriptOutput(cctx, id, script, "info")
+	cancel()
+	if err == nil {
+		addonInfoMu.Lock()
+		addonInfoCache[script] = addonInfoEntry{stamp: stamp, at: addonInfoNow(), raw: raw}
+		addonInfoMu.Unlock()
+	}
+	return raw
 }
 
 // describeDisabled fills in what a disabled addon's `info` would have said and cannot (occulited

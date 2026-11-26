@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"sync"
 	"time"
+
+	"github.com/hobbyquaker/occulited/internal/system"
 )
 
 // openccu-lite B-297: the shell's Addons menu and the pinned addon tabs are the nav and addon lists
@@ -105,6 +107,8 @@ func (c *addonChanges) poll(fingerprint func() string, every time.Duration) {
 
 // addonsChanged is what a route that changed the addons calls.
 func (a *SystemAPI) addonsChanged() {
+	// occulited task 181: the kept `info` answers are asked again
+	system.ForgetAddonInfo()
 	a.addonFeed.changed()
 	// occulited B-161: an addon was installed, started or restarted - an interface of its that
 	// refused its init before is asked again now, not after its backoff
