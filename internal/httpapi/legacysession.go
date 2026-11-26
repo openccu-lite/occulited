@@ -191,7 +191,8 @@ func (a *SystemAPI) reevaluateWarnings() {
 // legacySessionWarning: the installed addons that receive the alias in a URL the shell opens -
 // their settings page or their frontend. The variant is the sorted ids, so one more addon is a new
 // warning; it goes away when no addon receives the alias (all declare the header, or the switches
-// are off).
+// are off). B-180: a disabled addon is left out - it runs nothing, and its own notice (incompatible,
+// another architecture) is the one thing Status says about it.
 func (a *SystemAPI) legacySessionWarning(ctx context.Context) ([]warnings.Warning, bool) {
 	if a.Addons == nil {
 		return nil, true
@@ -206,6 +207,9 @@ func (a *SystemAPI) legacySessionWarning(ctx context.Context) ([]warnings.Warnin
 	}
 	var out []warnAddon
 	for _, ad := range list {
+		if !ad.Enabled {
+			continue
+		}
 		if u := SettingsURL(a.Root, ad.ID); u != "" {
 			ad.ConfigURL = u // B-134
 		}

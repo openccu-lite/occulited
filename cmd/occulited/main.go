@@ -2478,7 +2478,8 @@ func firstBootImport(store *meta.Store, root system.Root, stateDir string, log *
 	// the addons that need the ReGa are disabled now, once; the Addons page lists them as
 	// "disabled, incompatible" with a switch back (maintainer, 2026-09-06)
 	if fb.DisabledAddons = root.DisableRegaDependentAddons(); len(fb.DisabledAddons) > 0 {
-		log.Warn("regadom: ReGa-dependent addons disabled", "addons", strings.Join(fb.DisabledAddons, ", "))
+		// B-180: in the words of the Addons page and Status ("disabled, incompatible"), the reason beside them
+		log.Warn("regadom: incompatible addons disabled", "addons", strings.Join(fb.DisabledAddons, ", "), "reason", "they need the ReGa")
 	}
 	if b, err := json.Marshal(fb); err == nil {
 		_ = os.WriteFile(marker, b, 0o600)

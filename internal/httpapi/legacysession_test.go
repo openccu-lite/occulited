@@ -124,6 +124,25 @@ func TestLegacySessionPerAddon(t *testing.T) {
 		t.Errorf("the warning names %v", got)
 	}
 
+	// B-180: a disabled addon (a ReGa-dependent or incompatible one) has its own notice and no second -
+	// although its settings page is still registered in hm_addons.cfg, as the CCU left it
+	cfg := "mosquitto {CONFIG_URL /addons/mosquitto/settings.cgi ID mosquitto CONFIG_NAME Mosquitto}\n"
+	if err := os.WriteFile(filepath.Join(string(a.Root), "usr/local/etc/config/hm_addons.cfg"), []byte(cfg), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := a.Root.SetAddonEnabled("mosquitto", false); err != nil {
+		t.Fatal(err)
+	}
+	if got := names(); !slices.Equal(got, []string{"hmm"}) {
+		t.Errorf("a disabled addon in the warning: %v", got)
+	}
+	if err := a.Root.SetAddonEnabled("mosquitto", true); err != nil {
+		t.Fatal(err)
+	}
+	if got := names(); !slices.Equal(got, []string{"hmm", "mosquitto"}) {
+		t.Errorf("enabled again: %v", got)
+	}
+
 	// the per-addon switch, administrators only; the global one untouched
 	if st, _, _ := do(t, srv, "PUT", "/api/system/v1/addons/mosquitto/legacy-session", `{"enabled":false}`, user); st != 403 {
 		t.Errorf("a user switched: %d", st)
