@@ -1,6 +1,6 @@
 {
   "format": 1,
-  "generated_at": "2026-11-27T18:57:38Z",
+  "generated_at": "2026-11-27T23:50:44Z",
   "catalog": "file:///home/runner/work/occulited/occulited/catalog/catalog.json",
   "repos": {
     "SukramJ/openccu-loom": {
@@ -1419,7 +1419,7 @@
         }
       ],
       "per_page": 10,
-      "stars": 3
+      "stars": 4
     },
     "hobbyquaker/ccu-addon-longpressdim": {
       "releases": [
@@ -4827,6 +4827,161 @@
     },
     "hobbyquaker/openccu-lite": {
       "releases": [
+        {
+          "tag_name": "v2.0.1",
+          "name": "v2.0.1",
+          "draft": false,
+          "prerelease": false,
+          "html_url": "https://github.com/openccu-lite/openccu-lite/releases/tag/v2.0.1",
+          "published_at": "2026-11-27T23:49:37Z",
+          "assets": [
+            {
+              "name": "occulited-asyncapi-2.0.1.json",
+              "size": 56712,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.1/occulited-asyncapi-2.0.1.json"
+            },
+            {
+              "name": "occulited-asyncapi-2.0.1.json.sha256",
+              "size": 96,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.1/occulited-asyncapi-2.0.1.json.sha256"
+            },
+            {
+              "name": "occulited-lite-rpc-methods-2.0.1.json",
+              "size": 5144,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.1/occulited-lite-rpc-methods-2.0.1.json"
+            },
+            {
+              "name": "occulited-lite-rpc-methods-2.0.1.json.sha256",
+              "size": 104,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.1/occulited-lite-rpc-methods-2.0.1.json.sha256"
+            },
+            {
+              "name": "occulited-openapi-2.0.1.json",
+              "size": 1067760,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.1/occulited-openapi-2.0.1.json"
+            },
+            {
+              "name": "occulited-openapi-2.0.1.json.sha256",
+              "size": 95,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.1/occulited-openapi-2.0.1.json.sha256"
+            },
+            {
+              "name": "openccu-lite-aarch64-rpi3-2.0.1-ccu3.tgz",
+              "size": 309318872,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.1/openccu-lite-aarch64-rpi3-2.0.1-ccu3.tgz"
+            },
+            {
+              "name": "openccu-lite-aarch64-rpi3-2.0.1-ccu3.tgz.sha256",
+              "size": 107,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.1/openccu-lite-aarch64-rpi3-2.0.1-ccu3.tgz.sha256"
+            },
+            {
+              "name": "openccu-lite-aarch64-rpi3-2.0.1.cdx.json",
+              "size": 2465509,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.1/openccu-lite-aarch64-rpi3-2.0.1.cdx.json"
+            },
+            {
+              "name": "openccu-lite-aarch64-rpi3-2.0.1.cdx.json.sha256",
+              "size": 107,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.1/openccu-lite-aarch64-rpi3-2.0.1.cdx.json.sha256"
+            },
+            {
+              "name": "openccu-lite-aarch64-rpi3-2.0.1.kernel-files.txt",
+              "size": 157618,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.1/openccu-lite-aarch64-rpi3-2.0.1.kernel-files.txt"
+            },
+            {
+              "name": "openccu-lite-aarch64-rpi3-2.0.1.kernel-files.txt.sha256",
+              "size": 115,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.1/openccu-lite-aarch64-rpi3-2.0.1.kernel-files.txt.sha256"
+            },
+            {
+              "name": "openccu-lite-aarch64-rpi3-2.0.1.zip",
+              "size": 313150143,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.1/openccu-lite-aarch64-rpi3-2.0.1.zip"
+            },
+            {
+              "name": "openccu-lite-aarch64-rpi3-2.0.1.zip.sha256",
+              "size": 102,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.1/openccu-lite-aarch64-rpi3-2.0.1.zip.sha256"
+            },
+            {
+              "name": "openccu-lite-aarch64-rpi4-2.0.1.cdx.json",
+              "size": 2472790,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.1/openccu-lite-aarch64-rpi4-2.0.1.cdx.json"
+            },
+            {
+              "name": "openccu-lite-aarch64-rpi4-2.0.1.cdx.json.sha256",
+              "size": 107,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.1/openccu-lite-aarch64-rpi4-2.0.1.cdx.json.sha256"
+            },
+            {
+              "name": "openccu-lite-aarch64-rpi4-2.0.1.kernel-files.txt",
+              "size": 157542,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.1/openccu-lite-aarch64-rpi4-2.0.1.kernel-files.txt"
+            },
+            {
+              "name": "openccu-lite-aarch64-rpi4-2.0.1.kernel-files.txt.sha256",
+              "size": 115,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.1/openccu-lite-aarch64-rpi4-2.0.1.kernel-files.txt.sha256"
+            },
+            {
+              "name": "openccu-lite-aarch64-rpi4-2.0.1.zip",
+              "size": 313186874,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.1/openccu-lite-aarch64-rpi4-2.0.1.zip"
+            },
+            {
+              "name": "openccu-lite-aarch64-rpi4-2.0.1.zip.sha256",
+              "size": 102,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.1/openccu-lite-aarch64-rpi4-2.0.1.zip.sha256"
+            },
+            {
+              "name": "openccu-lite-x86_64-ova-2.0.1.cdx.json",
+              "size": 2431222,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.1/openccu-lite-x86_64-ova-2.0.1.cdx.json"
+            },
+            {
+              "name": "openccu-lite-x86_64-ova-2.0.1.cdx.json.sha256",
+              "size": 105,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.1/openccu-lite-x86_64-ova-2.0.1.cdx.json.sha256"
+            },
+            {
+              "name": "openccu-lite-x86_64-ova-2.0.1.kernel-files.txt",
+              "size": 108215,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.1/openccu-lite-x86_64-ova-2.0.1.kernel-files.txt"
+            },
+            {
+              "name": "openccu-lite-x86_64-ova-2.0.1.kernel-files.txt.sha256",
+              "size": 113,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.1/openccu-lite-x86_64-ova-2.0.1.kernel-files.txt.sha256"
+            },
+            {
+              "name": "openccu-lite-x86_64-ova-2.0.1.ova",
+              "size": 311777280,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.1/openccu-lite-x86_64-ova-2.0.1.ova"
+            },
+            {
+              "name": "openccu-lite-x86_64-ova-2.0.1.ova.sha256",
+              "size": 100,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.1/openccu-lite-x86_64-ova-2.0.1.ova.sha256"
+            },
+            {
+              "name": "openccu-lite-x86_64-ova-2.0.1.zip",
+              "size": 306624043,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.1/openccu-lite-x86_64-ova-2.0.1.zip"
+            },
+            {
+              "name": "openccu-lite-x86_64-ova-2.0.1.zip.sha256",
+              "size": 100,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.1/openccu-lite-x86_64-ova-2.0.1.zip.sha256"
+            },
+            {
+              "name": "SHA256SUMS",
+              "size": 3034,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.1/SHA256SUMS"
+            }
+          ]
+        },
         {
           "tag_name": "v2.0.0",
           "name": "v2.0.0",
@@ -14349,6 +14504,161 @@
     },
     "openccu-lite/openccu-lite": {
       "releases": [
+        {
+          "tag_name": "v2.0.1",
+          "name": "v2.0.1",
+          "draft": false,
+          "prerelease": false,
+          "html_url": "https://github.com/openccu-lite/openccu-lite/releases/tag/v2.0.1",
+          "published_at": "2026-11-27T23:49:37Z",
+          "assets": [
+            {
+              "name": "occulited-asyncapi-2.0.1.json",
+              "size": 56712,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.1/occulited-asyncapi-2.0.1.json"
+            },
+            {
+              "name": "occulited-asyncapi-2.0.1.json.sha256",
+              "size": 96,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.1/occulited-asyncapi-2.0.1.json.sha256"
+            },
+            {
+              "name": "occulited-lite-rpc-methods-2.0.1.json",
+              "size": 5144,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.1/occulited-lite-rpc-methods-2.0.1.json"
+            },
+            {
+              "name": "occulited-lite-rpc-methods-2.0.1.json.sha256",
+              "size": 104,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.1/occulited-lite-rpc-methods-2.0.1.json.sha256"
+            },
+            {
+              "name": "occulited-openapi-2.0.1.json",
+              "size": 1067760,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.1/occulited-openapi-2.0.1.json"
+            },
+            {
+              "name": "occulited-openapi-2.0.1.json.sha256",
+              "size": 95,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.1/occulited-openapi-2.0.1.json.sha256"
+            },
+            {
+              "name": "openccu-lite-aarch64-rpi3-2.0.1-ccu3.tgz",
+              "size": 309318872,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.1/openccu-lite-aarch64-rpi3-2.0.1-ccu3.tgz"
+            },
+            {
+              "name": "openccu-lite-aarch64-rpi3-2.0.1-ccu3.tgz.sha256",
+              "size": 107,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.1/openccu-lite-aarch64-rpi3-2.0.1-ccu3.tgz.sha256"
+            },
+            {
+              "name": "openccu-lite-aarch64-rpi3-2.0.1.cdx.json",
+              "size": 2465509,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.1/openccu-lite-aarch64-rpi3-2.0.1.cdx.json"
+            },
+            {
+              "name": "openccu-lite-aarch64-rpi3-2.0.1.cdx.json.sha256",
+              "size": 107,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.1/openccu-lite-aarch64-rpi3-2.0.1.cdx.json.sha256"
+            },
+            {
+              "name": "openccu-lite-aarch64-rpi3-2.0.1.kernel-files.txt",
+              "size": 157618,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.1/openccu-lite-aarch64-rpi3-2.0.1.kernel-files.txt"
+            },
+            {
+              "name": "openccu-lite-aarch64-rpi3-2.0.1.kernel-files.txt.sha256",
+              "size": 115,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.1/openccu-lite-aarch64-rpi3-2.0.1.kernel-files.txt.sha256"
+            },
+            {
+              "name": "openccu-lite-aarch64-rpi3-2.0.1.zip",
+              "size": 313150143,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.1/openccu-lite-aarch64-rpi3-2.0.1.zip"
+            },
+            {
+              "name": "openccu-lite-aarch64-rpi3-2.0.1.zip.sha256",
+              "size": 102,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.1/openccu-lite-aarch64-rpi3-2.0.1.zip.sha256"
+            },
+            {
+              "name": "openccu-lite-aarch64-rpi4-2.0.1.cdx.json",
+              "size": 2472790,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.1/openccu-lite-aarch64-rpi4-2.0.1.cdx.json"
+            },
+            {
+              "name": "openccu-lite-aarch64-rpi4-2.0.1.cdx.json.sha256",
+              "size": 107,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.1/openccu-lite-aarch64-rpi4-2.0.1.cdx.json.sha256"
+            },
+            {
+              "name": "openccu-lite-aarch64-rpi4-2.0.1.kernel-files.txt",
+              "size": 157542,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.1/openccu-lite-aarch64-rpi4-2.0.1.kernel-files.txt"
+            },
+            {
+              "name": "openccu-lite-aarch64-rpi4-2.0.1.kernel-files.txt.sha256",
+              "size": 115,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.1/openccu-lite-aarch64-rpi4-2.0.1.kernel-files.txt.sha256"
+            },
+            {
+              "name": "openccu-lite-aarch64-rpi4-2.0.1.zip",
+              "size": 313186874,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.1/openccu-lite-aarch64-rpi4-2.0.1.zip"
+            },
+            {
+              "name": "openccu-lite-aarch64-rpi4-2.0.1.zip.sha256",
+              "size": 102,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.1/openccu-lite-aarch64-rpi4-2.0.1.zip.sha256"
+            },
+            {
+              "name": "openccu-lite-x86_64-ova-2.0.1.cdx.json",
+              "size": 2431222,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.1/openccu-lite-x86_64-ova-2.0.1.cdx.json"
+            },
+            {
+              "name": "openccu-lite-x86_64-ova-2.0.1.cdx.json.sha256",
+              "size": 105,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.1/openccu-lite-x86_64-ova-2.0.1.cdx.json.sha256"
+            },
+            {
+              "name": "openccu-lite-x86_64-ova-2.0.1.kernel-files.txt",
+              "size": 108215,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.1/openccu-lite-x86_64-ova-2.0.1.kernel-files.txt"
+            },
+            {
+              "name": "openccu-lite-x86_64-ova-2.0.1.kernel-files.txt.sha256",
+              "size": 113,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.1/openccu-lite-x86_64-ova-2.0.1.kernel-files.txt.sha256"
+            },
+            {
+              "name": "openccu-lite-x86_64-ova-2.0.1.ova",
+              "size": 311777280,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.1/openccu-lite-x86_64-ova-2.0.1.ova"
+            },
+            {
+              "name": "openccu-lite-x86_64-ova-2.0.1.ova.sha256",
+              "size": 100,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.1/openccu-lite-x86_64-ova-2.0.1.ova.sha256"
+            },
+            {
+              "name": "openccu-lite-x86_64-ova-2.0.1.zip",
+              "size": 306624043,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.1/openccu-lite-x86_64-ova-2.0.1.zip"
+            },
+            {
+              "name": "openccu-lite-x86_64-ova-2.0.1.zip.sha256",
+              "size": 100,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.1/openccu-lite-x86_64-ova-2.0.1.zip.sha256"
+            },
+            {
+              "name": "SHA256SUMS",
+              "size": 3034,
+              "browser_download_url": "https://github.com/openccu-lite/openccu-lite/releases/download/v2.0.1/SHA256SUMS"
+            }
+          ]
+        },
         {
           "tag_name": "v2.0.0",
           "name": "v2.0.0",
