@@ -6,6 +6,7 @@ import (
 	"compress/gzip"
 	"os"
 	"path/filepath"
+	"slices"
 	"testing"
 
 	"github.com/hobbyquaker/occulited/internal/meta"
@@ -84,7 +85,7 @@ func TestImportNamesFromSBK(t *testing.T) {
 	}
 	after := 0
 	a := &MetaAPI{Store: s, AfterImport: func() { after++ }}
-	res := a.ImportNamesFromSBK(sbk(true))
+	res := a.ImportNamesFromSBK(sbk(true), nil)
 	if !res.OK || res.Objects != 4 || res.Rooms != 2 || res.Functions != 1 || !res.Changed || res.Error != "" || after != 1 {
 		t.Fatalf("names: %+v after=%d", res, after)
 	}
@@ -92,14 +93,51 @@ func TestImportNamesFromSBK(t *testing.T) {
 		t.Errorf("the channel's name is not in the store: %+v", o)
 	}
 	// the same import again: nothing changes, no AfterImport
-	if res := a.ImportNamesFromSBK(sbk(true)); !res.OK || res.Changed || after != 1 {
+	if res := a.ImportNamesFromSBK(sbk(true), nil); !res.OK || res.Changed || after != 1 {
 		t.Errorf("second import: %+v after=%d", res, after)
 	}
 	// without a ReGa database: the error, nothing imported
-	if res := a.ImportNamesFromSBK(sbk(false)); res.OK || res.Error == "" {
+	if res := a.ImportNamesFromSBK(sbk(false), nil); res.OK || res.Error == "" {
 		t.Errorf("no regadom: %+v", res)
 	}
-	if res := a.ImportNamesFromSBK(filepath.Join(t.TempDir(), "gone.sbk")); res.OK || res.Error == "" {
+	if res := a.ImportNamesFromSBK(filepath.Join(t.TempDir(), "gone.sbk"), nil); res.OK || res.Error == "" {
 		t.Errorf("missing file: %+v", res)
+	}
+
+	// occulited B-190 (openccu-lite#26): a system that runs no radio yet - its HB-RF-ETH still
+	// serves the old OpenCCU - lists only VirtualDevices in InterfacesList.xml. The device import
+	// brings BidCos-RF and HmIP-RF; their names and room memberships must come along, not be left
+	// out as foreign while the rooms arrive empty.
+	onlyGroups := func(name string) bool { return name == "VirtualDevices" }
+	cases := []struct {
+		name               string
+		brings             []string
+		objects, foreign   int
+		memberRef, inRoom  string
+		wantMember, wantNo bool
+	}{
+		{name: "the interfaces the import brings", brings: []string{"BidCos-RF", "HmIP-RF", "VirtualDevices"}, objects: 4, foreign: 0, memberRef: "BidCos-RF.JEQ9000001:1", inRoom: "room/wohnzimmer", wantMember: true},
+		{name: "only BidCos-RF brought", brings: []string{"BidCos-RF"}, objects: 2, foreign: 2, memberRef: "HmIP-RF.0001D0000000B2:3", wantNo: true},
+		{name: "nothing brought: the list alone decides (B-84)", brings: nil, objects: 0, foreign: 5, memberRef: "BidCos-RF.JEQ9000001:1", wantNo: true},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			s, err := meta.New(nil, nil)
+			if err != nil {
+				t.Fatal(err)
+			}
+			a := &MetaAPI{Store: s, KnownInterface: onlyGroups}
+			res := a.ImportNamesFromSBK(sbk(true), c.brings)
+			if !res.OK || res.Objects != c.objects || res.Foreign != c.foreign || res.Rooms != 2 || res.Functions != 1 {
+				t.Fatalf("names: %+v", res)
+			}
+			o := s.Snapshot().Objects[c.memberRef]
+			if c.wantMember && (o == nil || !slices.Contains(o.Enums, c.inRoom) || !slices.Contains(o.Enums, "function/heizung")) {
+				t.Errorf("%s is not in %s and function/heizung: %+v", c.memberRef, c.inRoom, o)
+			}
+			if c.wantNo && o != nil {
+				t.Errorf("%s imported although its interface is foreign: %+v", c.memberRef, o)
+			}
+		})
 	}
 }

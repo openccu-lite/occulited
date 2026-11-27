@@ -15,6 +15,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -818,24 +819,37 @@ func (a *MetaAPI) importRegadom(w http.ResponseWriter, r *http.Request) {
 // backup (openccu-lite task 281): the counts, or the error - a names failure never stops the
 // device import.
 type NamesImportResult struct {
-	OK        bool   `json:"ok"`
-	Objects   int    `json:"objects"`
-	Rooms     int    `json:"rooms"`
-	Functions int    `json:"functions"`
-	Changed   bool   `json:"changed"`
-	Error     string `json:"error,omitempty"`
+	OK        bool `json:"ok"`
+	Objects   int  `json:"objects"`
+	Rooms     int  `json:"rooms"`
+	Functions int  `json:"functions"`
+	// Foreign counts the objects left out because their interface is none of this system's and
+	// none the import brings (occulited B-190: before, every device of a system without its radio
+	// yet went this way, and the rooms arrived empty)
+	Foreign int    `json:"foreign"`
+	Changed bool   `json:"changed"`
+	Error   string `json:"error,omitempty"`
 }
 
 // ImportNamesFromSBK imports the names, rooms and functions of a checked backup's ReGa database
 // into the store, merging (existing objects and nodes stay) - the same path as POST
 // /import/regadom with source restore:<file>, for the device import that runs it before its reboot
 // (openccu-lite task 281: one action takes the devices, the keys and the names).
-func (a *MetaAPI) ImportNamesFromSBK(path string) NamesImportResult {
+//
+// brings are the interfaces whose devices the import puts in place (system.RadioBackup.Interfaces):
+// their objects are taken although InterfacesList.xml does not list them yet (occulited B-190). A
+// system that runs no radio before the import - the HB-RF-ETH still with the old system - lists
+// only VirtualDevices, and every device's name and room membership was left out as foreign.
+func (a *MetaAPI) ImportNamesFromSBK(path string, brings []string) NamesImportResult {
 	dump, err := regaimport.RegadomFromSBK(path)
 	if err != nil {
 		return NamesImportResult{Error: err.Error()}
 	}
-	res := regaimport.ConvertKnown(dump, a.Store.Snapshot().Enums, a.KnownInterface)
+	known := a.KnownInterface
+	if known != nil && len(brings) > 0 {
+		known = func(name string) bool { return slices.Contains(brings, name) || a.KnownInterface(name) }
+	}
+	res := regaimport.ConvertKnown(dump, a.Store.Snapshot().Enums, known)
 	_, changed, err := a.Store.Import(nil, res.Document, meta.ImportMerge)
 	if err != nil {
 		return NamesImportResult{Error: err.Error()}
@@ -843,7 +857,7 @@ func (a *MetaAPI) ImportNamesFromSBK(path string) NamesImportResult {
 	if changed && a.AfterImport != nil {
 		a.AfterImport()
 	}
-	return NamesImportResult{OK: true, Objects: len(res.Document.Objects), Rooms: res.Rooms, Functions: res.Functions, Changed: changed}
+	return NamesImportResult{OK: true, Objects: len(res.Document.Objects), Rooms: res.Rooms, Functions: res.Functions, Foreign: res.Foreign, Changed: changed}
 }
 
 // RegadomPath is the box's ReGa database (under --root for development).

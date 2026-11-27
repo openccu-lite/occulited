@@ -7490,6 +7490,9 @@
           "error": {
             "type": "string"
           },
+          "foreign": {
+            "type": "integer"
+          },
           "functions": {
             "type": "integer"
           },
@@ -7505,6 +7508,7 @@
         },
         "required": [
           "changed",
+          "foreign",
           "functions",
           "objects",
           "ok",

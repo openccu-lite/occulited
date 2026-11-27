@@ -303,3 +303,34 @@ func TestInspectRadioBackupSecurityCounter(t *testing.T) {
 		t.Fatalf("plain file: %+v", b.HmIP)
 	}
 }
+
+// occulited B-190: the interfaces whose devices a device import brings, for the names import of the
+// same backup on a system that runs no radio yet
+func TestRadioBackupInterfaces(t *testing.T) {
+	var bidcos, hmip, wired, identity, address, empty RadioBackup
+	bidcos.BidCosRF.Devices = 2
+	hmip.HmIP.Devices = 1
+	wired.BidCosWired.Devices = 3
+	identity.HmIP.IdentitySGTIN = "3014F711A0001F0000000A03"
+	address.BidCosRF.Address = "0xFF9999"
+	all := bidcos
+	all.HmIP.Devices = 1
+	all.BidCosWired.Devices = 1
+	for _, c := range []struct {
+		name string
+		b    RadioBackup
+		want []string
+	}{
+		{"BidCos-RF devices", bidcos, []string{"BidCos-RF"}},
+		{"HmIP devices bring the groups", hmip, []string{"HmIP-RF", "VirtualDevices"}},
+		{"wired devices", wired, []string{"BidCos-Wired"}},
+		{"an HmIP identity alone", identity, []string{"HmIP-RF", "VirtualDevices"}},
+		{"a BidCos address alone", address, []string{"BidCos-RF"}},
+		{"everything", all, []string{"BidCos-RF", "HmIP-RF", "VirtualDevices", "BidCos-Wired"}},
+		{"nothing", empty, []string{}},
+	} {
+		if got := c.b.Interfaces(); !slices.Equal(got, c.want) {
+			t.Errorf("%s: %v, want %v", c.name, got, c.want)
+		}
+	}
+}

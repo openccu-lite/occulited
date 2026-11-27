@@ -10,6 +10,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -101,8 +102,10 @@ func TestRestoreDevices(t *testing.T) {
 	// task 281: the names of the same file are imported before the devices; the fake records the
 	// order and the path, and fails when told to
 	var namesCalls []string
-	namesImport := func(path string) NamesImportResult {
+	var namesBrings [][]string
+	namesImport := func(path string, brings []string) NamesImportResult {
 		namesCalls = append(namesCalls, path)
+		namesBrings = append(namesBrings, brings)
 		if _, err := os.Stat(path); err != nil {
 			return NamesImportResult{Error: "the file is gone: " + err.Error()}
 		}
@@ -210,6 +213,10 @@ func TestRestoreDevices(t *testing.T) {
 	if len(namesCalls) != 1 || !strings.HasSuffix(namesCalls[0], "/usr/local/tmp/restore-ccu.sbk") {
 		t.Errorf("names calls: %v", namesCalls)
 	}
+	// B-190: the interfaces whose devices the backup brings are handed to the names import
+	if len(namesBrings) != 1 || !slices.Equal(namesBrings[0], []string{"BidCos-RF", "HmIP-RF", "VirtualDevices"}) {
+		t.Errorf("names brings: %v", namesBrings)
+	}
 	// the record (task 275): the identity came from the backup's module onto this one
 	recOut := out["record"].(map[string]any)["hmip"].(map[string]any)
 	if recOut["module_changed"] != true || recOut["from_sgtin"] != "3014F711A0001F0000000A03" || recOut["to_sgtin"] != "3014F711A000040000000A01" {
@@ -286,7 +293,9 @@ func TestRestoreDevicesKeyReplace(t *testing.T) {
 	hmipFree := listDevicesStub(t, "HmIP-RFUSB")
 	record := &system.ImportRecord{Path: filepath.Join(root, "state/devices-import.json"), Root: rig.root, Plan: func() (radio.Plan, bool) { return radio.Plan{}, false }}
 	// task 281: a backup without a ReGa database - the names fail, the devices come all the same
-	namesImport := func(string) NamesImportResult { return NamesImportResult{Error: "no ReGa database in the backup"} }
+	namesImport := func(string, []string) NamesImportResult {
+		return NamesImportResult{Error: "no ReGa database in the backup"}
+	}
 	api := &SystemAPI{Root: rig.root, Manager: rig.m, Power: rig.power, ImportRecord: record, NamesImport: namesImport, RadioInterfaces: func() []interfaces.Interface {
 		return interfaces.FromList([]struct{ Name, URL string }{{"HmIP-RF", "xmlrpc://" + strings.TrimPrefix(hmipFree.URL, "http://")}})
 	}}

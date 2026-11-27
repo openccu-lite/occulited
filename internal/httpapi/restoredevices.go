@@ -278,10 +278,11 @@ func (a *SystemAPI) restoreImportDevices(w http.ResponseWriter, r *http.Request)
 	// now; a failure is reported and does not stop the devices
 	var names *NamesImportResult
 	if a.NamesImport != nil {
-		n := a.NamesImport(path)
+		// B-190: the interfaces the import brings count as this system's, whatever runs here now
+		n := a.NamesImport(path, b.Interfaces())
 		names = &n
 		if n.OK {
-			withCaller(r, a.trustLog()).Info("restore: names imported from the backup before the device import", "file", body.File, "objects", n.Objects, "rooms", n.Rooms, "functions", n.Functions)
+			withCaller(r, a.trustLog()).Info("restore: names imported from the backup before the device import", "file", body.File, "objects", n.Objects, "rooms", n.Rooms, "functions", n.Functions, "foreign", n.Foreign)
 		} else {
 			withCaller(r, a.trustLog()).Warn("restore: the names import from the backup failed; the device import goes on", "file", body.File, "err", n.Error)
 		}

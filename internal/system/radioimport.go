@@ -108,6 +108,25 @@ func (b RadioBackup) Empty() bool {
 	return b.BidCosRF.Devices == 0 && b.HmIP.Devices == 0 && b.BidCosWired.Devices == 0 && b.HmIP.IdentitySGTIN == "" && b.BidCosRF.Address == ""
 }
 
+// Interfaces are the interface processes whose devices the import brings (occulited B-190): the
+// device import writes their files, so they are this system's after its reboot even where this
+// system runs no radio yet - an HB-RF-ETH still serving the old system, a radio set to none. The
+// names import of the same backup takes their objects although InterfacesList.xml does not list
+// them at that moment. HmIP-RF brings VirtualDevices along: the heating groups are hmipserver's.
+func (b RadioBackup) Interfaces() []string {
+	out := []string{}
+	if b.BidCosRF.Devices > 0 || b.BidCosRF.Address != "" {
+		out = append(out, "BidCos-RF")
+	}
+	if b.HmIP.Devices > 0 || b.HmIP.IdentitySGTIN != "" {
+		out = append(out, "HmIP-RF", "VirtualDevices")
+	}
+	if b.BidCosWired.Devices > 0 {
+		out = append(out, "BidCos-Wired")
+	}
+	return out
+}
+
 // NonDefaultKey says whether the backup's BidCos-RF key store is not the factory key (openccu-lite
 // task 278): its key_index counts the key changes since the factory key, and rfd's key store is
 // persisted only once a key was set. The import takes the store as it is, without the passphrase

@@ -57,7 +57,7 @@ func importRig(t *testing.T) (*powerRig, *SystemAPI) {
 	free := listDevicesStub(t, "HmIP-RFUSB")
 	record := &system.ImportRecord{Path: filepath.Join(root, "state/devices-import.json"), Root: rig.root}
 	api := &SystemAPI{Root: rig.root, Manager: rig.m, Power: rig.power, ImportRecord: record,
-		NamesImport: func(string) NamesImportResult { return NamesImportResult{OK: true, Objects: 3} },
+		NamesImport: func(string, []string) NamesImportResult { return NamesImportResult{OK: true, Objects: 3} },
 		RadioInterfaces: func() []interfaces.Interface {
 			return interfaces.FromList([]struct{ Name, URL string }{{"HmIP-RF", "xmlrpc://" + strings.TrimPrefix(free.URL, "http://")}})
 		}}

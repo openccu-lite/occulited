@@ -346,8 +346,9 @@ type SystemAPI struct {
 	// backupReports keeps the report of the checked upload (occulited task 142)
 	backupReports system.BackupReports
 	// NamesImport imports the ReGa names of a checked backup before the device import reboots
-	// (openccu-lite task 281): MetaAPI.ImportNamesFromSBK; nil = no names are imported.
-	NamesImport func(sbkPath string) NamesImportResult
+	// (openccu-lite task 281): MetaAPI.ImportNamesFromSBK; nil = no names are imported. brings are
+	// the interfaces whose devices the import brings (occulited B-190).
+	NamesImport func(sbkPath string, brings []string) NamesImportResult
 	// LAN finds eQ-3's LAN devices and writes their network settings (openccu-lite task 220); nil =
 	// an eq3disc.Client. LANNetworks and AddressInUse are test seams (nil = this system's).
 	LAN          LANFinder
