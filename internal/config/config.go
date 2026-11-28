@@ -3,6 +3,7 @@
 package config
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -619,17 +620,24 @@ func SetPublic(path string, on bool, account string) (Config, error) {
 // Save writes path atomically. Run as root - the console's `occulited auth password-login on` -
 // the new file keeps the owner of the one it replaces (or of its directory), or the daemon, which
 // runs as its own user, could not read its own configuration any more (0600).
+//
+// A file that holds these bytes already is left as it is (occulited task 190): a settings page
+// saved without a change writes nothing.
 func Save(path string, c Config) error {
 	b, err := json.MarshalIndent(c, "", "  ")
 	if err != nil {
 		return err
+	}
+	b = append(b, '\n')
+	if old, err := os.ReadFile(path); err == nil && bytes.Equal(old, b) {
+		return nil
 	}
 	tmp, err := os.CreateTemp(filepath.Dir(path), ".occulited-*.tmp")
 	if err != nil {
 		return err
 	}
 	defer os.Remove(tmp.Name())
-	if _, err := tmp.Write(append(b, '\n')); err != nil {
+	if _, err := tmp.Write(b); err != nil {
 		tmp.Close()
 		return err
 	}

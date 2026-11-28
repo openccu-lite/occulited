@@ -133,7 +133,8 @@ func (u WebAuthnUser) WebAuthnCredentials() []webauthn.Credential { return u.Cre
 func (s *Store) webauthnUserLocked(u *User) WebAuthnUser {
 	out := WebAuthnUser{Name: u.Name, AccountID: u.ID}
 	for _, c := range u.WebAuthn {
-		out.Credentials = append(out.Credentials, c.Key)
+		k := s.stampedKey(u, c) // the counter of the latest use, which users.json may not hold yet (task 190)
+		out.Credentials = append(out.Credentials, k.Key)
 	}
 	return out
 }
@@ -184,7 +185,8 @@ func (s *Store) WebAuthnKeys(name string) []WebAuthnView {
 	}
 	out := make([]WebAuthnView, 0, len(u.WebAuthn))
 	for _, c := range u.WebAuthn {
-		out = append(out, c.view())
+		k := s.stampedKey(u, c)
+		out = append(out, k.view())
 	}
 	return out
 }
@@ -290,26 +292,39 @@ func (s *Store) RemoveWebAuthn(user, id string, endSessions bool, keep string) e
 
 // usedWebAuthnLocked takes the library's updated record after a successful assertion: the sign
 // count and the flags, and the time. A clone warning - a sign count that went backwards - is
-// refused before anything is written.
-func (s *Store) usedWebAuthnLocked(u *User, key *webauthn.Credential) error {
+// refused before anything is written. save says users.json must be written now: the key became a
+// passkey. Otherwise the use is kept in memory (task 190, stamps.go) - the next ceremony starts
+// from its counter all the same.
+func (s *Store) usedWebAuthnLocked(u *User, key *webauthn.Credential) (save bool, err error) {
 	for _, c := range u.WebAuthn {
 		if string(c.Key.ID) != string(key.ID) {
 			continue
 		}
 		if key.Authenticator.CloneWarning {
-			return ErrWebAuthnClone
+			return false, ErrWebAuthnClone
 		}
-		now := s.opt.Now()
-		c.Key.Authenticator.SignCount = key.Authenticator.SignCount
-		c.Key.Flags = key.Flags
+		use := keyStamp{at: s.opt.Now(), signCount: key.Authenticator.SignCount, flags: key.Flags}
 		// a discoverable login found it, so it is a resident credential whatever its
 		// registration reported (a browser that left credProps out): a passkey from now on
+		next := *c
+		use.applyTo(&next)
 		rk := true
-		c.Key.Extensions.RK = &rk
-		c.LastUsed = &now
-		return nil
+		next.Key.Extensions.RK = &rk
+		if next.Passkey() != c.Passkey() || c.Key.Extensions.RK == nil || !*c.Key.Extensions.RK {
+			*c = next
+			if st := s.stampFor(u); st != nil {
+				delete(st.keys, string(c.Key.ID))
+			}
+			return true, nil
+		}
+		st := s.stampOf(u)
+		if st.keys == nil {
+			st.keys = map[string]keyStamp{}
+		}
+		st.keys[string(c.Key.ID)] = use
+		return false, nil
 	}
-	return ErrWebAuthnUnknown
+	return false, ErrWebAuthnUnknown
 }
 
 // --- pending logins ------------------------------------------------------------------------
@@ -378,13 +393,16 @@ func (s *Store) CompleteLogin(name string, key *webauthn.Credential, method, rem
 	if !ok {
 		return nil, ErrUnknownUser
 	}
-	if err := s.usedWebAuthnLocked(u, key); err != nil {
+	save, err := s.usedWebAuthnLocked(u, key)
+	if err != nil {
 		var why Refusal
 		s.failLogin(name, remote, &why)
 		return nil, err
 	}
-	if err := s.save(); err != nil {
-		return nil, err
+	if save {
+		if err := s.save(); err != nil {
+			return nil, err
+		}
 	}
 	delete(s.failures, "u:"+name)
 	return s.openSession(name, u.Level, method, remote, agent)
@@ -403,13 +421,16 @@ func (s *Store) ConfirmKey(name string, key *webauthn.Credential, remote string)
 	if !ok {
 		return ErrUnknownUser
 	}
-	if err := s.usedWebAuthnLocked(u, key); err != nil {
+	save, err := s.usedWebAuthnLocked(u, key)
+	if err != nil {
 		var why Refusal
 		s.failLogin(name, remote, &why)
 		return err
 	}
-	if err := s.save(); err != nil {
-		return err
+	if save {
+		if err := s.save(); err != nil {
+			return err
+		}
 	}
 	delete(s.failures, "u:"+name)
 	return nil
@@ -498,7 +519,7 @@ func ConsoleRemoveWebAuthn(dir, name, id string) (int, error) {
 	if err := s.save(); err != nil {
 		return 0, err
 	}
-	if err := endStoredSessions(SessionStorePath(dir), name); err != nil {
+	if err := endAccountSessions(dir, name); err != nil {
 		return removed, fmt.Errorf("the keys are removed, but the account's stored sessions could not be ended: %w", err)
 	}
 	return removed, nil

@@ -14,6 +14,7 @@ package catalog
 
 import (
 	"bufio"
+	"bytes"
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
@@ -323,18 +324,21 @@ type Service struct {
 
 	refreshing sync.Mutex // one refresh at a time
 
-	mu       sync.Mutex
-	catalog  *Catalog // the merged catalogue file, with the source URL per entry
-	sources  map[string]string
-	cache    cacheFile
-	loaded   bool
-	adapters map[string]*manifest.Manifest // the bundled adapter manifests by id
-	bundled  *time.Time                    // the time of the image's copy of the catalogue file
-	releases map[string]releaseCache
-	timings  map[string]float64 // addon id -> install seconds
-	phaseAt  time.Time          // when the current phase began
-	progress *Progress
-	now      func() time.Time // the clock for rate-limit waits; nil = time.Now
+	mu      sync.Mutex
+	catalog *Catalog // the merged catalogue file, with the source URL per entry
+	sources map[string]string
+	cache   cacheFile
+	// cacheSaved is what CacheFile holds, as last read or written: a save of the same bytes
+	// writes nothing (occulited task 190 - a check wrote the 80 kB file up to four times)
+	cacheSaved []byte
+	loaded     bool
+	adapters   map[string]*manifest.Manifest // the bundled adapter manifests by id
+	bundled    *time.Time                    // the time of the image's copy of the catalogue file
+	releases   map[string]releaseCache
+	timings    map[string]float64 // addon id -> install seconds
+	phaseAt    time.Time          // when the current phase began
+	progress   *Progress
+	now        func() time.Time // the clock for rate-limit waits; nil = time.Now
 	// resolvedFile is the pre-resolved catalogue of the last check that could read it (task 124),
 	// resolvedETag its ETag; used while resolved.File.Valid says so
 	resolvedFile *resolved.File
@@ -416,10 +420,11 @@ func (s *Service) loadLocked() {
 	if c.Entries == nil {
 		c.Entries = map[string]cached{}
 	}
-	s.cache = c
+	s.cache, s.cacheSaved = c, b
 }
 
-// saveLocked writes the disk cache. s.mu held.
+// saveLocked writes the disk cache when its content changed (occulited task 190: a refresh that
+// brought nothing new costs the disk nothing). s.mu held.
 func (s *Service) saveLocked() {
 	if s.CacheFile == "" {
 		return
@@ -428,8 +433,15 @@ func (s *Service) saveLocked() {
 	if err != nil {
 		return
 	}
+	if s.cacheSaved != nil && bytes.Equal(b, s.cacheSaved) {
+		s.pruneImagesLocked()
+		return
+	}
 	if err := os.WriteFile(s.CacheFile, b, 0o644); err != nil {
 		slog.Warn("catalog: the cache could not be written", "file", s.CacheFile, "err", err)
+		s.cacheSaved = nil
+	} else {
+		s.cacheSaved = b
 	}
 	s.pruneImagesLocked()
 }

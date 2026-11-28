@@ -113,7 +113,7 @@ The mode itself is `acme/settings.json`'s `mode` (`manual`); the live file is th
 
 ## The sessions: `<state_dir>/sessions/`
 
-Login sessions survive a restart of occulited and a reboot, and end after 30 minutes idle or 12 hours after
+Login sessions survive a restart of occulited and a reboot (after a power loss, those since the last copy below are lost), and end after 30 minutes idle or 12 hours after
 the login (the defaults since openccu-lite task 262; `auth.session_idle`, `auth.session_max` above). The directory is occulited's
 own, `0700` to the `occulite` user, and carries an empty `.nobackup`: the firmware's backup tars
 `/usr/local` with `--exclude-tag=.nobackup`, which leaves out a directory holding the tag — so the
@@ -121,7 +121,7 @@ store has a directory of its own, and neither a backup nor a restore carries a s
 
 | file | content |
 | --- | --- |
-| `sessions.json` | `0600`. `{"version": 1, "sessions": [{"hash", "user", "role", "method", "created", "last_seen", "idle_expires", "expires", "remote", "agent"}]}`: `hash` is the SHA-256 of the session id, lower-case hex — **the id itself is never written** — `method` how the session was opened (`password`, `oidc`), `expires` the login time plus 30 days, `idle_expires` `last_seen` plus 24 hours, times RFC 3339. Written atomically at a login, a logout, *sign out everywhere*, a session ended from the list, a password change, a user deleted or given another role, an expiry and a clean shutdown; a request writes `last_seen` only when the stored one is at least ten minutes old. Auth-off's anonymous session is never in it. |
+| `sessions.json` | `0600`. `{"version": 2, "sessions": [{"hash", "user", "role", "level", "method", "created", "last_seen", "idle_expires", "expires", "remote", "agent", "legacy_hash"}]}`: `hash` is the SHA-256 of the session id, lower-case hex — **the id itself is never written** — `method` how the session was opened (`password`, `passkey`, `oidc`), `expires` the login time plus the maximum age, `idle_expires` `last_seen` plus the idle timeout, times RFC 3339. Auth-off's anonymous session is never in it. **Two copies** (occulited task 190): the live one `/run/occulite/state/sessions.json` (the unit's runtime directory, RAM) is written atomically at a login, a logout, *sign out everywhere*, a session ended from the list, a password change, a user deleted or given another role and an expiry; a request writes `last_seen` only when the stored one is at least ten minutes old. This copy on the userfs follows only at a clean stop of occulited, once a day (the first check after midnight) and at once when a session it holds ends - so a login costs the SD card nothing, and a power loss can lose the sessions opened since the last copy but never bring back one that ended. A restart of occulited reads the live copy; a boot, which empties `/run`, this one. Without the runtime directory (an older unit) every write goes here, as before. |
 | `.nobackup` | Empty; written again before any write of the store if it went missing. |
 
 At start occulited restores the sessions whose hash, user (still in `users.json`, and with a
@@ -133,8 +133,8 @@ flag: one file per session named by the same hash, containing the user name, `06
 directory) before it serves. A store that cannot be read or is not valid JSON restores nothing,
 logs a warning and never stops the start; a corrupt one is replaced at once, an unreadable one at
 the next login; so does a store of another `version`. Deleting the directory ends every session at
-the next start. A password set with `occulited passwd <user>` removes that account's entries (the
-command never creates the store or its directory), and a running occulited follows a changed
+the next start. A password set with `occulited passwd <user>` removes that account's entries from both
+copies (the command never creates the store or its directory), and a running occulited follows a changed
 `users.json` at the next session check: the sessions of a removed account or a changed password
 end, a changed role is taken over.
 

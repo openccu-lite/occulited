@@ -57,6 +57,9 @@ type Manager struct {
 	Prober Prober
 	// Providers answers the installed addons that declare backup.targets (occulited task 150).
 	Providers func() []Provider
+	// BeforeRun is called before Start starts a run (occulited task 190): the daemon writes what it
+	// keeps in memory - the accounts' login times - so the backup holds it. May be nil.
+	BeforeRun func()
 
 	mu     sync.Mutex
 	checks map[string]Check
@@ -624,6 +627,9 @@ func (m *Manager) Start(ctx context.Context, instance string) error {
 		if busy {
 			return ErrBusy
 		}
+	}
+	if m.BeforeRun != nil {
+		m.BeforeRun()
 	}
 	res, err := m.Helper().Run(ctx, "systemctl", []string{"start", "--no-block", fmt.Sprintf(CreateUnit, instance)}, nil)
 	if err != nil {

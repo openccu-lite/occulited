@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -41,6 +42,9 @@ func backupDirEntries(g *cryptRig) []os.DirEntry {
 // download takes the file, a second POST while one waits joins it.
 func TestBackupPrepared(t *testing.T) {
 	g := newCryptRig(t)
+	// occulited task 190: what the daemon keeps in memory reaches the disk before the backup
+	var flushed atomic.Int32
+	g.api.BeforeBackup = func() { flushed.Add(1) }
 	st, out := g.do(t, "POST", "/backup/prepare", "")
 	if st != 202 || out["state"] != "running" || len(out["id"].(string)) != 32 {
 		t.Fatalf("prepare: %d %v", st, out)
@@ -49,6 +53,9 @@ func TestBackupPrepared(t *testing.T) {
 	ready := waitJob(t, g, id, "ready")
 	if ready["size"] != float64(len(g.sbk)) {
 		t.Errorf("size: %v", ready)
+	}
+	if flushed.Load() != 1 {
+		t.Errorf("flushed %d times before the backup, want 1", flushed.Load())
 	}
 	// a second prepare while the file waits joins it rather than building another one
 	if st, again := g.do(t, "POST", "/backup/prepare", ""); st != 200 || again["id"] != id {

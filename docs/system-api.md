@@ -136,7 +136,11 @@ only). A client-sent copy of any of the three is removed first, in any spelling 
 lighttpd runs. The gate reads the tokens from a mirror beside the sessions' - `/run/occulite/gate-tokens/<sha256 of
 the secret>`, written by the daemon on every token and addon change, holding the token's name, the segments it
 opens, its expiry and its ranges, never a secret. `last_used` counts the API and the CGIs, not a request lighttpd
-proxies straight to an addon's own server.
+proxies straight to an addon's own server. The listings show it at once; `users.json` takes it - like a passkey's
+`last_used` and counter and an account's last login at the identity provider - only once a day (the first check after
+midnight, before the nightly backup), before a backup occulited starts, and at a clean stop (occulited task 190, B-154
+before: hourly), so a program polling with a token or a login costs the SD card nothing; a power loss loses at most
+that day's times. A save of `users.json` that would write what it holds already writes nothing.
 
 **Passkeys** (openccu-lite task 262, ASVS V6.5; occulited task 14): an account may register WebAuthn credentials on
 its own account (System → Account, *Passkeys*; the routes `/me/webauthn` below). **A passkey is a login of its own,

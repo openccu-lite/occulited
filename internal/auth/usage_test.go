@@ -57,8 +57,9 @@ func listedToken(s *Store, name string) Token {
 }
 
 // occulited B-154: a request with a token never writes users.json - a program polling with one
-// rewrote it every minute. The use is kept in memory, listed at once, and written by Sweep once
-// UsageEvery has passed since the last save, by any other save, and at Close.
+// rewrote it every minute. The use is kept in memory, listed at once, and written by Sweep once a
+// day - the first sweep after midnight (task 190; an hour before) - by any other save, and at Close.
+// The clock starts at noon.
 func TestTokenUseNotWrittenPerRequest(t *testing.T) {
 	for _, tc := range []struct {
 		name     string
@@ -68,9 +69,10 @@ func TestTokenUseNotWrittenPerRequest(t *testing.T) {
 	}{
 		{"one request", 1, 0, false},
 		{"an hour of polling", 360, 0, false},
-		{"swept within the interval", 100, 30 * time.Minute, false},
-		{"swept after the interval", 100, time.Hour, true},
-		{"swept after the interval without a use", 0, 2 * time.Hour, false},
+		{"swept an hour later (the old interval)", 100, time.Hour, false},
+		{"swept late the same day", 100, 11*time.Hour + 59*time.Minute, false},
+		{"swept after midnight", 100, 12*time.Hour + time.Minute, true},
+		{"swept after midnight without a use", 0, 13 * time.Hour, false},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			clk := &usageClock{time.Date(2026, 11, 20, 12, 0, 0, 0, time.UTC)}

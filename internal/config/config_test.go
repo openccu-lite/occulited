@@ -325,3 +325,34 @@ func TestUserOwnedResolvedURLFollows(t *testing.T) {
 		t.Errorf("default: %s", DefaultResolvedURL)
 	}
 }
+
+// occulited task 190: a save of what the file holds already writes nothing; a change is written.
+func TestSaveUnchangedWritesNothing(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "occulited.json")
+	c := Default()
+	if err := Save(path, c); err != nil {
+		t.Fatal(err)
+	}
+	before, err := os.Stat(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := Save(path, c); err != nil {
+		t.Fatal(err)
+	}
+	after, _ := os.Stat(path)
+	if !os.SameFile(before, after) {
+		t.Fatal("an unchanged save replaced the file")
+	}
+	c.Listen = "127.0.0.1:9999"
+	if err := Save(path, c); err != nil {
+		t.Fatal(err)
+	}
+	changed, _ := os.Stat(path)
+	if os.SameFile(before, changed) {
+		t.Fatal("a changed configuration was not written")
+	}
+	if got, err := Load(path); err != nil || got.Listen != "127.0.0.1:9999" {
+		t.Fatalf("%v %v", got.Listen, err)
+	}
+}

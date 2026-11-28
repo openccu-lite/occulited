@@ -87,7 +87,7 @@ func ConsoleResetAuth(dir, name string, now time.Time) (password string, removed
 	}
 	// a running daemon ends the sessions when it sees the hash change; for one that is not
 	// running they leave the session store now
-	if err := endStoredSessions(SessionStorePath(dir), name); err != nil {
+	if err := endAccountSessions(dir, name); err != nil {
 		return pw, removed, err
 	}
 	return pw, removed, nil

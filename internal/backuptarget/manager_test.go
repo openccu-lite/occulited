@@ -126,9 +126,15 @@ func TestManagerStatesAndTest(t *testing.T) {
 	if !strings.Contains(strings.Join(h.calls, "|"), "test "+m.join("/media/net/"+n.ID+"/lab")) {
 		t.Fatalf("%q", h.calls)
 	}
-	// Back up now starts the unit; a bad instance never reaches systemctl
+	// Back up now starts the unit; a bad instance never reaches systemctl. Task 190: the daemon's
+	// login times reach users.json first
+	flushed := 0
+	m.BeforeRun = func() { flushed++ }
 	if err := m.Start(ctx, n.ID); err != nil {
 		t.Fatal(err)
+	}
+	if flushed != 1 {
+		t.Fatalf("flushed %d times before the run, want 1", flushed)
 	}
 	if err := m.Start(ctx, "../x"); !errors.Is(err, ErrInvalid) {
 		t.Fatal(err)

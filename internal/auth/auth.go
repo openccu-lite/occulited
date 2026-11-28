@@ -19,6 +19,7 @@
 package auth
 
 import (
+	"bytes"
 	"crypto/rand"
 	"crypto/sha256"
 	"crypto/subtle"
@@ -347,6 +348,14 @@ type Options struct {
 	// LastSeenEvery. Its directory is the store's own and carries .nobackup. Empty: sessions live
 	// in memory only (the console commands).
 	SessionFile string
+	// SessionRunFile, when set beside SessionFile, is the session store's live copy in /run
+	// (occulited task 190): every write above goes there, and the userfs copy SessionFile is brought
+	// up to date only at Close, once a day (Sweep, the first after midnight) and when a session it
+	// holds ends - so a login or a last-seen time costs the SD card nothing. A restart of the service
+	// keeps /run and restores from it; after a reboot SessionFile is read. A power loss loses the
+	// sessions opened since the last flush, never brings back one that ended. Empty: every write
+	// goes to SessionFile (the console commands, tests).
+	SessionRunFile string
 	// RestoreMethods are the login methods whose stored sessions Open restores; a session of any
 	// other method is dropped (a login the running authentication mode does not offer). None: no
 	// session is restored.
@@ -355,15 +364,19 @@ type Options struct {
 	// Changed is told, off the store's lock, whenever users.json was written or found changed
 	// by another writer (task 193: the favorites nodes follow the accounts). May be nil.
 	Changed func()
-	// UsageEvery is how often the stored tokens' last-use times and addresses reach users.json
-	// (occulited B-154; default DefaultUsageEvery): a token's use is kept in memory, written with
-	// the next save of anything else, by Sweep once it is this old, and at Close.
+	// UsageEvery is how often the times kept in memory reach users.json (occulited B-154, task
+	// 190; default DefaultUsageEvery): the stored tokens' last-use times and addresses, a passkey's
+	// last use and counter, the identity provider's last login of an account. They are written with
+	// the next save of anything else, by Sweep once they are this old - with the default, by the
+	// first Sweep of a new day as well - by FlushStamps (before a backup) and at Close.
 	UsageEvery time.Duration
 }
 
-// DefaultUsageEvery is Options.UsageEvery's default: a program polling with a token costs one
-// write of users.json an hour at most, and a crash loses at most an hour of last-use times.
-const DefaultUsageEvery = time.Hour
+// DefaultUsageEvery is Options.UsageEvery's default (task 190; an hour since B-154 before): a
+// program polling with a token or a login costs one write of users.json a day at most - the first
+// sweep after midnight, before the nightly backup at 00:07 reads the file - and a power loss loses
+// at most that day's last-use and login times. A clean stop writes them.
+const DefaultUsageEvery = 24 * time.Hour
 
 func (o *Options) defaults() {
 	if o.IdleTimeout == 0 {
@@ -425,6 +438,21 @@ type Store struct {
 	usage map[string]tokenUse
 	// usageSaved is when users.json last took the usage in (or the store opened)
 	usageSaved time.Time
+	// stamps are the login times users.json does not hold yet, by account name (task 190): a
+	// passkey's use and counter, the provider's login. Like usage they never make an account
+	// "changed by this store", so they cannot outvote what another writer changed on it; every
+	// save folds them in (applyStamps), and the listings and the passkey ceremony read them.
+	stamps map[string]*userStamp
+	// diskBytes is what users.json held when this store last read or wrote it, diskBytesOf that
+	// file's identity: a save that would write the same bytes over it writes nothing (task 190).
+	diskBytes   []byte
+	diskBytesOf os.FileInfo
+	// the userfs copy of the session store, when the live one is in /run (task 190): its bytes as
+	// last read or written (nil: none or unreadable), the session hashes it holds, and when it was
+	// last brought up to date (or the store opened)
+	sessDisk    []byte
+	sessOnDisk  map[string]bool
+	sessFlushed time.Time
 }
 
 // tokenUse is one stored token's latest use that users.json does not hold yet.
@@ -473,9 +501,19 @@ func TicketLifetime(path string) time.Duration {
 func Open(dir string, opt Options) (*Store, error) {
 	opt.defaults()
 	s := &Store{path: filepath.Join(dir, "users.json"), opt: opt, users: map[string]*User{}, ephemeral: map[string]*Token{}, sessions: map[string]*live{}, aliases: map[string]string{}, tickets: map[string]ticket{}, failures: map[string][]time.Time{}, locked: map[string]time.Time{},
-		usage: map[string]tokenUse{}, usageSaved: opt.Now()}
+		usage: map[string]tokenUse{}, usageSaved: opt.Now(), stamps: map[string]*userStamp{}, sessOnDisk: map[string]bool{}, sessFlushed: opt.Now()}
 	if err := s.reload(); err != nil {
 		return nil, err
+	}
+	if run := opt.SessionRunFile; run != "" {
+		// task 190: the unit's runtime directory; an older unit without it keeps every write on the
+		// userfs, as before
+		if fi, err := os.Stat(filepath.Dir(run)); opt.SessionFile == "" || err != nil || !fi.IsDir() {
+			if opt.SessionFile != "" {
+				slog.Info("sessions: no runtime directory for the live copy of the session store; it is written to the disk", "path", run)
+			}
+			s.opt.SessionRunFile = ""
+		}
 	}
 	if opt.SessionFile != "" {
 		s.loadSessions()
@@ -577,7 +615,12 @@ func (s *Store) reload() error {
 // Equality, not "newer": a clock set back between two writes - a box without a real-time clock
 // before its time is synchronised - must not hide the second one.
 func (s *Store) changed(st os.FileInfo) bool {
-	return s.disk == nil || !os.SameFile(s.disk, st) || st.Size() != s.disk.Size() || !st.ModTime().Equal(s.disk.ModTime())
+	return s.disk == nil || !sameIdentity(s.disk, st)
+}
+
+// sameIdentity: the same file, size and modification time.
+func sameIdentity(a, b os.FileInfo) bool {
+	return os.SameFile(a, b) && a.Size() == b.Size() && a.ModTime().Equal(b.ModTime())
 }
 
 // read parses users.json, together with the identity of the file it read.
@@ -604,6 +647,7 @@ func (s *Store) read() (usersDoc, os.FileInfo, error) {
 			t.migrate()
 		}
 	}
+	s.diskBytes, s.diskBytesOf = b, st
 	return doc, st, nil
 }
 
@@ -633,29 +677,75 @@ func (s *Store) synced(st os.FileInfo) {
 // with it - a console command within a mutation, or while the file could not be read - what it
 // wrote is merged in first: save never drops an account or a token this store did not remove
 // itself, and it does not overwrite a file it cannot read.
-func (s *Store) save() error { return s.saveDurable(true) }
+func (s *Store) save() error { return s.saveDurable(true, false) }
 
 // saveDurable is save; durable false leaves out the fsync (occulited B-146). The store's lock is
 // held while users.json is written, and an fsync waits for the file system's journal commit: while a
 // full backup streams gigabytes onto the same disk that took minutes on a lab VM, and every
 // authenticated request waited on the lock that long. A token's last-use time is the one save on
 // the request path and needs no durability - a crash loses at most that time, and the rename of
-// the written file still replaces users.json whole.
-func (s *Store) saveDurable(durable bool) error {
-	if st, err := os.Stat(s.path); err == nil && s.changed(st) {
-		doc, _, err := s.read()
+// the written file still replaces users.json whole. stamps says the times kept in memory are what
+// is to be written (saveUsage); otherwise a save that changes nothing of the accounts and tokens
+// writes nothing and leaves them in memory (task 190).
+func (s *Store) saveDurable(durable, stamps bool) error {
+	cur, err := os.Stat(s.path)
+	merged := false
+	if err == nil && s.changed(cur) {
+		doc, st, err := s.read()
 		if err != nil {
 			return fmt.Errorf("users.json was changed by someone else and cannot be read, so it is not overwritten: %w", s.failed(err))
 		}
 		old := s.users
 		s.merge(doc)
 		s.accountsChanged(old)
+		cur, merged = st, true
 	} else if err != nil && !errors.Is(err, os.ErrNotExist) {
 		return err
 	}
+	// task 190: the same bytes over the same file are no write - preferences saved unchanged, a
+	// merge that brought nothing of this store's. Without a change of its own the times kept in
+	// memory stay there: they are written once a day, not with every save that changes nothing.
+	if cur != nil && s.diskBytesOf != nil && !sameIdentity(cur, s.diskBytesOf) {
+		cur = nil
+	}
+	if !stamps && cur != nil && bytes.Equal(s.usersBytes(), s.diskBytes) {
+		s.synced(cur)
+		if merged {
+			s.syncGateTokens()
+		}
+		return nil
+	}
 	// after the merge: a use alone never makes a token "changed by this store", so it cannot
-	// outvote what another writer changed on it
+	// outvote what another writer changed on it; nor does a login time an account (task 190)
 	s.applyUsage()
+	s.applyStamps()
+	b := s.usersBytes()
+	if cur != nil && bytes.Equal(b, s.diskBytes) {
+		s.synced(cur)
+		s.usage, s.usageSaved = map[string]tokenUse{}, s.opt.Now()
+		s.stamps = map[string]*userStamp{}
+		if merged {
+			s.syncGateTokens()
+		}
+		return nil
+	}
+	st, err := writeAtomicSync(s.path, b, 0o600, durable)
+	if err != nil {
+		return err
+	}
+	s.synced(st)
+	s.diskBytes, s.diskBytesOf = b, st
+	s.usage, s.usageSaved = map[string]tokenUse{}, s.opt.Now()
+	s.stamps = map[string]*userStamp{}
+	s.syncGateTokens()
+	if s.opt.Changed != nil {
+		go s.opt.Changed() // off the lock: the listener reads the accounts back
+	}
+	return nil
+}
+
+// usersBytes is users.json's content for the accounts and tokens in memory.
+func (s *Store) usersBytes() []byte {
 	users := make([]*User, 0, len(s.users))
 	for _, u := range s.users {
 		users = append(users, u)
@@ -663,17 +753,7 @@ func (s *Store) saveDurable(durable bool) error {
 	sort.Slice(users, func(i, j int) bool { return users[i].Name < users[j].Name })
 	sort.SliceStable(s.tokens, func(i, j int) bool { return s.tokens[i].Name < s.tokens[j].Name })
 	b, _ := json.MarshalIndent(usersDoc{Users: users, Tokens: s.tokens}, "", "  ")
-	st, err := writeAtomicSync(s.path, append(b, '\n'), 0o600, durable)
-	if err != nil {
-		return err
-	}
-	s.synced(st)
-	s.usage, s.usageSaved = map[string]tokenUse{}, s.opt.Now()
-	s.syncGateTokens()
-	if s.opt.Changed != nil {
-		go s.opt.Changed() // off the lock: the listener reads the accounts back
-	}
-	return nil
+	return append(b, '\n')
 }
 
 // applyUsage writes the use kept in memory into the stored tokens (occulited B-154). A use of a
@@ -701,22 +781,38 @@ func withUse(last *time.Time, client *TokenClient, u tokenUse) (*time.Time, *Tok
 	return last, client
 }
 
-// saveUsage writes users.json when it misses a token's use (occulited B-154); durable as for save.
+// saveUsage writes users.json when it misses a token's use (occulited B-154) or a login time
+// (task 190); durable as for save.
 func (s *Store) saveUsage(durable bool) {
-	if len(s.usage) == 0 {
+	if len(s.usage) == 0 && len(s.stamps) == 0 {
 		return
 	}
-	if err := s.saveDurable(durable); err != nil {
-		slog.Warn("users: cannot write the tokens' last-use times", "path", s.path, "err", err)
+	if err := s.saveDurable(durable, true); err != nil {
+		slog.Warn("users: cannot write the tokens' last-use times and the login times", "path", s.path, "err", err)
 	}
 }
 
-// FlushUsage writes the tokens' use kept in memory to users.json now, when there is any.
-func (s *Store) FlushUsage() {
+// FlushStamps writes the tokens' use and the login times kept in memory to users.json now, when
+// there are any: before a backup reads the file (task 190).
+func (s *Store) FlushStamps() {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	_ = s.reload()
 	s.saveUsage(true)
+}
+
+// usageDue says whether the times kept in memory are old enough for Sweep to write them: once
+// UsageEvery has passed since the last save, and with a day's interval (the default) at the first
+// sweep of a new day as well, so the nightly backup after midnight finds them.
+func (s *Store) usageDue(now time.Time) bool {
+	return now.Sub(s.usageSaved) >= s.opt.UsageEvery || (s.opt.UsageEvery >= 24*time.Hour && !sameDay(now, s.usageSaved))
+}
+
+// sameDay: a and b fall on the same calendar day, in a's location.
+func sameDay(a, b time.Time) bool {
+	y1, m1, d1 := a.Date()
+	y2, m2, d2 := b.In(a.Location()).Date()
+	return y1 == y2 && m1 == m2 && d1 == d2
 }
 
 // merge folds users.json as another writer left it (doc) into memory, record by record: what
@@ -1131,6 +1227,7 @@ func (s *Store) Users() []Account {
 	out := make([]Account, 0, len(s.users))
 	for _, u := range s.users {
 		c := accountOf(u)
+		c.LastProviderLogin = s.providerLogin(u) // task 190: kept in memory until the next save
 		out = append(out, c)
 	}
 	sort.Slice(out, func(i, j int) bool { return out[i].Name < out[j].Name })
@@ -1969,16 +2066,21 @@ func (s *Store) Sweep() {
 	if n > 0 {
 		s.saveSessions(true)
 	}
-	// occulited B-154: the tokens' use, once UsageEvery after the last save; without the fsync,
-	// as on the request path before (B-146) - the lock is held while it writes
-	if now.Sub(s.usageSaved) >= s.opt.UsageEvery {
+	// occulited B-154, task 190: the tokens' use and the login times, once a day; without the
+	// fsync, as on the request path before (B-146) - the lock is held while it writes
+	if s.usageDue(now) {
 		s.saveUsage(false)
+	}
+	// task 190: the session store's userfs copy, once a day as well
+	if s.opt.SessionRunFile != "" && (now.Sub(s.sessFlushed) >= 24*time.Hour || !sameDay(now, s.sessFlushed)) {
+		s.persistSessions()
 	}
 	s.syncGateTokens() // an expired token, or a rotation's previous secret past its minute, leaves the gate
 }
 
-// Close writes the last-seen times the session store does not have yet and the tokens' use
-// users.json does not have yet; call it at a clean shutdown.
+// Close writes the last-seen times the session store does not have yet, the tokens' use and the
+// login times users.json does not have yet, and the session store's userfs copy when its live one
+// is in /run (task 190); call it at a clean shutdown.
 func (s *Store) Close() {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -1987,8 +2089,11 @@ func (s *Store) Close() {
 	for _, x := range s.sessions {
 		if x.method != methodAnonymous && !x.lastSeen.Equal(x.saved) {
 			s.saveSessions(false)
-			return
+			break
 		}
+	}
+	if s.opt.SessionRunFile != "" {
+		s.persistSessions()
 	}
 }
 
@@ -2027,37 +2132,81 @@ type storedSession struct {
 // loadSessions restores the stored sessions that are still valid: known hash shape, a user that
 // still exists and fits the login method, a method the running mode offers, neither expiry
 // passed. The role is the user's in users.json now. An unreadable or corrupt store restores
-// nothing - everyone logs in again - with a warning, and never stops the start.
+// nothing - everyone logs in again - with a warning, and never stops the start. With a live copy
+// in /run (task 190) that copy is read - a restart of the service - and the userfs copy when there
+// is none or it cannot be used: after a reboot.
 func (s *Store) loadSessions() {
 	path := s.opt.SessionFile
 	if err := s.sessionDir(); err != nil {
 		slog.Warn("sessions: the session store's directory is not usable; sessions end with occulited", "path", path, "err", err)
 	}
-	b, err := os.ReadFile(path)
-	if errors.Is(err, os.ErrNotExist) {
+	disk, derr := os.ReadFile(path)
+	if run := s.opt.SessionRunFile; run != "" {
+		if derr == nil {
+			s.sessDisk, s.sessOnDisk = disk, hashesIn(disk)
+		}
+		b, err := os.ReadFile(run)
+		if err == nil && s.restoreSessions(run, b, false) {
+			return
+		}
+		if err == nil {
+			slog.Warn("sessions: the live copy of the session store cannot be used; the copy on the disk is read", "path", run)
+		} else if !errors.Is(err, os.ErrNotExist) {
+			slog.Warn("sessions: cannot read the live copy of the session store; the copy on the disk is read", "path", run, "err", err)
+		}
+	}
+	if errors.Is(derr, os.ErrNotExist) {
 		return
 	}
-	if err != nil {
-		slog.Warn("sessions: cannot read the session store; everyone logs in again", "path", path, "err", err)
+	if derr != nil {
+		slog.Warn("sessions: cannot read the session store; everyone logs in again", "path", path, "err", derr)
 		return
 	}
+	s.restoreSessions(path, disk, true)
+	if s.opt.SessionRunFile != "" {
+		s.saveSessions(false) // the live copy, for a restart of the service
+	}
+}
+
+// hashesIn are the session hashes a session store's content holds; none when it cannot be read.
+func hashesIn(b []byte) map[string]bool {
+	out := map[string]bool{}
+	var doc sessionsDoc
+	if json.Unmarshal(b, &doc) == nil {
+		for _, e := range doc.Sessions {
+			out[e.Hash] = true
+		}
+	}
+	return out
+}
+
+// restoreSessions restores from a session store's content b (read from path). False when b is not
+// a store of this version; replace then writes the store anew (everyone logs in again), else the
+// caller tries the next copy.
+func (s *Store) restoreSessions(path string, b []byte, replace bool) bool {
 	var doc sessionsDoc
 	if err := json.Unmarshal(b, &doc); err != nil {
-		slog.Warn("sessions: the session store is corrupt; everyone logs in again", "path", path, "err", err)
-		s.saveSessions(true)
-		return
+		if replace {
+			slog.Warn("sessions: the session store is corrupt; everyone logs in again", "path", path, "err", err)
+			s.saveSessions(true)
+		}
+		return false
 	}
 	if doc.Version == 1 {
 		// the store of an occulited before task 125: its sessions have ten-character ids, which no
 		// request can present any more (IsSessionID), and none of them may ever count as an alias
-		slog.Info("sessions: the session store is from before the 128-bit session ids; everyone logs in once", "path", path)
-		s.saveSessions(true)
-		return
+		if replace {
+			slog.Info("sessions: the session store is from before the 128-bit session ids; everyone logs in once", "path", path)
+			s.saveSessions(true)
+		}
+		return false
 	}
 	if doc.Version != sessionsVersion {
-		slog.Warn("sessions: the session store has a version this occulited does not know; everyone logs in again", "path", path, "version", doc.Version)
-		s.saveSessions(true)
-		return
+		if replace {
+			slog.Warn("sessions: the session store has a version this occulited does not know; everyone logs in again", "path", path, "version", doc.Version)
+			s.saveSessions(true)
+		}
+		return false
 	}
 	restore := map[string]bool{}
 	for _, m := range s.opt.RestoreMethods {
@@ -2083,11 +2232,12 @@ func (s *Store) loadSessions() {
 		}
 	}
 	if len(doc.Sessions) > 0 {
-		slog.Info("sessions: restored from the session store", "sessions", len(s.sessions), "dropped", dropped)
+		slog.Info("sessions: restored from the session store", "path", path, "sessions", len(s.sessions), "dropped", dropped)
 	}
 	if dropped > 0 {
 		s.saveSessions(true)
 	}
+	return true
 }
 
 // sessionDir makes the session store's directory (0700) and its .nobackup.
@@ -2103,15 +2253,8 @@ func (s *Store) sessionDir() error {
 	return os.WriteFile(tag, nil, 0o644)
 }
 
-// saveSessions writes the session store: every session but auth-off's, atomically. It is never
-// written without its .nobackup beside it. revoked says the write ends a session: when it fails,
-// the store is removed (or emptied) rather than left with a session that must not come back at
-// the next start.
-func (s *Store) saveSessions(revoked bool) {
-	path := s.opt.SessionFile
-	if path == "" {
-		return
-	}
+// sessionsBytes is the session store's content: every session but auth-off's.
+func (s *Store) sessionsBytes() []byte {
 	doc := sessionsDoc{Version: sessionsVersion, Sessions: []storedSession{}}
 	for _, x := range s.sessions {
 		if x.method == methodAnonymous {
@@ -2127,9 +2270,68 @@ func (s *Store) saveSessions(revoked bool) {
 		return doc.Sessions[i].Hash < doc.Sessions[j].Hash
 	})
 	b, _ := json.MarshalIndent(doc, "", "  ")
+	return append(b, '\n')
+}
+
+// saveSessions writes the session store atomically: its live copy in /run when there is one (task
+// 190), else the userfs copy, which is never written without its .nobackup beside it. revoked says
+// the write ends a session: when it fails, the store is removed (or emptied) rather than left with
+// a session that must not come back at the next start. A session the userfs copy holds that has
+// ended - logged out, expired, its account changed - takes the userfs copy along at once, so that
+// a power loss never brings it back.
+func (s *Store) saveSessions(revoked bool) {
+	if s.opt.SessionFile == "" {
+		return
+	}
+	b := s.sessionsBytes()
+	run := s.opt.SessionRunFile
+	if run == "" {
+		if s.writeDiskSessions(b, revoked) {
+			s.markSessionsSaved()
+		}
+		return
+	}
+	if _, err := writeAtomicSync(run, b, 0o600, false); err != nil {
+		slog.Warn("sessions: cannot write the live copy of the session store; the copy on the disk is written instead", "path", run, "err", err)
+		if s.writeDiskSessions(b, revoked) {
+			s.markSessionsSaved()
+		}
+		return
+	}
+	s.markSessionsSaved()
+	for h := range s.sessOnDisk {
+		if s.sessions[h] == nil {
+			s.writeDiskSessions(b, true)
+			return
+		}
+	}
+}
+
+// persistSessions brings the userfs copy of the session store up to date with the live one: at
+// Close and once a day (task 190). Nothing is written when it holds that already.
+func (s *Store) persistSessions() {
+	s.writeDiskSessions(s.sessionsBytes(), false)
+}
+
+// markSessionsSaved records that the session store holds every session's last-seen time.
+func (s *Store) markSessionsSaved() {
+	for _, x := range s.sessions {
+		x.saved = x.lastSeen
+	}
+}
+
+// writeDiskSessions writes b to the userfs copy unless it holds b already; false when it failed.
+// revoked as for saveSessions.
+func (s *Store) writeDiskSessions(b []byte, revoked bool) bool {
+	path := s.opt.SessionFile
+	now := s.opt.Now()
+	if s.sessDisk != nil && bytes.Equal(b, s.sessDisk) {
+		s.sessFlushed = now
+		return true
+	}
 	err := s.sessionDir()
 	if err == nil {
-		_, err = writeAtomic(path, append(b, '\n'), 0o600)
+		_, err = writeAtomic(path, b, 0o600)
 	}
 	if err != nil {
 		slog.Warn("sessions: cannot write the session store; sessions may not survive a restart", "path", path, "err", err)
@@ -2139,12 +2341,17 @@ func (s *Store) saveSessions(revoked bool) {
 					slog.Error("sessions: cannot remove the session store either; a session that just ended may be restored at the next start", "path", path, "err", rerr)
 				}
 			}
+			s.sessDisk, s.sessOnDisk = nil, map[string]bool{}
 		}
-		return
+		return false
 	}
-	for _, x := range s.sessions {
-		x.saved = x.lastSeen
+	s.sessDisk, s.sessOnDisk, s.sessFlushed = b, map[string]bool{}, now
+	for h, x := range s.sessions {
+		if x.method != methodAnonymous {
+			s.sessOnDisk[h] = true
+		}
 	}
+	return true
 }
 
 // sessionsVersion is the session store's format: 2 since task 125 (26-character ids, the
@@ -2154,6 +2361,27 @@ const sessionsVersion = 2
 // SessionStorePath is the session store under a state directory.
 func SessionStorePath(stateDir string) string {
 	return filepath.Join(stateDir, "sessions", "sessions.json")
+}
+
+// SessionRunPath is the session store's live copy in /run (task 190), beside the gate's session
+// mirror sessionDir: /run/occulite/sessions gives /run/occulite/state/sessions.json, in the unit's
+// runtime directory occulite/state.
+func SessionRunPath(sessionDir string) string {
+	return filepath.Join(filepath.Dir(filepath.Clean(sessionDir)), "state", "sessions.json")
+}
+
+// consoleSessionRun is the live copy the console commands edit beside the userfs copy; a var for
+// the tests.
+var consoleSessionRun = SessionRunPath("/run/occulite/sessions")
+
+// endAccountSessions removes one account's sessions from both copies of the session store, for a
+// console command: the userfs copy under dir and the live one in /run (task 190), which a running
+// daemon - or the next start of one after a restart - would restore from first.
+func endAccountSessions(dir, name string) error {
+	if err := endStoredSessions(SessionStorePath(dir), name); err != nil {
+		return err
+	}
+	return endStoredSessions(consoleSessionRun, name)
 }
 
 // accountsChanged follows a change another writer made to users.json - the console's `passwd`, a
@@ -2246,7 +2474,7 @@ func ConsoleSetPassword(dir, name, pw string) error {
 	// B-102: a password set here ends the account's sessions, as one set in the web interface
 	// does. A running daemon drops them when it sees users.json change; for one that is not
 	// running they leave the session store now.
-	if err := endStoredSessions(SessionStorePath(dir), name); err != nil {
+	if err := endAccountSessions(dir, name); err != nil {
 		return fmt.Errorf("the password is set, but the account's stored sessions could not be ended: %w", err)
 	}
 	return nil
@@ -2841,9 +3069,14 @@ func (s *Store) LoginExternal(provider, name, remote, agent string) (*Session, e
 		return nil, ErrUnknownUser
 	}
 	now := s.opt.Now()
-	u.LastProviderLogin = &now
-	if err := s.save(); err != nil {
-		return nil, err
+	if s.providerLogin(u) == nil {
+		// the first: it lets the password form be hidden (occulited task 70), so it is written now
+		u.LastProviderLogin = &now
+		if err := s.save(); err != nil {
+			return nil, err
+		}
+	} else {
+		s.stampOf(u).provider = now // task 190: a login time, written once a day
 	}
 	return s.openSession(name, u.Level, provider, remote, agent)
 }

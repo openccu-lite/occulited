@@ -311,7 +311,13 @@ func run(opts daemonOptions) error {
 	}
 	// task 307: the gate's token mirror lists, per token, the URL segments its addon:<id> scopes
 	// open - the addon's id and what its lighttpd drop-in proxies
-	users, err := auth.Open(cfg.StateDir, auth.Options{SessionDir: *sessionDir, SessionFile: auth.SessionStorePath(cfg.StateDir), RestoreMethods: sessionMethods(cfg.Auth), IdleTimeout: idle, MaxAge: maxAge, AddonSegments: system.Root(*rootDir).AddonIngressSegments, Changed: func() {
+	// task 190: the session store's live copy in the unit's runtime directory occulite/state, the
+	// userfs copy written at a stop, once a day and when a session it holds ends
+	sessionRun := ""
+	if *sessionDir != "" {
+		sessionRun = auth.SessionRunPath(*sessionDir)
+	}
+	users, err := auth.Open(cfg.StateDir, auth.Options{SessionDir: *sessionDir, SessionFile: auth.SessionStorePath(cfg.StateDir), SessionRunFile: sessionRun, RestoreMethods: sessionMethods(cfg.Auth), IdleTimeout: idle, MaxAge: maxAge, AddonSegments: system.Root(*rootDir).AddonIngressSegments, Changed: func() {
 		if syncFavorites != nil {
 			syncFavorites()
 		}
@@ -1178,6 +1184,12 @@ func run(opts daemonOptions) error {
 	sysAPI.DataStore = &dataStore{path: *cfgPath, stateDir: cfg.StateDir, m: dataStoreMgr, h: dpHistory, root: root}
 	// openccu-lite task 86: the backup targets - the USB directory, NFS, SMB, SFTP
 	sysAPI.BackupTargets = backupTargets(root, cfg.StateDir, backupStore)
+	// task 190: a backup holds the login times users.json takes only once a day otherwise; the
+	// nightly run at 00:07 finds them from the first sweep after midnight
+	sysAPI.BeforeBackup = users.FlushStamps
+	if sysAPI.BackupTargets != nil {
+		sysAPI.BackupTargets.BeforeRun = users.FlushStamps
+	}
 	// openccu-lite task 228: the SMB and NFS shares of System → Storage
 	sysAPI.Shares = shareManager(root, cfg.StateDir, sysAPI.BackupTargets)
 	sysAPI.Shares.Uses = sysAPI.ShareUses // the journal's copies and the backup targets on a share

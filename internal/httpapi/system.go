@@ -399,6 +399,9 @@ type SystemAPI struct {
 	// BackupHooks runs the addons' snapshot hooks before every backup and keeps their switches
 	// (openccu-lite task 399, backupaddons.go); nil = no hooks, the routes say unsupported.
 	BackupHooks *system.BackupHooks
+	// BeforeBackup is called before a backup is made (task 190): what occulited keeps in memory
+	// and writes only now and then - the accounts' login times - reaches the disk first. May be nil.
+	BeforeBackup func()
 	// Early keeps the early start's switches (task 119, earlystart.go); nil = on for every addon,
 	// and the routes answer 501.
 	Early EarlyStarts

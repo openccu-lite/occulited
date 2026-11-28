@@ -98,6 +98,9 @@ func (a *SystemAPI) backupPrepare(w http.ResponseWriter, r *http.Request) {
 func (a *SystemAPI) runBackupJob(ctx context.Context, job *BackupJob) {
 	// a leftover of a backup that was killed (B-91) goes before the next one is made
 	a.Root.SweepBackupTemp(time.Now(), system.BackupTempMaxAge)
+	if a.BeforeBackup != nil {
+		a.BeforeBackup() // task 190: users.json with the login times kept in memory
+	}
 	// CreateBackup lets the script finish even when ctx ends, and removes its file then; the
 	// addons' snapshot hooks run before it (openccu-lite task 399)
 	path, hooks, err := a.Root.CreateBackupWithHooks(ctx, a.Run, a.BackupHooks)
